@@ -970,6 +970,22 @@ git push
 
 ---
 
+## SMTP configuration (as applied)
+
+Applied via `supabase config push` (no dashboard toggle needed) on 2026-06-09. Set in
+`supabase/config.toml`:
+
+- `[auth.email.smtp]` enabled, `host=smtp.resend.com`, `port=465`, `user=resend`,
+  `pass=env(RESEND_API_KEY)`, `admin_email=no-reply@send.rocking.one`, `sender_name=Rocking`.
+- `[auth.email]` `otp_length=6`, `enable_confirmations=false` (OTP signs in directly),
+  `max_frequency=1s`.
+- `[auth.rate_limit]` `email_sent=60` per hour (raised from the template default of 2).
+
+Verified: `POST /auth/v1/otp` for a real address returned HTTP 200 and delivered a code from
+`no-reply@send.rocking.one`. `config.toml` commits the `env(RESEND_API_KEY)` reference, never the
+key itself. When the app is deployed, update `[auth] site_url` from `http://127.0.0.1:3000` to the
+Vercel URL and re-push.
+
 ## Self-Review
 
 **Spec coverage (design Section 5 + carry-forward notes):**
