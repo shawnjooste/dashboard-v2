@@ -502,9 +502,9 @@ export type Database = {
     Functions: {
       approve_pending_user: {
         Args: {
-          p_profile_id: string
           p_client_id: string
           p_make_manager?: boolean
+          p_profile_id: string
         }
         Returns: undefined
       }
@@ -522,7 +522,12 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      device_in_current_client: {
+        Args: { p_device_id: string }
+        Returns: boolean
+      }
       is_rocking_staff: { Args: never; Returns: boolean }
+      my_assigned_device_ids: { Args: never; Returns: string[] }
     }
     Enums: {
       client_status: "active" | "inactive"
