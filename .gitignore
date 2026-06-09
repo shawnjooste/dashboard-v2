@@ -21,3 +21,6 @@ supabase/.temp/
 .DS_Store
 *.log
 .vercel
+
+# typescript build cache
+*.tsbuildinfo
