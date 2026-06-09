@@ -500,6 +500,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_pending_user: {
+        Args: {
+          p_profile_id: string
+          p_client_id: string
+          p_make_manager?: boolean
+        }
+        Returns: undefined
+      }
       claim_device: { Args: { p_device_id: string }; Returns: undefined }
       claimable_devices: {
         Args: never
