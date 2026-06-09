@@ -5,10 +5,13 @@ export const USER_ROLES = [
   "client_manager",
   "client_member",
 ] as const;
-export type UserRole = (typeof USER_ROLES)[number];
+export type UserRole = Database["public"]["Enums"]["user_role"];
 
-export type ProfileStatus = "pending" | "active";
-export type ClientStatus = "active" | "inactive";
+// Compile-time guard: the runtime list must stay in sync with the DB enum.
+USER_ROLES satisfies readonly UserRole[];
+
+export type ProfileStatus = Database["public"]["Enums"]["profile_status"];
+export type ClientStatus = Database["public"]["Enums"]["client_status"];
 
 // Row aliases sourced from the generated Database type — single source of truth.
 export type Client = Database["public"]["Tables"]["clients"]["Row"];
