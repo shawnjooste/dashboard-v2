@@ -1106,4 +1106,30 @@ supabase stop
 
 **Placeholder scan:** no TBD/TODO; every code/SQL step is complete.
 
+## Carry-forward notes for Plan 2 (Auth & Onboarding)
+
+Surfaced during code review of the RLS layer — must be honoured by the auth/approval flow:
+
+1. **"Pending users see nothing" is enforced via NULL `client_id`, not via `status`.** Every
+   client-scoped policy fails closed when `client_id` is NULL. Therefore the admin approval flow
+   that assigns a pending user to a client MUST set `client_id` and flip `status` to `active`
+   **together/atomically** — setting `client_id` alone would immediately grant row access to a
+   still-`pending` profile. Treat assignment = activation as one operation.
+2. **Role checks compare enum-as-string literals** (`'client_manager'`, `'client_member'`) in
+   policies. If the `user_role` enum is ever renamed/extended, these silently stop matching rather
+   than erroring. Keep the enum stable; if it must change, update `0008_rls.sql`'s successor
+   policies in the same migration.
+3. **Manager write paths are intentionally absent.** Managers assigning devices to members and
+   promoting members to manager (Plan 4 / role management) need SECURITY DEFINER RPCs or explicit
+   write policies — none exist yet by design. Add them in the plan that introduces those UIs.
+
+## Migration numbering (as built)
+
+The plan body labels some migrations with earlier numbers; the actual applied sequence is:
+`0001` extensions · `0002` tenancy · `0003` auth helpers · `0004` auth hardening (rename +
+trigger idempotency + updated_at fn) · `0005` datto core · `0006` datto children · `0007` device
+updated_at triggers · `0008` RLS · `0009` RPCs · `0010` revoke anon execute on RPCs.
+
+---
+
 **Type consistency:** `current_user_role()` (renamed from `current_role()` to avoid shadowing the Postgres built-in keyword; see migration 0004), `current_client_id()`, `is_rocking_staff()` used identically across Tasks 5, 8, 9; `device_identity`, `av_ok`, `assigned_user_label` consistent across Tasks 6, 10; `normalizeAvStatus` defined and tested in Task 10.
