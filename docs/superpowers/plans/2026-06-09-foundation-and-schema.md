@@ -657,8 +657,8 @@ create policy import_runs_staff on public.import_runs
 create policy devices_select on public.devices
   for select using (
     public.is_rocking_staff()
-    or (public.current_role() = 'client_manager' and client_id = public.current_client_id())
-    or (public.current_role() = 'client_member'
+    or (public.current_user_role() = 'client_manager' and client_id = public.current_client_id())
+    or (public.current_user_role() = 'client_member'
         and id in (select device_id from public.device_assignments
                    where profile_id = auth.uid()))
   );
@@ -669,7 +669,7 @@ create policy device_assignments_select on public.device_assignments
   for select using (
     public.is_rocking_staff()
     or profile_id = auth.uid()
-    or (public.current_role() = 'client_manager'
+    or (public.current_user_role() = 'client_manager'
         and device_id in (select id from public.devices
                           where client_id = public.current_client_id()))
   );
@@ -1106,4 +1106,4 @@ supabase stop
 
 **Placeholder scan:** no TBD/TODO; every code/SQL step is complete.
 
-**Type consistency:** `current_role()`, `current_client_id()`, `is_rocking_staff()` used identically across Tasks 5, 8, 9; `device_identity`, `av_ok`, `assigned_user_label` consistent across Tasks 6, 10; `normalizeAvStatus` defined and tested in Task 10.
+**Type consistency:** `current_user_role()` (renamed from `current_role()` to avoid shadowing the Postgres built-in keyword; see migration 0004), `current_client_id()`, `is_rocking_staff()` used identically across Tasks 5, 8, 9; `device_identity`, `av_ok`, `assigned_user_label` consistent across Tasks 6, 10; `normalizeAvStatus` defined and tested in Task 10.
