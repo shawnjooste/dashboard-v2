@@ -17,7 +17,12 @@ export async function requestCode(
     email,
     options: { shouldCreateUser: true },
   });
-  if (error) return { error: error.message, email };
+  if (error) {
+    return {
+      error: "We couldn't send a code right now. Please try again in a moment.",
+      email,
+    };
+  }
   return { codeSent: true, email };
 }
 
@@ -30,12 +35,14 @@ export async function verifyCode(
   if (!token) return { error: "Enter the 6-digit code.", codeSent: true, email };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "email",
-  });
-  if (error) return { error: error.message, codeSent: true, email };
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+  if (error) {
+    return {
+      error: "That code is invalid or has expired. Request a new one.",
+      codeSent: true,
+      email,
+    };
+  }
 
   redirect("/");
 }
