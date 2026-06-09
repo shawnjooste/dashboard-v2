@@ -19,7 +19,7 @@ export default async function OnboardingPage() {
         Pick the computer that&apos;s yours so we can show you its health.
       </p>
       <ul className="mt-6 space-y-2">
-        {(devices ?? []).map((d: { id: string; hostname: string; assigned_user_label: string | null }) => (
+        {(devices ?? []).map((d) => (
           <li key={d.id}>
             <form action={claimDevice}>
               <input type="hidden" name="device_id" value={d.id} />
