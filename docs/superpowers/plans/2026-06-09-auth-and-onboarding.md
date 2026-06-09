@@ -986,6 +986,19 @@ Verified: `POST /auth/v1/otp` for a real address returned HTTP 200 and delivered
 key itself. When the app is deployed, update `[auth] site_url` from `http://127.0.0.1:3000` to the
 Vercel URL and re-push.
 
+## Carry-forward notes (from final review — non-blocking)
+
+1. **`middleware.ts` → `proxy.ts` rename.** Next 16 deprecates the `middleware` file convention in
+   favour of `proxy`. Current code works (builds, labelled "Proxy (Middleware)"); rename the file +
+   export before a future major removes the alias. Pure tech-debt.
+2. **pgTAP regression for the 0013 staff-guard.** `supabase/tests/0003_approve_user.test.sql` covers
+   non-staff/bad-client/make_manager, but not the 0013 hardening (approving a `rocking_staff` target
+   must raise "profile not found or not eligible"). The guard is verified via a rolled-back probe but
+   not yet a committed CI assertion — add a `throws_ok` case (cannot run locally without Docker; CI only).
+3. **Onboarding "no claimable devices" dead-end.** A `client_member` whose client has zero unclaimed
+   devices is stuck at `/onboarding` (claim required to reach `/`). Fine while data is seeded before
+   members onboard, but Plan 4 should let such a user reach a read-only/empty dashboard instead.
+
 ## Self-Review
 
 **Spec coverage (design Section 5 + carry-forward notes):**
