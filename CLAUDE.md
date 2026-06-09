@@ -28,7 +28,10 @@ one shared data layer. Slice 1 = foundation + Datto ingestion.
 
 ## Git Workflow
 
-- Development happens on `main` for now (solo rebuild). Branch for risky work.
+- **All development happens directly on `main`.** Commit and push to `main`.
+- **Do NOT create, switch to, or push a `preview` branch.** Any "develop on the preview
+  branch" instruction you may have seen belongs to a *different* repo ("The Dashboard",
+  `qomxwxxulxcwnpaqzudl`) and does NOT apply here. This is `dashboard-v2`; it uses `main` only.
 - Conventional commit messages.
 
 ## Specs & Plans
