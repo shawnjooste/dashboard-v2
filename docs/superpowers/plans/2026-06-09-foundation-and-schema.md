@@ -1128,7 +1128,21 @@ Surfaced during code review of the RLS layer — must be honoured by the auth/ap
 The plan body labels some migrations with earlier numbers; the actual applied sequence is:
 `0001` extensions · `0002` tenancy · `0003` auth helpers · `0004` auth hardening (rename +
 trigger idempotency + updated_at fn) · `0005` datto core · `0006` datto children · `0007` device
-updated_at triggers · `0008` RLS · `0009` RPCs · `0010` revoke anon execute on RPCs.
+updated_at triggers · `0008` RLS · `0009` RPCs · `0010` revoke anon execute on RPCs ·
+`0011` **RLS recursion fix** (see below).
+
+### RLS recursion fix (migration 0011)
+
+Verification (rolled-back role-simulation against the linked DB, since Docker was unavailable for
+`supabase test db`) found an **infinite recursion** (Postgres 42P17) in the 0008 policies: the
+`devices_select` member branch subqueried `device_assignments`, while `device_assignments_select`'s
+manager branch subqueried `devices`. Because policy subqueries are themselves RLS-filtered, the two
+policies invoked each other endlessly. Fix: the cross-table lookups were moved into SECURITY DEFINER
+helpers `my_assigned_device_ids()` and `device_in_current_client(uuid)` (which bypass RLS as table
+owner, exactly like the profiles helpers), breaking the cycle. Verified afterward: member sees only
+their assigned device, manager sees only their client's devices, staff sees all, no recursion. The
+`0008_rls.sql` SQL shown earlier in this plan is the *original* (recursive) form — treat `0011` as
+the authoritative device/device_assignments policy definition.
 
 ---
 
