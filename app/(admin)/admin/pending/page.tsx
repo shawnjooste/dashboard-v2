@@ -24,7 +24,12 @@ export default async function PendingApprovalsPage() {
             <div className="font-medium">{p.email}</div>
             <form action={approveUser} className="mt-3 flex flex-wrap items-center gap-3">
               <input type="hidden" name="profile_id" value={p.id} />
-              <select name="client_id" required className="rounded border px-2 py-1">
+              <select
+                name="client_id"
+                required
+                aria-label="Client"
+                className="rounded border px-2 py-1"
+              >
                 <option value="">Choose a client…</option>
                 {(clients ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
