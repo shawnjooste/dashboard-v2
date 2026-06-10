@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getClientSummaries } from "@/lib/views/clients";
 import { getVisibleDeviceHealth } from "@/lib/views/devices";
 import { ClientCard } from "@/components/ClientCard";
@@ -13,12 +12,7 @@ export default async function AdminHome() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">All clients</h1>
-        <Link href="/admin/pending" className="text-sm text-blue-600 hover:underline">
-          Pending approvals
-        </Link>
-      </div>
+      <h1 className="text-xl font-semibold">Overview</h1>
 
       <SummaryStrip summary={overall} />
 

@@ -11,7 +11,7 @@ export default async function AdminLayout({
   if (!me.authenticated) redirect("/login");
   if (me.profile.role !== "rocking_staff") redirect("/");
   return (
-    <AppShell email={me.profile.email} roleLabel="Rocking admin">
+    <AppShell email={me.profile.email} role="rocking_staff">
       {children}
     </AppShell>
   );
