@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveLandingPath } from "@/lib/auth/routing";
@@ -26,7 +27,7 @@ export default async function AppHome() {
       <div className="space-y-6">
         <h1 className="text-xl font-semibold">Network overview</h1>
         <SummaryStrip summary={summarize(devices)} />
-        <DeviceTable devices={devices} />
+        <DeviceTable devices={devices} rowHref={(id) => `/devices/${id}`} />
       </div>
     );
   }
@@ -38,7 +39,17 @@ export default async function AppHome() {
       {devices.length === 0 ? (
         <p className="text-gray-500">No machine is linked to your account yet.</p>
       ) : (
-        devices.map((d) => <DeviceHealthCard key={d.id} device={d} />)
+        devices.map((d) => (
+          <div key={d.id} className="space-y-2">
+            <DeviceHealthCard device={d} />
+            <Link
+              href={`/devices/${d.id}`}
+              className="inline-block text-sm text-blue-600 hover:underline"
+            >
+              View details →
+            </Link>
+          </div>
+        ))
       )}
     </div>
   );

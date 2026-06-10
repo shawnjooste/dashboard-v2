@@ -2,7 +2,12 @@ import Link from "next/link";
 import { getDeviceDetail } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
 
-export default async function AdminDevicePage({
+/**
+ * Client-surface device detail. RLS does the scoping: a manager can only
+ * fetch devices in their client, a member only their assigned machine(s) —
+ * anything else comes back null.
+ */
+export default async function DevicePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -13,8 +18,8 @@ export default async function AdminDevicePage({
   if (!detail) {
     return (
       <div className="space-y-4">
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline">
-          ← All clients
+        <Link href="/" className="text-sm text-blue-600 hover:underline">
+          ← Back
         </Link>
         <p className="text-gray-500">Device not found.</p>
       </div>
@@ -23,11 +28,8 @@ export default async function AdminDevicePage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href={`/admin/clients/${detail.health.clientId}`}
-        className="text-sm text-blue-600 hover:underline"
-      >
-        ← Back to fleet
+      <Link href="/" className="text-sm text-blue-600 hover:underline">
+        ← Back
       </Link>
       <DeviceDetailView detail={detail} />
     </div>
