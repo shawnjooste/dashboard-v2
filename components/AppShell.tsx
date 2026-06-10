@@ -1,4 +1,6 @@
 import { type ReactNode } from "react";
+import Image from "next/image";
+import logo from "@/public/rocking-logo.png";
 
 export function AppShell({
   email,
@@ -14,7 +16,7 @@ export function AppShell({
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold">Rocking</span>
+            <Image src={logo} alt="Rocking" priority className="h-7 w-auto" />
             <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
               {roleLabel}
             </span>
