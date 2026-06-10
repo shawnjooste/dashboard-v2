@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { AppShell } from "@/components/AppShell";
 
 export default async function AdminLayout({
   children,
@@ -9,5 +10,9 @@ export default async function AdminLayout({
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
   if (me.profile.role !== "rocking_staff") redirect("/");
-  return <>{children}</>;
+  return (
+    <AppShell email={me.profile.email} roleLabel="Rocking admin">
+      {children}
+    </AppShell>
+  );
 }
