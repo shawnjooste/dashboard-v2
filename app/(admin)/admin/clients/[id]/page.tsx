@@ -3,6 +3,7 @@ import { getClientDevices } from "@/lib/views/clients";
 import { summarize } from "@/lib/views/health";
 import { SummaryStrip } from "@/components/SummaryStrip";
 import { DeviceTable } from "@/components/DeviceTable";
+import { UsersSection } from "./UsersSection";
 
 export default async function AdminClientPage({
   params,
@@ -21,6 +22,7 @@ export default async function AdminClientPage({
       </div>
       <SummaryStrip summary={summarize(devices)} />
       <DeviceTable devices={devices} rowHref={(id) => `/admin/devices/${id}`} />
+      <UsersSection clientId={id} />
     </div>
   );
 }

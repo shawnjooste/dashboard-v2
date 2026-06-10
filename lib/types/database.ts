@@ -401,6 +401,48 @@ export type Database = {
           },
         ]
       }
+      impersonation_log: {
+        Row: {
+          ended_at: string | null
+          id: string
+          staff_profile_id: string
+          started_at: string
+          target_email: string
+          target_profile_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          staff_profile_id: string
+          started_at?: string
+          target_email: string
+          target_profile_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          staff_profile_id?: string
+          started_at?: string
+          target_email?: string
+          target_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impersonation_log_staff_profile_id_fkey"
+            columns: ["staff_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impersonation_log_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_runs: {
         Row: {
           counts: Json

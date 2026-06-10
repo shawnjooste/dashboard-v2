@@ -8,15 +8,30 @@ import { Sidebar } from "./Sidebar";
 export function AppShell({
   email,
   role,
+  impersonating,
   children,
 }: {
   email: string;
   role: UserRole;
+  impersonating?: string | null;
   children: ReactNode;
 }) {
   const items = NAV[role];
   return (
-    <div className="min-h-screen md:flex">
+    <div className="min-h-screen">
+      {impersonating && (
+        <div className="flex items-center justify-between gap-3 bg-amber-400 px-4 py-2 text-sm font-medium text-amber-950">
+          <span>
+            Viewing as <strong>{impersonating}</strong> — read-only
+          </span>
+          <form action="/impersonation/exit" method="post">
+            <button className="rounded border border-amber-700 px-3 py-0.5 hover:bg-amber-300">
+              Exit
+            </button>
+          </form>
+        </div>
+      )}
+      <div className="md:flex">
       {/* Sidebar: left column on md+, slim top bar on small screens */}
       <aside className="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-3 md:min-h-screen md:w-56 md:shrink-0 md:flex-col md:items-stretch md:gap-0 md:border-b-0 md:border-r md:px-4 md:py-6">
         <Image src={logo} alt="Rocking" priority className="h-6 w-auto self-center md:mb-8 md:h-7 md:self-start" />
@@ -35,7 +50,8 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      </div>
     </div>
   );
 }
