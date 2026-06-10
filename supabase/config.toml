@@ -236,6 +236,12 @@ pass = "env(RESEND_API_KEY)"
 admin_email = "no-reply@send.rocking.one"
 sender_name = "Rocking"
 
+# Passwordless sign-in email — shows the 6-digit code ({{ .Token }}) the login
+# UI asks for, instead of the default magic link.
+[auth.email.template.magic_link]
+subject = "Your Rocking sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
