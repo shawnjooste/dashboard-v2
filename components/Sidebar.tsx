@@ -19,17 +19,19 @@ export function Sidebar({ items }: { items: NavItem[] }) {
   return (
     <nav className="flex gap-1 md:flex-col">
       {items.map((item) => {
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`rounded-md px-3 py-2 text-sm font-medium ${
-              active
-                ? "bg-gray-900 text-white"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }`}
-          >
+        const external = item.href.startsWith("http");
+        const active = !external && isActive(pathname, item.href);
+        const cls = `rounded-md px-3 py-2 text-sm font-medium ${
+          active
+            ? "bg-gray-900 text-white"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        }`;
+        return external ? (
+          <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={cls}>
+            {item.label} ↗
+          </a>
+        ) : (
+          <Link key={item.href} href={item.href} className={cls}>
             {item.label}
           </Link>
         );
