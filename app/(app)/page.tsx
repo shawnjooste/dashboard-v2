@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveLandingPath } from "@/lib/auth/routing";
+import { getVisibleDeviceHealth } from "@/lib/views/devices";
+import { summarize } from "@/lib/views/health";
+import { SummaryStrip } from "@/components/SummaryStrip";
+import { DeviceTable } from "@/components/DeviceTable";
+import { DeviceHealthCard } from "@/components/DeviceHealthCard";
 
 export default async function AppHome() {
   const me = await getCurrentProfile();
@@ -14,13 +19,27 @@ export default async function AppHome() {
   });
   if (path !== "/app") redirect(path);
 
+  const devices = await getVisibleDeviceHealth();
+
+  if (me.profile.role === "client_manager") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-xl font-semibold">Network overview</h1>
+        <SummaryStrip summary={summarize(devices)} />
+        <DeviceTable devices={devices} />
+      </div>
+    );
+  }
+
+  // client_member — their claimed device(s)
   return (
-    <main className="p-8">
-      <h1 className="text-xl font-semibold">Your dashboard</h1>
-      <p className="mt-2 text-gray-600">Device views arrive in the next slice.</p>
-      <form action="/auth/signout" method="post" className="mt-6">
-        <button className="rounded border px-3 py-1 text-sm">Sign out</button>
-      </form>
-    </main>
+    <div className="space-y-4">
+      <h1 className="text-xl font-semibold">My machine</h1>
+      {devices.length === 0 ? (
+        <p className="text-gray-500">No machine is linked to your account yet.</p>
+      ) : (
+        devices.map((d) => <DeviceHealthCard key={d.id} device={d} />)
+      )}
+    </div>
   );
 }

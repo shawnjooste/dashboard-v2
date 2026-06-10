@@ -1,20 +1,44 @@
 import Link from "next/link";
+import { getClientSummaries } from "@/lib/views/clients";
+import { getVisibleDeviceHealth } from "@/lib/views/devices";
+import { ClientCard } from "@/components/ClientCard";
+import { summarize } from "@/lib/views/health";
+import { SummaryStrip } from "@/components/SummaryStrip";
+import { DeviceTable } from "@/components/DeviceTable";
 
-export default function AdminHome() {
+export default async function AdminHome() {
+  const [clients, devices] = await Promise.all([getClientSummaries(), getVisibleDeviceHealth()]);
+  const overall = summarize(devices);
+  const attention = devices.filter((d) => d.needsAttention);
+
   return (
-    <main className="p-8">
-      <h1 className="text-xl font-semibold">Rocking admin</h1>
-      <ul className="mt-4 list-disc pl-5">
-        <li>
-          <Link className="underline" href="/admin/pending">
-            Pending user approvals
-          </Link>
-        </li>
-      </ul>
-      <p className="mt-4 text-gray-600">Client dashboards arrive in the next slice.</p>
-      <form action="/auth/signout" method="post" className="mt-6">
-        <button className="rounded border px-3 py-1 text-sm">Sign out</button>
-      </form>
-    </main>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">All clients</h1>
+        <Link href="/admin/pending" className="text-sm text-blue-600 hover:underline">
+          Pending approvals
+        </Link>
+      </div>
+
+      <SummaryStrip summary={overall} />
+
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+          Needs attention now ({attention.length})
+        </h2>
+        <DeviceTable devices={attention} />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+          Clients ({clients.length})
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {clients.map((c) => (
+            <ClientCard key={c.id} client={c} />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
