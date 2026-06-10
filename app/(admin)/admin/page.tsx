@@ -26,7 +26,7 @@ export default async function AdminHome() {
         <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">
           Needs attention now ({attention.length})
         </h2>
-        <DeviceTable devices={attention} />
+        <DeviceTable devices={attention} rowHref={(id) => `/admin/devices/${id}`} />
       </section>
 
       <section>

@@ -1,7 +1,14 @@
+import Link from "next/link";
 import type { DeviceHealth } from "@/lib/views/health";
 import { AttentionBadge } from "./AttentionBadge";
 
-export function DeviceTable({ devices }: { devices: DeviceHealth[] }) {
+export function DeviceTable({
+  devices,
+  rowHref,
+}: {
+  devices: DeviceHealth[];
+  rowHref?: (id: string) => string;
+}) {
   if (devices.length === 0)
     return <p className="text-gray-500">No devices.</p>;
   return (
@@ -22,7 +29,15 @@ export function DeviceTable({ devices }: { devices: DeviceHealth[] }) {
         <tbody>
           {devices.map((d) => (
             <tr key={d.id} className="border-b border-gray-100 last:border-0">
-              <td className="px-3 py-2 font-medium">{d.hostname}</td>
+              <td className="px-3 py-2 font-medium">
+                {rowHref ? (
+                  <Link href={rowHref(d.id)} className="text-blue-600 hover:underline">
+                    {d.hostname}
+                  </Link>
+                ) : (
+                  d.hostname
+                )}
+              </td>
               <td className="px-3 py-2 text-gray-600">{d.user ?? "—"}</td>
               <td className="px-3 py-2 text-gray-600">{d.os ?? "—"}</td>
               <td className={`px-3 py-2 ${d.flags.patchIssue ? "text-red-600" : "text-gray-600"}`}>

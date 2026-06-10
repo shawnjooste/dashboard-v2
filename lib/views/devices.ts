@@ -45,8 +45,17 @@ export async function getVisibleDeviceHealth(): Promise<DeviceHealth[]> {
   });
 }
 
+export type DeviceMeta = {
+  lastReboot: string | null;
+  serial: string | null;
+  agentVersion: string | null;
+  manufacturer: string | null;
+  model: string | null;
+};
+
 export type DeviceDetail = {
   health: DeviceHealth;
+  meta: DeviceMeta;
   drives: { drive: string; sizeGb: number | null; usedPct: number | null }[];
   alerts: { triggeredAt: string; message: string; priority: string | null; resolved: boolean }[];
   trend: { date: string; patchPct: number | null; maxDiskPct: number | null; openAlerts: number | null }[];
@@ -59,7 +68,8 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
   const health = all.find((d) => d.id === deviceId);
   if (!health) return null;
 
-  const [drives, alerts, snaps] = await Promise.all([
+  const [meta, drives, alerts, snaps] = await Promise.all([
+    supabase.from("devices").select("last_reboot, serial_number, agent_version, manufacturer, model").eq("id", deviceId).maybeSingle(),
     supabase.from("device_storage").select("drive, size_gb, used_pct").eq("device_id", deviceId),
     supabase.from("device_alerts").select("triggered_at, message, priority, resolved").eq("device_id", deviceId).order("triggered_at", { ascending: false }).limit(20),
     supabase.from("device_health_snapshots").select("snapshot_date, patch_pct, max_disk_pct, open_alert_count").eq("device_id", deviceId).order("snapshot_date"),
@@ -67,6 +77,13 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
 
   return {
     health,
+    meta: {
+      lastReboot: meta.data?.last_reboot ?? null,
+      serial: meta.data?.serial_number ?? null,
+      agentVersion: meta.data?.agent_version ?? null,
+      manufacturer: meta.data?.manufacturer ?? null,
+      model: meta.data?.model ?? null,
+    },
     drives: (drives.data ?? []).map((d) => ({ drive: d.drive, sizeGb: d.size_gb, usedPct: d.used_pct })),
     alerts: (alerts.data ?? []).map((a) => ({ triggeredAt: a.triggered_at, message: a.message, priority: a.priority, resolved: a.resolved })),
     trend: (snaps.data ?? []).map((s) => ({ date: s.snapshot_date, patchPct: s.patch_pct, maxDiskPct: s.max_disk_pct, openAlerts: s.open_alert_count })),

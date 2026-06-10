@@ -20,7 +20,7 @@ export default async function AdminClientPage({
         <h1 className="mt-1 text-xl font-semibold">{name}</h1>
       </div>
       <SummaryStrip summary={summarize(devices)} />
-      <DeviceTable devices={devices} />
+      <DeviceTable devices={devices} rowHref={(id) => `/admin/devices/${id}`} />
     </div>
   );
 }
