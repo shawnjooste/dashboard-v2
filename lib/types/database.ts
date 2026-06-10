@@ -470,6 +470,260 @@ export type Database = {
         }
         Relationships: []
       }
+      m365_connections: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          last_pull_at: string | null
+          status: string
+          tenant_id: string | null
+          tenant_name: string | null
+          token_ciphertext: string
+          token_iv: string
+          token_tag: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          last_pull_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tenant_name?: string | null
+          token_ciphertext: string
+          token_iv: string
+          token_tag: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          last_pull_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tenant_name?: string | null
+          token_ciphertext?: string
+          token_iv?: string
+          token_tag?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "m365_connections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      m365_licenses: {
+        Row: {
+          client_id: string
+          consumed: number | null
+          id: string
+          last_import_run_id: string | null
+          sku_part_number: string
+          total: number | null
+        }
+        Insert: {
+          client_id: string
+          consumed?: number | null
+          id?: string
+          last_import_run_id?: string | null
+          sku_part_number: string
+          total?: number | null
+        }
+        Update: {
+          client_id?: string
+          consumed?: number | null
+          id?: string
+          last_import_run_id?: string | null
+          sku_part_number?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "m365_licenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "m365_licenses_last_import_run_id_fkey"
+            columns: ["last_import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      m365_snapshots: {
+        Row: {
+          client_id: string
+          id: string
+          import_run_id: string | null
+          licensed_users: number | null
+          mfa_coverage_pct: number | null
+          password_only_count: number | null
+          security_defaults_on: boolean | null
+          snapshot_date: string
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          import_run_id?: string | null
+          licensed_users?: number | null
+          mfa_coverage_pct?: number | null
+          password_only_count?: number | null
+          security_defaults_on?: boolean | null
+          snapshot_date: string
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          import_run_id?: string | null
+          licensed_users?: number | null
+          mfa_coverage_pct?: number | null
+          password_only_count?: number | null
+          security_defaults_on?: boolean | null
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "m365_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "m365_snapshots_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      m365_tenant: {
+        Row: {
+          ca_policy_count: number | null
+          client_id: string
+          last_import_run_id: string | null
+          licensed_user_count: number | null
+          mfa_strong_count: number | null
+          secure_score: number | null
+          secure_score_max: number | null
+          security_defaults_on: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          ca_policy_count?: number | null
+          client_id: string
+          last_import_run_id?: string | null
+          licensed_user_count?: number | null
+          mfa_strong_count?: number | null
+          secure_score?: number | null
+          secure_score_max?: number | null
+          security_defaults_on?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          ca_policy_count?: number | null
+          client_id?: string
+          last_import_run_id?: string | null
+          licensed_user_count?: number | null
+          mfa_strong_count?: number | null
+          secure_score?: number | null
+          secure_score_max?: number | null
+          security_defaults_on?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "m365_tenant_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "m365_tenant_last_import_run_id_fkey"
+            columns: ["last_import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      m365_users: {
+        Row: {
+          account_enabled: boolean | null
+          assigned_licenses: string[]
+          client_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          is_licensed: boolean
+          last_import_run_id: string | null
+          m365_user_id: string
+          mfa_methods: string[]
+          mfa_strong: boolean
+          updated_at: string
+          user_principal_name: string | null
+        }
+        Insert: {
+          account_enabled?: boolean | null
+          assigned_licenses?: string[]
+          client_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_licensed?: boolean
+          last_import_run_id?: string | null
+          m365_user_id: string
+          mfa_methods?: string[]
+          mfa_strong?: boolean
+          updated_at?: string
+          user_principal_name?: string | null
+        }
+        Update: {
+          account_enabled?: boolean | null
+          assigned_licenses?: string[]
+          client_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_licensed?: boolean
+          last_import_run_id?: string | null
+          m365_user_id?: string
+          mfa_methods?: string[]
+          mfa_strong?: boolean
+          updated_at?: string
+          user_principal_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "m365_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "m365_users_last_import_run_id_fkey"
+            columns: ["last_import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           client_id: string | null

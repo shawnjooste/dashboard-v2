@@ -14,11 +14,19 @@ export default async function AdminClientPage({
   const { name, devices } = await getClientDevices(id);
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline">
-          ← All clients
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Link href="/admin" className="text-sm text-blue-600 hover:underline">
+            ← All clients
+          </Link>
+          <h1 className="mt-1 text-xl font-semibold">{name}</h1>
+        </div>
+        <Link
+          href={`/admin/clients/${id}/m365`}
+          className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+        >
+          Microsoft 365 →
         </Link>
-        <h1 className="mt-1 text-xl font-semibold">{name}</h1>
       </div>
       <SummaryStrip summary={summarize(devices)} />
       <DeviceTable devices={devices} rowHref={(id) => `/admin/devices/${id}`} />

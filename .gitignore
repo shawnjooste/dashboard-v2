@@ -24,3 +24,6 @@ supabase/.temp/
 
 # typescript build cache
 *.tsbuildinfo
+
+# M365 probe token (local only)
+.m365-token.json
