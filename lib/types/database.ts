@@ -730,6 +730,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          pending_notified_at: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
@@ -739,6 +740,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          pending_notified_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -748,6 +750,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          pending_notified_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
