@@ -7,6 +7,7 @@ export const NAV: Record<UserRole, NavItem[]> = {
   rocking_staff: [
     { label: "Overview", href: "/admin" },
     { label: "Clients", href: "/admin/clients" },
+    { label: "Microsoft 365", href: "/admin/m365" },
     { label: "Approvals", href: "/admin/pending" },
     { label: "Support", href: "https://help.rocking.co.za" },
   ],

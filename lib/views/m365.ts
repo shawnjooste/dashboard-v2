@@ -29,6 +29,70 @@ export type M365View = {
   trend: number[];
 };
 
+export type M365ClientSummary = {
+  clientId: string;
+  name: string;
+  tenantName: string | null;
+  securityDefaultsOn: boolean | null;
+  licensedUsers: number;
+  mfaCoverage: number | null;
+  withoutMfa: number;
+  lastPullAt: string | null;
+};
+
+export type M365Overview = {
+  tenants: M365ClientSummary[];
+  totals: {
+    tenants: number;
+    licensedUsers: number;
+    mfaCoverage: number | null;
+    withoutMfa: number;
+    securityDefaultsOff: number;
+  };
+};
+
+/** Cross-tenant M365 roll-up for the admin cockpit (staff RLS = all). */
+export async function getM365Overview(): Promise<M365Overview> {
+  const supabase = await createClient();
+  const [tenantsRes, clientsRes, connsRes] = await Promise.all([
+    supabase.from("m365_tenant").select("client_id, security_defaults_on, licensed_user_count, mfa_strong_count"),
+    supabase.from("clients").select("id, name"),
+    supabase.from("m365_connections").select("client_id, tenant_name, last_pull_at"),
+  ]);
+  const nameById = new Map((clientsRes.data ?? []).map((c) => [c.id, c.name]));
+  const connById = new Map((connsRes.data ?? []).map((c) => [c.client_id, c]));
+
+  const tenants: M365ClientSummary[] = (tenantsRes.data ?? [])
+    .map((t) => {
+      const licensed = t.licensed_user_count ?? 0;
+      const strong = t.mfa_strong_count ?? 0;
+      return {
+        clientId: t.client_id,
+        name: nameById.get(t.client_id) ?? "Unknown",
+        tenantName: connById.get(t.client_id)?.tenant_name ?? null,
+        securityDefaultsOn: t.security_defaults_on,
+        licensedUsers: licensed,
+        mfaCoverage: licensed ? Math.round((100 * strong) / licensed) : null,
+        withoutMfa: Math.max(0, licensed - strong),
+        lastPullAt: connById.get(t.client_id)?.last_pull_at ?? null,
+      };
+    })
+    .sort((a, b) => b.withoutMfa - a.withoutMfa || a.name.localeCompare(b.name));
+
+  const sumL = tenants.reduce((n, t) => n + t.licensedUsers, 0);
+  const sumStrong = tenants.reduce((n, t) => n + (t.licensedUsers - t.withoutMfa), 0);
+  return {
+    tenants,
+    totals: {
+      tenants: tenants.length,
+      licensedUsers: sumL,
+      mfaCoverage: sumL ? Math.round((100 * sumStrong) / sumL) : null,
+      withoutMfa: tenants.reduce((n, t) => n + t.withoutMfa, 0),
+      securityDefaultsOff: tenants.filter((t) => t.securityDefaultsOn === false).length,
+    },
+  };
+}
+
 /** Assembles the M365 view for one client (RLS-scoped). */
 export async function getM365View(clientId: string): Promise<M365View> {
   const supabase = await createClient();
