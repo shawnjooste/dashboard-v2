@@ -1,19 +1,41 @@
+import Link from "next/link";
 import type { M365View } from "@/lib/views/m365";
 import { Sparkline } from "./Sparkline";
 import { Card, CardHeader } from "./ui/Card";
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
-  return (
-    <div className="rounded-lg border border-line bg-card px-4 py-3">
+function Stat({
+  label,
+  value,
+  tone,
+  href,
+}: {
+  label: string;
+  value: string;
+  tone?: "good" | "bad";
+  href?: string;
+}) {
+  const body = (
+    <>
       <div className={`text-2xl font-bold ${tone === "bad" ? "text-brand" : tone === "good" ? "text-good" : "text-ink"}`}>
         {value}
       </div>
-      <div className="mt-0.5 text-[12.5px] text-muted">{label}</div>
-    </div>
+      <div className="mt-0.5 flex items-center text-[12.5px] text-muted">
+        <span>{label}</span>
+        {href && <span className="ml-auto text-faint">→</span>}
+      </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="block rounded-lg border border-line bg-card px-4 py-3 transition-colors hover:border-faint">
+        {body}
+      </Link>
+    );
+  }
+  return <div className="rounded-lg border border-line bg-card px-4 py-3">{body}</div>;
 }
 
-export function M365View({ view }: { view: M365View }) {
+export function M365View({ view, usersHref }: { view: M365View; usersHref?: string }) {
   if (!view.connected) {
     return (
       <div className="rounded-lg border border-line bg-card px-4 py-6 text-sm text-muted">
@@ -27,7 +49,7 @@ export function M365View({ view }: { view: M365View }) {
     <div className="space-y-4">
       {/* Security posture */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Active licensed users" value={String(view.activeLicensed)} />
+        <Stat label="Active licensed users" value={String(view.activeLicensed)} href={usersHref} />
         <Stat
           label="MFA coverage"
           value={view.mfaCoverage === null ? "—" : `${view.mfaCoverage}%`}
@@ -84,8 +106,19 @@ export function M365View({ view }: { view: M365View }) {
           </thead>
           <tbody>
             {view.licenses.map((l) => (
-              <tr key={l.sku} className="border-b border-line-soft last:border-0">
-                <td className="px-4 py-2.5 font-medium text-ink">{l.sku}</td>
+              <tr key={l.sku} className={`border-b border-line-soft last:border-0 ${usersHref ? "hover:bg-canvas" : ""}`}>
+                <td className="px-4 py-2.5 font-medium">
+                  {usersHref ? (
+                    <Link
+                      href={`${usersHref}?license=${encodeURIComponent(l.sku)}`}
+                      className="text-ink hover:text-brand"
+                    >
+                      {l.sku}
+                    </Link>
+                  ) : (
+                    <span className="text-ink">{l.sku}</span>
+                  )}
+                </td>
                 <td className={`px-4 py-2.5 ${l.maxed ? "font-semibold text-warn" : "text-muted"}`}>
                   {l.consumed ?? "—"}
                   {l.maxed ? " (full)" : ""}

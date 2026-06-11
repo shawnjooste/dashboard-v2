@@ -93,6 +93,42 @@ export async function getM365Overview(): Promise<M365Overview> {
   };
 }
 
+type M365UserRow = {
+  display_name: string | null;
+  user_principal_name: string | null;
+  account_enabled: boolean | null;
+  is_licensed: boolean;
+  assigned_licenses: string[] | null;
+  mfa_methods: string[] | null;
+  mfa_strong: boolean;
+};
+
+function toM365User(u: M365UserRow): M365User {
+  return {
+    name: u.display_name ?? "(unnamed)",
+    upn: u.user_principal_name ?? "",
+    enabled: !!u.account_enabled,
+    licensed: u.is_licensed,
+    licenses: (u.assigned_licenses ?? []).map(friendlySku),
+    mfaStrong: u.mfa_strong,
+    methods: strongMethodLabels(u.mfa_methods ?? []),
+  };
+}
+
+/** Enabled users for one client, with friendly licence names + MFA detail
+ *  (the drill-down behind "active licensed users" and the licence table). */
+export async function getM365Users(clientId: string): Promise<M365User[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("m365_users")
+    .select("display_name, user_principal_name, account_enabled, is_licensed, assigned_licenses, mfa_methods, mfa_strong")
+    .eq("client_id", clientId);
+  return (data ?? [])
+    .map(toM365User)
+    .filter((u) => u.enabled)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /** Assembles the M365 view for one client (RLS-scoped). */
 export async function getM365View(clientId: string): Promise<M365View> {
   const supabase = await createClient();
@@ -112,15 +148,7 @@ export async function getM365View(clientId: string): Promise<M365View> {
     };
   }
 
-  const users: M365User[] = rows.map((u) => ({
-    name: u.display_name ?? "(unnamed)",
-    upn: u.user_principal_name ?? "",
-    enabled: !!u.account_enabled,
-    licensed: u.is_licensed,
-    licenses: (u.assigned_licenses ?? []).map(friendlySku),
-    mfaStrong: u.mfa_strong,
-    methods: strongMethodLabels(u.mfa_methods ?? []),
-  }));
+  const users: M365User[] = rows.map(toM365User);
 
   const active = users.filter((u) => u.enabled && u.licensed);
   return {

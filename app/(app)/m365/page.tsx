@@ -17,7 +17,7 @@ export default async function M365Page() {
         title="Microsoft 365"
         subtitle="How your company's email and accounts are protected, including two-step sign-in."
       />
-      <M365View view={view} />
+      <M365View view={view} usersHref="/m365/users" />
     </div>
   );
 }

@@ -24,7 +24,7 @@ export default async function AdminClientM365Page({
         }
         title="Microsoft 365"
       />
-      <M365View view={view} />
+      <M365View view={view} usersHref={`/admin/clients/${id}/m365/users`} />
     </div>
   );
 }
