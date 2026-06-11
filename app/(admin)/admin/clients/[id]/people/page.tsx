@@ -20,7 +20,15 @@ export default async function ClientPeoplePage({
         <Link href={`/admin/clients/${id}`} className="text-sm text-blue-600 hover:underline">
           ← {client?.name ?? "Client"}
         </Link>
-        <h1 className="mt-1 text-xl font-semibold">People ({people.length})</h1>
+        <div className="mt-1 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">People ({people.length})</h1>
+          <Link
+            href={`/admin/clients/${id}/link-devices`}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Link devices →
+          </Link>
+        </div>
       </div>
 
       {people.length === 0 ? (

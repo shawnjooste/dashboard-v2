@@ -330,10 +330,12 @@ export type Database = {
           id: string
           last_import_run_id: string | null
           last_reboot: string | null
+          last_user: string | null
           manufacturer: string | null
           memory: string | null
           model: string | null
           operating_system: string | null
+          person_id: string | null
           physical_cores: number | null
           serial_number: string | null
           updated_at: string
@@ -353,10 +355,12 @@ export type Database = {
           id?: string
           last_import_run_id?: string | null
           last_reboot?: string | null
+          last_user?: string | null
           manufacturer?: string | null
           memory?: string | null
           model?: string | null
           operating_system?: string | null
+          person_id?: string | null
           physical_cores?: number | null
           serial_number?: string | null
           updated_at?: string
@@ -376,10 +380,12 @@ export type Database = {
           id?: string
           last_import_run_id?: string | null
           last_reboot?: string | null
+          last_user?: string | null
           manufacturer?: string | null
           memory?: string | null
           model?: string | null
           operating_system?: string | null
+          person_id?: string | null
           physical_cores?: number | null
           serial_number?: string | null
           updated_at?: string
@@ -397,6 +403,13 @@ export type Database = {
             columns: ["last_import_run_id"]
             isOneToOne: false
             referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]

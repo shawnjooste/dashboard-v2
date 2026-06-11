@@ -80,6 +80,7 @@ for (const site of sites) {
       external_ip: d.extIpAddress ?? null,
       agent_version: d.cagVersion ?? null,
       enrollment_date: epochToIso(d.creationDate),
+      last_user: d.lastLoggedInUser ?? null,
       last_import_run_id: runId,
     });
 

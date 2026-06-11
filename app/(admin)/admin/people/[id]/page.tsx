@@ -73,8 +73,26 @@ export default async function Person360Page({
         </Card>
       </div>
 
-      <Card title="Devices">
-        <p className="text-sm text-gray-500">Device linking arrives in the next slice.</p>
+      <Card title={`Devices (${person.devices.length})`}>
+        {person.devices.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No devices linked.{" "}
+            <Link href={`/admin/clients/${person.clientId}/link-devices`} className="text-blue-600 hover:underline">
+              Link devices →
+            </Link>
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100 text-sm">
+            {person.devices.map((d) => (
+              <li key={d.id} className="flex items-center justify-between py-2">
+                <Link href={`/admin/devices/${d.id}`} className="font-medium text-blue-600 hover:underline">
+                  {d.hostname}
+                </Link>
+                <span className="text-gray-500">{d.lastUser ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );

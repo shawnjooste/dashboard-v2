@@ -54,20 +54,22 @@ export type Person360 = {
     licenses: string[];
   } | null;
   portal: { role: string; status: string } | null;
+  devices: { id: string; hostname: string; lastUser: string | null }[];
 };
 
-/** Full Person 360 (RLS-scoped). Devices arrive in Slice 2. */
+/** Full Person 360 (RLS-scoped). */
 export async function getPerson360(personId: string): Promise<Person360 | null> {
   const supabase = await createClient();
   const { data: person } = await supabase
     .from("people").select("id, client_id, email, display_name").eq("id", personId).maybeSingle();
   if (!person) return null;
 
-  const [m365, profile] = await Promise.all([
+  const [m365, profile, devices] = await Promise.all([
     supabase.from("m365_users")
       .select("is_licensed, account_enabled, mfa_strong, mfa_methods, assigned_licenses")
       .eq("person_id", personId).maybeSingle(),
     supabase.from("profiles").select("role, status").eq("person_id", personId).maybeSingle(),
+    supabase.from("devices").select("id, hostname, last_user").eq("person_id", personId).order("hostname"),
   ]);
 
   return {
@@ -75,6 +77,7 @@ export async function getPerson360(personId: string): Promise<Person360 | null> 
     name: person.display_name ?? person.email,
     email: person.email,
     clientId: person.client_id,
+    devices: (devices.data ?? []).map((d) => ({ id: d.id, hostname: d.hostname, lastUser: d.last_user })),
     m365: m365.data
       ? {
           licensed: m365.data.is_licensed,
