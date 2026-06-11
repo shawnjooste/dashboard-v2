@@ -1,0 +1,151 @@
+/* A4 quote document — ported from the Rocking print template (Quote.html).
+   Screen: a paper card. Print: locks to A4 geometry, chrome stripped. */
+
+.page {
+  --accent: #d5121a;
+  --q-ink: #111111;
+  --q-ink2: #2a2a2a;
+  --q-muted: #6b6b6b;
+  --q-rule: #1a1a1a;
+  --q-rule2: #d8d8d8;
+  width: 210mm;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 18mm 18mm 22mm 18mm;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 10px 40px rgba(0, 0, 0, 0.08);
+  color: var(--q-ink);
+  font-family: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  font-feature-settings: "kern" 1, "liga" 1, "tnum" 1;
+}
+
+/* ---------- header ---------- */
+.docHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid var(--q-rule);
+}
+.brandLogo { width: 160px; height: auto; object-fit: contain; }
+.brandMeta { font-size: 9pt; line-height: 1.5; color: var(--q-ink2); text-align: right; }
+.brandName { font-weight: 700; font-size: 10.5pt; color: var(--q-ink); letter-spacing: 0.01em; }
+
+/* ---------- parties ---------- */
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 18px 0 10px; }
+.blockLabel {
+  font-size: 8.5pt; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--q-muted); margin-bottom: 6px;
+}
+.clientName { font-weight: 700; font-size: 11pt; margin-bottom: 2px; }
+.clientLine { font-size: 9.5pt; color: var(--q-ink2); }
+.attn { margin-top: 6px; color: var(--q-ink); }
+.quoteMeta {
+  display: flex; flex-direction: column; gap: 3px; align-self: start;
+  border-left: 2px solid var(--accent); padding: 2px 0 2px 14px;
+}
+.metaRow { display: grid; grid-template-columns: 110px 1fr; font-size: 9.5pt; align-items: baseline; }
+.metaLabel { color: var(--q-muted); }
+.metaValue { font-weight: 600; color: var(--q-ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- project ---------- */
+.projectBlock { margin: 22px 0 6px; }
+.projectTitle { font-size: 16pt; font-weight: 700; margin: 0 0 8px; line-height: 1.25; }
+.projectIntro { font-size: 9.5pt; line-height: 1.55; color: var(--q-ink2); margin: 0; max-width: 64em; }
+
+/* ---------- sections / tables ---------- */
+.section { margin-top: 22px; break-inside: avoid; }
+.sectionHead {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--accent);
+}
+.sectionTitle { font-size: 10.5pt; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+.sectionSub { font-size: 9pt; color: var(--q-muted); font-weight: 400; }
+
+.lines { width: 100%; border-collapse: collapse; font-size: 9.5pt; table-layout: fixed; }
+.colDesc { width: auto; }
+.colQty { width: 48px; }
+.colUnit { width: 110px; }
+.colTotal { width: 120px; }
+.lines thead th {
+  text-align: left; font-weight: 600; font-size: 8.5pt; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--q-muted);
+  padding: 10px 10px 8px 0; border-bottom: 1px solid var(--q-rule2);
+}
+.thNum { text-align: right !important; padding-right: 0 !important; }
+.thSub { display: block; font-size: 7.5pt; letter-spacing: 0.04em; text-transform: none; color: var(--q-muted); font-weight: 400; }
+.lines td { padding: 9px 10px 9px 0; vertical-align: top; border-bottom: 1px solid var(--q-rule2); }
+.cellNum { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0 !important; white-space: nowrap; }
+.strong { font-weight: 600; }
+.lineDesc { font-weight: 600; color: var(--q-ink); }
+.lineDetail { font-size: 8.5pt; color: var(--q-muted); margin-top: 2px; line-height: 1.4; }
+.groupRow td {
+  padding: 14px 0 6px; font-size: 8.5pt; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--q-ink); font-weight: 700; border-bottom: 0;
+  border-top: 1px solid var(--q-rule2);
+}
+.lines tbody tr:first-child td { border-top: 0; }
+.lines tfoot td { padding: 6px 0; border-bottom: 0; font-size: 9.5pt; }
+.totLabel { text-align: right; color: var(--q-ink2); padding-right: 16px !important; }
+.lines tfoot tr:first-child td { border-top: 1px solid var(--q-rule); padding-top: 10px; }
+.grandRow td { background: var(--accent); color: #fff; padding: 10px 14px; font-weight: 700; font-size: 10.5pt; }
+.grandRow .totLabel { color: #fff; letter-spacing: 0.02em; }
+.grandRow .cellNum { font-size: 11.5pt; padding-right: 14px !important; }
+
+/* ---------- summary ---------- */
+.summary { margin-top: 26px; padding: 16px 18px; background: #f7f6f4; border-left: 3px solid var(--accent); }
+.blockTitle { font-size: 10pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 10px; }
+.summaryRows { display: flex; flex-direction: column; gap: 4px; }
+.summaryRow { display: flex; align-items: baseline; gap: 8px; font-size: 10pt; }
+.summaryLabel { color: var(--q-ink2); }
+.summaryDots { flex: 1; border-bottom: 1px dotted rgba(0, 0, 0, 0.25); transform: translateY(-3px); }
+.summaryValue { font-weight: 700; font-variant-numeric: tabular-nums; }
+.summaryNote { margin: 12px 0 0; font-size: 9pt; color: var(--q-muted); font-style: italic; }
+
+/* ---------- terms ---------- */
+.terms { margin-top: 22px; break-inside: avoid; }
+.terms ul { margin: 0; padding: 0; list-style: none; }
+.terms li { position: relative; padding: 4px 0 4px 18px; font-size: 9.5pt; line-height: 1.5; color: var(--q-ink2); }
+.terms li::before {
+  content: ""; position: absolute; left: 0; top: 12px;
+  width: 8px; height: 1px; background: var(--accent);
+}
+
+/* ---------- banking ---------- */
+.banking { margin-top: 22px; padding: 14px 16px; border: 1px solid var(--q-rule2); break-inside: avoid; }
+.bankGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; font-size: 9.5pt; }
+.bankGrid > div { display: flex; flex-direction: column; gap: 2px; }
+.bankLabel { font-size: 8pt; letter-spacing: 0.1em; text-transform: uppercase; color: var(--q-muted); }
+.bankRef { margin: 10px 0 0; font-size: 8.5pt; color: var(--q-muted); }
+
+/* ---------- footer ---------- */
+.docFooter {
+  margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--q-rule2);
+  font-size: 8pt; color: var(--q-muted); text-align: center;
+}
+.dot { margin: 0 6px; color: var(--accent); }
+
+/* ---------- print ---------- */
+@media print {
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 16mm 18mm 18mm;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .page { padding: 22px 18px 32px; }
+  .docHeader { grid-template-columns: 1fr; }
+  .brandMeta { text-align: left; }
+  .parties { grid-template-columns: 1fr; }
+  .bankGrid { grid-template-columns: repeat(2, 1fr); }
+  .colQty { width: 36px; }
+  .colUnit { width: 80px; }
+  .colTotal { width: 86px; }
+}

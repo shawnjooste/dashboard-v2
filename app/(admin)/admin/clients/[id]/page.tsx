@@ -26,6 +26,7 @@ export default async function AdminClientPage({
           <div className="flex gap-2">
             <SecondaryLink href={`/admin/clients/${id}/people`}>People →</SecondaryLink>
             <SecondaryLink href={`/admin/clients/${id}/m365`}>Microsoft 365 →</SecondaryLink>
+            <SecondaryLink href={`/admin/clients/${id}/quotes`}>Quotes →</SecondaryLink>
           </div>
         }
       />

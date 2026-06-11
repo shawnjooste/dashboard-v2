@@ -836,6 +836,196 @@ export type Database = {
           },
         ]
       }
+      quote_counters: {
+        Row: {
+          last_n: number
+          year: number
+        }
+        Insert: {
+          last_n?: number
+          year: number
+        }
+        Update: {
+          last_n?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      quote_events: {
+        Row: {
+          actor_profile_id: string | null
+          comment: string | null
+          created_at: string
+          event: string
+          id: string
+          quote_id: string
+          version: number | null
+        }
+        Insert: {
+          actor_profile_id?: string | null
+          comment?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          quote_id: string
+          version?: number | null
+        }
+        Update: {
+          actor_profile_id?: string | null
+          comment?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          quote_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_events_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_events_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_internal: {
+        Row: {
+          id: string
+          line_path: string
+          note: string | null
+          supplier_cost: number | null
+          version_id: string
+        }
+        Insert: {
+          id?: string
+          line_path: string
+          note?: string | null
+          supplier_cost?: number | null
+          version_id: string
+        }
+        Update: {
+          id?: string
+          line_path?: string
+          note?: string | null
+          supplier_cost?: number | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_internal_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "quote_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_versions: {
+        Row: {
+          created_at: string
+          doc: Json
+          grand_total: number | null
+          id: string
+          monthly_total: number | null
+          quote_id: string
+          subtotal: number | null
+          valid_until: string | null
+          vat_amount: number | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          doc: Json
+          grand_total?: number | null
+          id?: string
+          monthly_total?: number | null
+          quote_id: string
+          subtotal?: number | null
+          valid_until?: string | null
+          vat_amount?: number | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          doc?: Json
+          grand_total?: number | null
+          id?: string
+          monthly_total?: number | null
+          quote_id?: string
+          subtotal?: number | null
+          valid_until?: string | null
+          vat_amount?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          current_version: number
+          id: string
+          quote_number: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          quote_number: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          quote_number?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_aliases: {
         Row: {
           client_id: string
@@ -898,6 +1088,7 @@ export type Database = {
       }
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
+      next_quote_number: { Args: never; Returns: string }
       upsert_person: {
         Args: {
           p_client_id: string

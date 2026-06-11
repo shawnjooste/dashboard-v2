@@ -33,7 +33,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col">
       {impersonating && (
-        <div className="flex items-center justify-between gap-3 bg-warn-tint px-4 py-2 text-sm font-medium text-warn-ink">
+        <div className="flex items-center justify-between gap-3 bg-warn-tint px-4 py-2 text-sm font-medium text-warn-ink print:hidden">
           <span>
             Viewing as <strong>{impersonating}</strong> — read-only
           </span>
@@ -47,7 +47,7 @@ export function AppShell({
 
       <div className="flex min-h-0 flex-1 md:flex-row">
         {/* Sidebar: left column on md+, slim top bar on small screens */}
-        <aside className="flex flex-col gap-2 border-b border-line bg-card px-3 pb-4 md:w-[248px] md:shrink-0 md:gap-0 md:border-b-0 md:border-r">
+        <aside className="flex flex-col gap-2 border-b border-line bg-card px-3 pb-4 md:w-[248px] md:shrink-0 md:gap-0 md:border-b-0 md:border-r print:hidden">
           <div className="flex items-center px-3 pb-3 pt-[18px]">
             <Image src={logo} alt="Rocking" priority className="h-5 w-auto" />
           </div>
@@ -75,7 +75,7 @@ export function AppShell({
 
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-6">
+          <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-6 print:hidden">
             <div className="ml-auto flex items-center gap-5">
               <Link
                 href={supportHref}
@@ -90,7 +90,7 @@ export function AppShell({
             </div>
           </div>
 
-          <main className="mx-auto w-full max-w-[1240px] flex-1 px-6 py-9 md:px-10">
+          <main className="mx-auto w-full max-w-[1240px] flex-1 px-6 py-9 md:px-10 print:max-w-none print:p-0">
             {children}
           </main>
         </div>
