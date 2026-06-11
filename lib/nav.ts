@@ -8,7 +8,13 @@ export type NavGroup = { label: string; items: NavItem[] };
 export const NAV: Record<UserRole, NavGroup[]> = {
   rocking_staff: [
     { label: "", items: [{ label: "Overview", href: "/admin" }] },
-    { label: "Clients", items: [{ label: "Clients", href: "/admin/clients" }] },
+    {
+      label: "Clients",
+      items: [
+        { label: "Clients", href: "/admin/clients" },
+        { label: "Users", href: "/admin/users" },
+      ],
+    },
     { label: "Services", items: [{ label: "Microsoft 365", href: "/admin/m365" }] },
     {
       label: "Account",
