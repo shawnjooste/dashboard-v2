@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rocking Dashboard",
+  title: "Rocking",
   description: "Rocking client portal",
 };
 
