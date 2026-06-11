@@ -28,6 +28,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile> {
         role: "client_member",
         status: "pending",
         pending_notified_at: null,
+        person_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },

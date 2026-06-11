@@ -21,12 +21,20 @@ export default async function AdminClientPage({
           </Link>
           <h1 className="mt-1 text-xl font-semibold">{name}</h1>
         </div>
-        <Link
-          href={`/admin/clients/${id}/m365`}
-          className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
-        >
-          Microsoft 365 →
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href={`/admin/clients/${id}/people`}
+            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+          >
+            People →
+          </Link>
+          <Link
+            href={`/admin/clients/${id}/m365`}
+            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+          >
+            Microsoft 365 →
+          </Link>
+        </div>
       </div>
       <SummaryStrip summary={summarize(devices)} />
       <DeviceTable devices={devices} rowHref={(id) => `/admin/devices/${id}`} />

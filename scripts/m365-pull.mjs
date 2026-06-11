@@ -90,12 +90,23 @@ async function pullOne(conn) {
       if (m.ok) methods = (m.body.value ?? []).map((x) => x["@odata.type"] ?? "");
     }
     const mfaStrong = methods.some((t) => !t.toLowerCase().includes("password"));
+
+    // Active accounts with an email become canonical people (identity layer).
+    let personId = null;
+    if (u.accountEnabled && u.userPrincipalName) {
+      const { data } = await sb.rpc("upsert_person", {
+        p_client_id: conn.client_id, p_email: u.userPrincipalName,
+        p_display_name: u.displayName ?? null, p_is_active: true,
+      });
+      personId = data ?? null;
+    }
+
     userRows.push({
       client_id: conn.client_id, m365_user_id: u.id, display_name: u.displayName ?? null,
       user_principal_name: u.userPrincipalName ?? null, account_enabled: u.accountEnabled ?? null,
       is_licensed: isLicensed,
       assigned_licenses: (u.assignedLicenses ?? []).map((l) => skuPart(skus, l.skuId)).filter(Boolean),
-      mfa_methods: methods, mfa_strong: mfaStrong, last_import_run_id: runId,
+      mfa_methods: methods, mfa_strong: mfaStrong, person_id: personId, last_import_run_id: runId,
     });
   }
   if (userRows.length) await sb.from("m365_users").upsert(userRows, { onConflict: "client_id,m365_user_id" });

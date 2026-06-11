@@ -674,6 +674,7 @@ export type Database = {
           m365_user_id: string
           mfa_methods: string[]
           mfa_strong: boolean
+          person_id: string | null
           updated_at: string
           user_principal_name: string | null
         }
@@ -689,6 +690,7 @@ export type Database = {
           m365_user_id: string
           mfa_methods?: string[]
           mfa_strong?: boolean
+          person_id?: string | null
           updated_at?: string
           user_principal_name?: string | null
         }
@@ -704,6 +706,7 @@ export type Database = {
           m365_user_id?: string
           mfa_methods?: string[]
           mfa_strong?: boolean
+          person_id?: string | null
           updated_at?: string
           user_principal_name?: string | null
         }
@@ -722,6 +725,51 @@ export type Database = {
             referencedRelation: "import_runs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "m365_users_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people: {
+        Row: {
+          client_id: string
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -731,6 +779,7 @@ export type Database = {
           email: string
           id: string
           pending_notified_at: string | null
+          person_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
@@ -741,6 +790,7 @@ export type Database = {
           email: string
           id: string
           pending_notified_at?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -751,6 +801,7 @@ export type Database = {
           email?: string
           id?: string
           pending_notified_at?: string | null
+          person_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -761,6 +812,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -827,6 +885,15 @@ export type Database = {
       }
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
+      upsert_person: {
+        Args: {
+          p_client_id: string
+          p_display_name: string
+          p_email: string
+          p_is_active?: boolean
+        }
+        Returns: string
+      }
     }
     Enums: {
       client_status: "active" | "inactive"
