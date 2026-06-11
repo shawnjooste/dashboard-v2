@@ -1,27 +1,32 @@
 import type { M365View } from "@/lib/views/m365";
 import { Sparkline } from "./Sparkline";
+import { Card, CardHeader } from "./ui/Card";
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
-      <div className={`text-2xl font-semibold ${tone === "bad" ? "text-red-600" : tone === "good" ? "text-green-600" : ""}`}>
+    <div className="rounded-lg border border-line bg-card px-4 py-3">
+      <div className={`text-2xl font-bold ${tone === "bad" ? "text-brand" : tone === "good" ? "text-good" : "text-ink"}`}>
         {value}
       </div>
-      <div className="text-xs text-gray-500">{label}</div>
+      <div className="mt-0.5 text-[12.5px] text-muted">{label}</div>
     </div>
   );
 }
 
 export function M365View({ view }: { view: M365View }) {
   if (!view.connected) {
-    return <p className="text-gray-500">Microsoft 365 isn&apos;t connected for this client yet.</p>;
+    return (
+      <div className="rounded-lg border border-line bg-card px-4 py-6 text-sm text-muted">
+        Microsoft 365 isn&apos;t connected for this client yet.
+      </div>
+    );
   }
 
   const sd = view.securityDefaultsOn;
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Security posture */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Stat label="Active licensed users" value={String(view.activeLicensed)} />
         <Stat
           label="MFA coverage"
@@ -40,79 +45,78 @@ export function M365View({ view }: { view: M365View }) {
       </div>
 
       {view.trend.length > 1 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-2 text-sm font-semibold uppercase text-gray-500">MFA coverage trend</h3>
-          <Sparkline values={view.trend} width={220} height={40} />
-        </div>
+        <Card>
+          <CardHeader title="MFA coverage trend" />
+          <div className="px-4 py-3.5">
+            <Sparkline values={view.trend} width={220} height={40} />
+          </div>
+        </Card>
       )}
 
       {/* Password-only (the headline finding) */}
-      <section>
-        <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">
-          Licensed users without MFA ({view.passwordOnly.length})
-        </h3>
+      <Card>
+        <CardHeader title="Licensed users without MFA" count={view.passwordOnly.length} />
         {view.passwordOnly.length === 0 ? (
-          <p className="text-sm text-green-700">Every active licensed user has strong MFA. 🎉</p>
+          <p className="px-4 py-3.5 text-sm text-good">Every active licensed user has strong MFA. 🎉</p>
         ) : (
-          <ul className="space-y-1">
+          <ul>
             {view.passwordOnly.map((u) => (
-              <li key={u.upn} className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm">
-                <span className="font-medium">{u.name}</span>{" "}
-                <span className="text-gray-500">{u.upn}</span>
+              <li key={u.upn} className="flex items-center gap-2 border-b border-line-soft px-4 py-2.5 text-sm last:border-0">
+                <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-brand" />
+                <span className="font-medium text-ink">{u.name}</span>
+                <span className="text-muted">{u.upn}</span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
 
       {/* Licenses */}
-      <section>
-        <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">License usage</h3>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-3 py-2">License</th>
-                <th className="px-3 py-2">Used</th>
-                <th className="px-3 py-2">Total</th>
+      <Card>
+        <CardHeader title="License usage" />
+        <table className="w-full text-sm">
+          <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">License</th>
+              <th className="px-4 py-2.5 font-semibold">Used</th>
+              <th className="px-4 py-2.5 font-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.licenses.map((l) => (
+              <tr key={l.sku} className="border-b border-line-soft last:border-0">
+                <td className="px-4 py-2.5 font-medium text-ink">{l.sku}</td>
+                <td className={`px-4 py-2.5 ${l.maxed ? "font-semibold text-warn" : "text-muted"}`}>
+                  {l.consumed ?? "—"}
+                  {l.maxed ? " (full)" : ""}
+                </td>
+                <td className="px-4 py-2.5 text-muted">{l.total ?? "—"}</td>
               </tr>
-            </thead>
-            <tbody>
-              {view.licenses.map((l) => (
-                <tr key={l.sku} className="border-b border-gray-100 last:border-0">
-                  <td className="px-3 py-2 font-medium">{l.sku}</td>
-                  <td className={`px-3 py-2 ${l.maxed ? "font-semibold text-amber-600" : "text-gray-600"}`}>
-                    {l.consumed ?? "—"}
-                    {l.maxed ? " (full)" : ""}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{l.total ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            ))}
+          </tbody>
+        </table>
+      </Card>
 
       {/* Unlicensed but enabled */}
       {view.unlicensedEnabled.length > 0 && (
-        <section>
-          <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">
-            Enabled accounts without a license ({view.unlicensedEnabled.length})
-          </h3>
-          <p className="mb-2 text-xs text-gray-500">
-            Shared mailboxes and resource accounts are expected here; unexpected ones may be stale.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {view.unlicensedEnabled.slice(0, 60).map((u) => (
-              <span key={u.upn} className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                {u.name}
-              </span>
-            ))}
-            {view.unlicensedEnabled.length > 60 && (
-              <span className="text-xs text-gray-400">+{view.unlicensedEnabled.length - 60} more</span>
-            )}
+        <Card>
+          <CardHeader title="Enabled accounts without a license" count={view.unlicensedEnabled.length} />
+          <div className="px-4 py-3.5">
+            <p className="mb-2.5 text-xs text-muted">
+              Shared mailboxes and resource accounts are expected here; unexpected ones may be stale.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {view.unlicensedEnabled.slice(0, 60).map((u) => (
+                <span key={u.upn} className="rounded bg-line-soft px-2 py-0.5 text-xs text-ink-3">
+                  {u.name}
+                </span>
+              ))}
+              {view.unlicensedEnabled.length > 60 && (
+                <span className="text-xs text-faint">+{view.unlicensedEnabled.length - 60} more</span>
+              )}
+            </div>
           </div>
-        </section>
+        </Card>
       )}
     </div>
   );

@@ -6,15 +6,15 @@ export function ClientCard({ client }: { client: ClientSummary }) {
   return (
     <Link
       href={`/admin/clients/${client.id}`}
-      className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm"
+      className="block rounded-lg border border-line bg-card p-4 transition-shadow hover:border-faint hover:shadow-sm"
     >
-      <div className="flex items-center justify-between">
-        <span className="font-medium">{client.name}</span>
-        <span className={`text-sm font-semibold ${s.needsAttention ? "text-red-600" : "text-green-600"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-semibold text-ink">{client.name}</span>
+        <span className={`text-[13px] font-semibold ${s.needsAttention ? "text-brand" : "text-good"}`}>
           {s.needsAttention ? `${s.needsAttention} need attention` : "All healthy"}
         </span>
       </div>
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-2 text-xs text-muted">
         {s.total} devices · {s.fleetPatchPct === null ? "—" : `${s.fleetPatchPct}%`} patched · {s.openAlerts} alerts
       </div>
     </Link>

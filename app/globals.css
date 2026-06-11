@@ -1,15 +1,48 @@
 @import "tailwindcss";
 
+/* The Portal v2 design tokens — Cloudflare-style dashboard skeleton.
+   Semantic names so pages read as bg-card / border-line / text-brand. */
+@theme {
+  --color-canvas: #fafafb;
+  --color-card: #ffffff;
+  --color-line: #e4e4e7;
+  --color-line-soft: #f0f0f2;
+
+  --color-ink: #18181b;
+  --color-ink-2: #3f3f46;
+  --color-ink-3: #52525b;
+  --color-muted: #71717a;
+  --color-faint: #a1a1aa;
+
+  --color-brand: #d7141c;
+  --color-brand-dark: #b81016;
+  --color-brand-tint: #fdecec;
+
+  --color-good: #15803d;
+  --color-good-dot: #16a34a;
+  --color-good-tint: #ecfdf3;
+  --color-good-line: #bbf7d0;
+
+  --color-warn: #b45309;
+  --color-warn-tint: #fef3c7;
+  --color-warn-tint-2: #fffbeb;
+  --color-warn-line: #fde68a;
+  --color-warn-ink: #92400e;
+
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
-  --background: #f7f7f8;
+  --background: #fafafb;
   --foreground: #18181b;
 }
 
-html, body {
+html,
+body {
   background: var(--background);
   color: var(--foreground);
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
 }

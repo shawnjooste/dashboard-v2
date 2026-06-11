@@ -1,24 +1,36 @@
 import type { UserRole } from "@/lib/types/domain";
 
-export type NavItem = { label: string; href: string };
+export type NavItem = { label: string; href: string; external?: boolean };
+export type NavGroup = { label: string; items: NavItem[] };
 
-/** Role → sidebar items. Live items only — add entries here as features ship. */
-export const NAV: Record<UserRole, NavItem[]> = {
+/** Role → grouped sidebar. Live items only — add entries as features ship.
+ *  An empty group label renders the items with no section heading. */
+export const NAV: Record<UserRole, NavGroup[]> = {
   rocking_staff: [
-    { label: "Overview", href: "/admin" },
-    { label: "Clients", href: "/admin/clients" },
-    { label: "Microsoft 365", href: "/admin/m365" },
-    { label: "Approvals", href: "/admin/pending" },
-    { label: "Support", href: "https://help.rocking.co.za" },
+    { label: "", items: [{ label: "Overview", href: "/admin" }] },
+    { label: "Clients", items: [{ label: "Clients", href: "/admin/clients" }] },
+    { label: "Services", items: [{ label: "Microsoft 365", href: "/admin/m365" }] },
+    {
+      label: "Account",
+      items: [
+        { label: "Approvals", href: "/admin/pending" },
+        { label: "Support", href: "https://help.rocking.co.za", external: true },
+      ],
+    },
   ],
   client_manager: [
-    { label: "Devices", href: "/" },
-    { label: "Microsoft 365", href: "/m365" },
-    { label: "Team", href: "/team" },
-    { label: "Support", href: "/support" },
+    { label: "", items: [{ label: "Devices", href: "/" }] },
+    { label: "Your services", items: [{ label: "Microsoft 365", href: "/m365" }] },
+    {
+      label: "Account",
+      items: [
+        { label: "Team", href: "/team" },
+        { label: "Support", href: "/support" },
+      ],
+    },
   ],
   client_member: [
-    { label: "My Machine", href: "/" },
-    { label: "Support", href: "/support" },
+    { label: "", items: [{ label: "My machine", href: "/" }] },
+    { label: "Account", items: [{ label: "Support", href: "/support" }] },
   ],
 };

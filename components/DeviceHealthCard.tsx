@@ -1,5 +1,6 @@
 import type { DeviceHealth } from "@/lib/views/health";
-import { AttentionBadge } from "./AttentionBadge";
+import { Card } from "./ui/Card";
+import { StatusBadge } from "./ui/status";
 
 export function DeviceHealthCard({ device }: { device: DeviceHealth }) {
   const lines: string[] = [];
@@ -9,17 +10,17 @@ export function DeviceHealthCard({ device }: { device: DeviceHealth }) {
   if (device.flags.openAlerts) lines.push(`${device.openAlerts} open alert${device.openAlerts === 1 ? "" : "s"}.`);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{device.hostname}</h2>
-        <AttentionBadge ok={!device.needsAttention} />
+    <Card className="p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-ink">{device.hostname}</h2>
+        <StatusBadge tone={device.needsAttention ? "bad" : "good"} label={device.needsAttention ? "Needs attention" : "Healthy"} />
       </div>
-      <p className="mt-1 text-sm text-gray-500">{device.os ?? ""}</p>
-      <p className="mt-4 text-sm">
+      <p className="mt-1 text-sm text-muted">{device.os ?? ""}</p>
+      <p className="mt-4 text-sm text-ink-2">
         {device.needsAttention
           ? lines.join(" ")
           : "Your machine is healthy — up to date, antivirus on, plenty of disk space."}
       </p>
-    </div>
+    </Card>
   );
 }

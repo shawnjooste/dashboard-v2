@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { approveUser } from "./actions";
+import { PageHeader, Card, PrimaryButton } from "@/components/ui";
 
 export default async function PendingApprovalsPage() {
   const supabase = await createClient();
@@ -13,22 +14,24 @@ export default async function PendingApprovalsPage() {
   ]);
 
   return (
-    <main className="p-8">
-      <h1 className="text-xl font-semibold">Pending user approvals</h1>
+    <div className="space-y-6">
+      <PageHeader title="Pending user approvals" />
       {(!pending || pending.length === 0) && (
-        <p className="mt-4 text-gray-600">No pending users.</p>
+        <Card className="p-4">
+          <p className="text-sm text-muted">No pending approvals.</p>
+        </Card>
       )}
-      <ul className="mt-6 space-y-4">
+      <div className="space-y-4">
         {(pending ?? []).map((p) => (
-          <li key={p.id} className="rounded border p-4">
-            <div className="font-medium">{p.email}</div>
+          <Card key={p.id} className="p-4">
+            <div className="text-sm font-medium text-ink">{p.email}</div>
             <form action={approveUser} className="mt-3 flex flex-wrap items-center gap-3">
               <input type="hidden" name="profile_id" value={p.id} />
               <select
                 name="client_id"
                 required
                 aria-label="Client"
-                className="rounded border px-2 py-1"
+                className="rounded-lg border border-line bg-canvas px-3 py-2 text-[13.5px] text-ink outline-none"
               >
                 <option value="">Choose a client…</option>
                 {(clients ?? []).map((c) => (
@@ -37,16 +40,14 @@ export default async function PendingApprovalsPage() {
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-1 text-sm">
+              <label className="flex items-center gap-1.5 text-sm text-ink-2">
                 <input type="checkbox" name="make_manager" /> Make manager
               </label>
-              <button className="rounded bg-black px-3 py-1 text-sm text-white">
-                Approve
-              </button>
+              <PrimaryButton>Approve</PrimaryButton>
             </form>
-          </li>
+          </Card>
         ))}
-      </ul>
-    </main>
+      </div>
+    </div>
   );
 }

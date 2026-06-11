@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getM365View } from "@/lib/views/m365";
 import { M365View } from "@/components/M365View";
+import { PageHeader } from "@/components/ui";
 
 export default async function AdminClientM365Page({
   params,
@@ -15,12 +16,14 @@ export default async function AdminClientM365Page({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/admin/clients/${id}`} className="text-sm text-blue-600 hover:underline">
-          ← {client?.name ?? "Client"}
-        </Link>
-        <h1 className="mt-1 text-xl font-semibold">Microsoft 365 — {client?.name ?? "Client"}</h1>
-      </div>
+      <PageHeader
+        breadcrumb={
+          <Link href={`/admin/clients/${id}`} className="hover:text-ink">
+            ← {client?.name ?? "Client"}
+          </Link>
+        }
+        title="Microsoft 365"
+      />
       <M365View view={view} />
     </div>
   );

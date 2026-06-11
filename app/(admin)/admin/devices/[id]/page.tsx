@@ -3,6 +3,7 @@ import { getDeviceDetail } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
 import { createClient } from "@/lib/supabase/server";
 import { suggestPerson } from "@/lib/views/device-link";
+import { Card, CardHeader, PageHeader, PrimaryButton } from "@/components/ui";
 import { setDevicePerson } from "./actions";
 
 async function DevicePersonCard({ deviceId }: { deviceId: string }) {
@@ -28,28 +29,34 @@ async function DevicePersonCard({ deviceId }: { deviceId: string }) {
   const save = setDevicePerson.bind(null, deviceId);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">Person</h3>
-      <form action={save} className="flex flex-wrap items-center gap-2">
-        <select name="person_id" defaultValue={selected} className="rounded border border-gray-300 px-2 py-1 text-sm">
-          <option value="">— Unlinked —</option>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.email})
-            </option>
-          ))}
-        </select>
-        {suggestion && (
-          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">suggested</span>
+    <Card>
+      <CardHeader title="Person" />
+      <div className="px-4 py-3.5">
+        <form action={save} className="flex flex-wrap items-center gap-2">
+          <select
+            name="person_id"
+            defaultValue={selected}
+            className="rounded-lg border border-line bg-canvas px-2 py-1.5 text-sm text-ink outline-none"
+          >
+            <option value="">— Unlinked —</option>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.email})
+              </option>
+            ))}
+          </select>
+          {suggestion && (
+            <span className="rounded-full bg-warn-tint px-2 py-0.5 text-xs font-medium text-warn-ink">
+              suggested
+            </span>
+          )}
+          <PrimaryButton>Save</PrimaryButton>
+        </form>
+        {device.last_user && (
+          <p className="mt-2 text-xs text-muted">Last login: {device.last_user}</p>
         )}
-        <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700">
-          Save
-        </button>
-      </form>
-      {device.last_user && (
-        <p className="mt-2 text-xs text-gray-500">Last login: {device.last_user}</p>
-      )}
-    </div>
+      </div>
+    </Card>
   );
 }
 
@@ -64,22 +71,26 @@ export default async function AdminDevicePage({
   if (!detail) {
     return (
       <div className="space-y-4">
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline">
-          ← All clients
-        </Link>
-        <p className="text-gray-500">Device not found.</p>
+        <p className="text-muted">
+          Device not found.{" "}
+          <Link href="/admin" className="text-brand hover:text-brand-dark">
+            ← All clients
+          </Link>
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Link
-        href={`/admin/clients/${detail.health.clientId}`}
-        className="text-sm text-blue-600 hover:underline"
-      >
-        ← Back to fleet
-      </Link>
+      <PageHeader
+        breadcrumb={
+          <Link href={`/admin/clients/${detail.health.clientId}`} className="hover:text-ink">
+            ← Back to fleet
+          </Link>
+        }
+        title={detail.health.hostname ?? "Device"}
+      />
       <DevicePersonCard deviceId={id} />
       <DeviceDetailView detail={detail} />
     </div>

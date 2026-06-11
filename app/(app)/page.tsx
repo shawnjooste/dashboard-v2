@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveLandingPath } from "@/lib/auth/routing";
@@ -7,6 +6,7 @@ import { summarize } from "@/lib/views/health";
 import { SummaryStrip } from "@/components/SummaryStrip";
 import { DeviceTable } from "@/components/DeviceTable";
 import { DeviceHealthCard } from "@/components/DeviceHealthCard";
+import { PageHeader, SecondaryLink } from "@/components/ui";
 
 export default async function AppHome() {
   const me = await getCurrentProfile();
@@ -25,7 +25,10 @@ export default async function AppHome() {
   if (me.profile.role === "client_manager") {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold">Network overview</h1>
+        <PageHeader
+          title="Overview"
+          subtitle="A live look at the health of every computer across your company."
+        />
         <SummaryStrip summary={summarize(devices)} />
         <DeviceTable devices={devices} rowHref={(id) => `/devices/${id}`} />
       </div>
@@ -34,22 +37,24 @@ export default async function AppHome() {
 
   // client_member — their claimed device(s)
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">My machine</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="My computer"
+        subtitle="The current health of the computer linked to your account."
+      />
       {devices.length === 0 ? (
-        <p className="text-gray-500">No machine is linked to your account yet.</p>
+        <p className="text-sm text-muted">
+          No computer is linked to your account yet.
+        </p>
       ) : (
-        devices.map((d) => (
-          <div key={d.id} className="space-y-2">
-            <DeviceHealthCard device={d} />
-            <Link
-              href={`/devices/${d.id}`}
-              className="inline-block text-sm text-blue-600 hover:underline"
-            >
-              View details →
-            </Link>
-          </div>
-        ))
+        <div className="space-y-6">
+          {devices.map((d) => (
+            <div key={d.id} className="space-y-3">
+              <DeviceHealthCard device={d} />
+              <SecondaryLink href={`/devices/${d.id}`}>View details</SecondaryLink>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getClientPeople } from "@/lib/views/people";
+import { Card, PageHeader, SecondaryLink } from "@/components/ui";
 
 export default async function ClientPeoplePage({
   params,
@@ -16,56 +17,55 @@ export default async function ClientPeoplePage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/admin/clients/${id}`} className="text-sm text-blue-600 hover:underline">
-          ← {client?.name ?? "Client"}
-        </Link>
-        <div className="mt-1 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">People ({people.length})</h1>
-          <Link
-            href={`/admin/clients/${id}/link-devices`}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            Link devices →
+      <PageHeader
+        breadcrumb={
+          <Link href={`/admin/clients/${id}`} className="hover:text-ink">
+            ← {client?.name ?? "Client"}
           </Link>
-        </div>
-      </div>
+        }
+        title={`People (${people.length})`}
+        action={
+          <SecondaryLink href={`/admin/clients/${id}/link-devices`}>
+            Link devices →
+          </SecondaryLink>
+        }
+      />
 
       {people.length === 0 ? (
-        <p className="text-gray-500">No people yet — connect Microsoft 365 to populate the directory.</p>
+        <p className="text-muted">No people yet — connect Microsoft 365 to populate the directory.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <Card>
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+            <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
               <tr>
-                <th className="px-3 py-2">Name</th>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Microsoft 365</th>
-                <th className="px-3 py-2">MFA</th>
-                <th className="px-3 py-2">Portal</th>
+                <th className="px-4 py-2.5 font-semibold">Name</th>
+                <th className="px-4 py-2.5 font-semibold">Email</th>
+                <th className="px-4 py-2.5 font-semibold">Microsoft 365</th>
+                <th className="px-4 py-2.5 font-semibold">MFA</th>
+                <th className="px-4 py-2.5 font-semibold">Portal</th>
               </tr>
             </thead>
             <tbody>
               {people.map((p) => (
-                <tr key={p.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-3 py-2 font-medium">
-                    <Link href={`/admin/people/${p.id}`} className="text-blue-600 hover:underline">
+                <tr key={p.id} className="border-b border-line-soft last:border-0 hover:bg-canvas">
+                  <td className="px-4 py-2.5 font-medium">
+                    <Link href={`/admin/people/${p.id}`} className="text-ink hover:text-brand">
                       {p.name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 text-gray-600">{p.email}</td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="px-4 py-2.5 text-ink-2">{p.email}</td>
+                  <td className="px-4 py-2.5 text-ink-2">
                     {p.hasM365 ? (p.licensed ? "Licensed" : "Unlicensed") : "—"}
                   </td>
-                  <td className={`px-3 py-2 ${p.licensed && p.mfaStrong === false ? "text-red-600" : "text-gray-600"}`}>
+                  <td className={`px-4 py-2.5 ${p.mfaStrong === null ? "text-ink-2" : p.mfaStrong ? "text-good" : "text-brand"}`}>
                     {p.mfaStrong === null ? "—" : p.mfaStrong ? "On" : "Off"}
                   </td>
-                  <td className="px-3 py-2 text-gray-600">{p.portalRole ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-ink-2">{p.portalRole ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

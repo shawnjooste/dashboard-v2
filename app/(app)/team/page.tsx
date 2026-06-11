@@ -1,11 +1,31 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  Avatar,
+  StatusBadge,
+  type Health,
+} from "@/components/ui";
 
 const ROLE_LABEL: Record<string, string> = {
   client_manager: "Manager",
   client_member: "Member",
 };
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "Active",
+  pending: "Pending",
+  rejected: "Declined",
+};
+
+function statusTone(status: string): Health {
+  if (status === "active") return "good";
+  if (status === "rejected") return "bad";
+  return "warn";
+}
 
 export default async function TeamPage() {
   const me = await getCurrentProfile();
@@ -18,31 +38,52 @@ export default async function TeamPage() {
     .select("id, email, role, status, created_at")
     .order("email");
 
+  const members = team ?? [];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Team</h1>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <PageHeader
+        title="Your team"
+        subtitle="Everyone from your company who has access to this portal."
+      />
+      <Card>
+        <CardHeader title="People" count={members.length} />
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+          <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
             <tr>
-              <th className="px-3 py-2">Email</th>
-              <th className="px-3 py-2">Role</th>
-              <th className="px-3 py-2">Status</th>
+              <th className="px-4 py-2.5 font-semibold">Name</th>
+              <th className="px-4 py-2.5 font-semibold">Role</th>
+              <th className="px-4 py-2.5 font-semibold">Status</th>
             </tr>
           </thead>
           <tbody>
-            {(team ?? []).map((p) => (
-              <tr key={p.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-3 py-2 font-medium">{p.email}</td>
-                <td className="px-3 py-2 text-gray-600">{ROLE_LABEL[p.role] ?? p.role}</td>
-                <td className="px-3 py-2 text-gray-600">{p.status}</td>
+            {members.map((p) => (
+              <tr
+                key={p.id}
+                className="border-b border-line-soft last:border-0 hover:bg-canvas"
+              >
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={p.email} size="sm" />
+                    <span className="font-medium text-ink">{p.email}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-ink-3">
+                  {ROLE_LABEL[p.role] ?? p.role}
+                </td>
+                <td className="px-4 py-2.5">
+                  <StatusBadge
+                    tone={statusTone(p.status)}
+                    label={STATUS_LABEL[p.status] ?? p.status}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-      <p className="text-xs text-gray-500">
-        Role management (invites, promotions) is coming soon.
+      </Card>
+      <p className="text-[13px] text-muted">
+        Inviting people and changing roles is coming soon.
       </p>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { DeviceDetail } from "@/lib/views/devices";
 import { DeviceHealthCard } from "./DeviceHealthCard";
 import { Sparkline } from "./Sparkline";
+import { Card, CardHeader } from "./ui/Card";
 
 const fmt = (ts: string | null) => (ts ? ts.replace("T", " ").slice(0, 16) : "—");
 
@@ -16,87 +17,85 @@ export function DeviceDetailView({ detail }: { detail: DeviceDetail }) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <DeviceHealthCard device={health} />
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">Device</h3>
-          <dl className="space-y-1 text-sm">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Device" />
+          <dl className="space-y-1 px-4 py-3.5 text-sm">
             {metaItems.map((m) => (
               <div key={m.label} className="flex justify-between gap-4">
-                <dt className="text-gray-500">{m.label}</dt>
-                <dd className="text-right font-medium">{m.value}</dd>
+                <dt className="text-muted">{m.label}</dt>
+                <dd className="text-right font-medium text-ink-2">{m.value}</dd>
               </div>
             ))}
           </dl>
-        </div>
+        </Card>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">Patch trend</h3>
-          <Sparkline values={trend.map((t) => t.patchPct ?? NaN)} width={220} height={48} />
-          <p className="mt-2 text-xs text-gray-500">
-            {trend.length} report{trend.length === 1 ? "" : "s"} on record
-          </p>
-        </div>
+        <Card>
+          <CardHeader title="Patch trend" />
+          <div className="px-4 py-3.5">
+            <Sparkline values={trend.map((t) => t.patchPct ?? NaN)} width={220} height={48} />
+            <p className="mt-2 text-xs text-muted">
+              {trend.length} report{trend.length === 1 ? "" : "s"} on record
+            </p>
+          </div>
+        </Card>
       </section>
 
-      <section>
-        <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">Drives</h3>
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
+      <Card>
+        <CardHeader title="Drives" />
+        <table className="w-full text-sm">
+          <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">Drive</th>
+              <th className="px-4 py-2.5 font-semibold">Size (GB)</th>
+              <th className="px-4 py-2.5 font-semibold">Used</th>
+            </tr>
+          </thead>
+          <tbody>
+            {drives.length === 0 ? (
               <tr>
-                <th className="px-3 py-2">Drive</th>
-                <th className="px-3 py-2">Size (GB)</th>
-                <th className="px-3 py-2">Used</th>
+                <td colSpan={3} className="px-4 py-2.5 text-muted">No drive data.</td>
               </tr>
-            </thead>
-            <tbody>
-              {drives.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-3 py-2 text-gray-500">No drive data.</td>
+            ) : (
+              drives.map((d, i) => (
+                <tr key={`${d.drive}-${i}`} className="border-b border-line-soft last:border-0">
+                  <td className="px-4 py-2.5 font-medium text-ink">{d.drive}</td>
+                  <td className="px-4 py-2.5 text-muted">{d.sizeGb === null ? "—" : Math.round(d.sizeGb)}</td>
+                  <td className={`px-4 py-2.5 ${d.usedPct !== null && d.usedPct >= 90 ? "font-medium text-brand" : "text-muted"}`}>
+                    {d.usedPct === null ? "—" : `${Math.round(d.usedPct)}%`}
+                  </td>
                 </tr>
-              ) : (
-                drives.map((d, i) => (
-                  <tr key={`${d.drive}-${i}`} className="border-b border-gray-100 last:border-0">
-                    <td className="px-3 py-2 font-medium">{d.drive}</td>
-                    <td className="px-3 py-2 text-gray-600">{d.sizeGb === null ? "—" : Math.round(d.sizeGb)}</td>
-                    <td className={`px-3 py-2 ${d.usedPct !== null && d.usedPct >= 90 ? "text-red-600" : "text-gray-600"}`}>
-                      {d.usedPct === null ? "—" : `${Math.round(d.usedPct)}%`}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
 
-      <section>
-        <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">
-          Recent alerts ({alerts.length})
-        </h3>
+      <Card>
+        <CardHeader title="Recent alerts" count={alerts.length} />
         {alerts.length === 0 ? (
-          <p className="text-gray-500">No alerts on record.</p>
+          <p className="px-4 py-3.5 text-sm text-muted">No alerts on record.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul>
             {alerts.map((a, i) => (
-              <li key={i} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
+              <li key={i} className="border-b border-line-soft px-4 py-3 last:border-0">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{a.message}</span>
-                  <span className={`shrink-0 text-xs ${a.resolved ? "text-green-600" : "text-red-600"}`}>
+                  <span className="text-sm font-medium text-ink">{a.message}</span>
+                  <span className={`shrink-0 text-xs font-semibold ${a.resolved ? "text-good" : "text-brand"}`}>
                     {a.resolved ? "Resolved" : "Open"}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-muted">
                   {fmt(a.triggeredAt)}{a.priority ? ` · ${a.priority}` : ""}
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

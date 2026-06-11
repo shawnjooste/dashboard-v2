@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDeviceDetail } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
+import { PageHeader } from "@/components/ui";
 
 /**
  * Client-surface device detail. RLS does the scoping: a manager can only
@@ -17,18 +18,23 @@ export default async function DevicePage({
 
   if (!detail) {
     return (
-      <div className="space-y-4">
-        <Link href="/" className="text-sm text-blue-600 hover:underline">
-          ← Back
-        </Link>
-        <p className="text-gray-500">Device not found.</p>
+      <div className="space-y-6">
+        <PageHeader
+          breadcrumb={
+            <Link href="/" className="hover:text-ink">
+              ← Back
+            </Link>
+          }
+          title="Computer not found"
+          subtitle="We couldn't find this computer, or it isn't linked to your account."
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Link href="/" className="text-sm text-blue-600 hover:underline">
+      <Link href="/" className="inline-block text-[13px] text-muted hover:text-ink">
         ← Back
       </Link>
       <DeviceDetailView detail={detail} />

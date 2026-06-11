@@ -4,6 +4,7 @@ import { ClientCard } from "@/components/ClientCard";
 import { summarize } from "@/lib/views/health";
 import { SummaryStrip } from "@/components/SummaryStrip";
 import { DeviceTable } from "@/components/DeviceTable";
+import { PageHeader } from "@/components/ui";
 
 export default async function AdminHome() {
   const [clients, devices] = await Promise.all([getClientSummaries(), getVisibleDeviceHealth()]);
@@ -11,20 +12,20 @@ export default async function AdminHome() {
   const attention = devices.filter((d) => d.needsAttention);
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-xl font-semibold">Overview</h1>
+    <div className="space-y-6">
+      <PageHeader title="Overview" />
 
       <SummaryStrip summary={overall} />
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+        <h2 className="mt-8 mb-3.5 text-base font-bold text-ink">
           Needs attention now ({attention.length})
         </h2>
         <DeviceTable devices={attention} rowHref={(id) => `/admin/devices/${id}`} />
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+        <h2 className="mt-8 mb-3.5 text-base font-bold text-ink">
           Clients ({clients.length})
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

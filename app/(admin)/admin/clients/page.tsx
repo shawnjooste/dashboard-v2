@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getVisibleDeviceHealth } from "@/lib/views/devices";
+import { PageHeader, Card } from "@/components/ui";
 
 export default async function AdminClientsPage() {
   const supabase = await createClient();
@@ -21,42 +22,52 @@ export default async function AdminClientsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Clients ({rows.length})</h1>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500">
-            <tr>
-              <th className="px-3 py-2">Client</th>
-              <th className="px-3 py-2">Devices</th>
-              <th className="px-3 py-2">Need attention</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((c) => {
-              const counts = countsBy.get(c.id);
-              return (
-                <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-3 py-2 font-medium">
-                    {counts ? (
-                      <Link href={`/admin/clients/${c.id}`} className="text-blue-600 hover:underline">
-                        {c.name}
-                      </Link>
-                    ) : (
-                      c.name
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">
-                    {counts?.total ?? <span className="text-gray-400">no devices yet</span>}
-                  </td>
-                  <td className={`px-3 py-2 ${counts?.attention ? "text-red-600" : "text-gray-600"}`}>
-                    {counts ? counts.attention : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <PageHeader title="Clients" subtitle={`${rows.length} total`} />
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
+              <tr>
+                <th className="px-4 py-2.5 font-semibold">Client</th>
+                <th className="px-4 py-2.5 font-semibold">Devices</th>
+                <th className="px-4 py-2.5 font-semibold">Need attention</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((c) => {
+                const counts = countsBy.get(c.id);
+                return (
+                  <tr
+                    key={c.id}
+                    className="border-b border-line-soft last:border-0 hover:bg-canvas"
+                  >
+                    <td className="px-4 py-2.5 font-medium">
+                      {counts ? (
+                        <Link
+                          href={`/admin/clients/${c.id}`}
+                          className="text-ink hover:text-brand"
+                        >
+                          {c.name}
+                        </Link>
+                      ) : (
+                        c.name
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-ink-3">
+                      {counts?.total ?? <span className="text-faint">no devices yet</span>}
+                    </td>
+                    <td
+                      className={`px-4 py-2.5 ${counts?.attention ? "text-brand" : "text-good"}`}
+                    >
+                      {counts ? counts.attention : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

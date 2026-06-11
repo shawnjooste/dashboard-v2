@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPerson360 } from "@/lib/views/people";
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">{title}</h3>
-      {children}
-    </div>
-  );
-}
+import { Card, CardHeader, PageHeader } from "@/components/ui";
 
 export default async function Person360Page({
   params,
@@ -21,8 +13,12 @@ export default async function Person360Page({
   if (!person) {
     return (
       <div className="space-y-4">
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline">← Admin</Link>
-        <p className="text-gray-500">Person not found.</p>
+        <p className="text-muted">
+          Person not found.{" "}
+          <Link href="/admin" className="text-brand hover:text-brand-dark">
+            ← Admin
+          </Link>
+        </p>
       </div>
     );
   }
@@ -32,67 +28,93 @@ export default async function Person360Page({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/admin/clients/${person.clientId}/people`} className="text-sm text-blue-600 hover:underline">
-          ← People · {client?.name ?? "Client"}
-        </Link>
-        <h1 className="mt-1 text-xl font-semibold">{person.name}</h1>
-        <p className="text-sm text-gray-500">{person.email}</p>
-      </div>
+      <PageHeader
+        breadcrumb={
+          <Link href={`/admin/clients/${person.clientId}/people`} className="hover:text-ink">
+            ← People · {client?.name ?? "Client"}
+          </Link>
+        }
+        title={person.name}
+        subtitle={person.email}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Microsoft 365">
-          {person.m365 ? (
-            <dl className="space-y-1 text-sm">
-              <div className="flex justify-between"><dt className="text-gray-500">Account</dt><dd>{person.m365.accountEnabled === false ? "Disabled" : "Enabled"}</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-500">Licensed</dt><dd>{person.m365.licensed ? "Yes" : "No"}</dd></div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">MFA</dt>
-                <dd className={person.m365.licensed && !person.m365.mfaStrong ? "font-medium text-red-600" : ""}>
-                  {person.m365.mfaStrong ? person.m365.methods.join(", ") || "On" : "Password only"}
-                </dd>
-              </div>
-              {person.m365.licenses.length > 0 && (
-                <div className="flex justify-between gap-4"><dt className="text-gray-500">Licenses</dt><dd className="text-right">{person.m365.licenses.join(", ")}</dd></div>
-              )}
-            </dl>
-          ) : (
-            <p className="text-sm text-gray-500">No Microsoft 365 account linked.</p>
-          )}
+        <Card>
+          <CardHeader title="Microsoft 365" />
+          <div className="px-4 py-3.5">
+            {person.m365 ? (
+              <dl className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-muted">Account</dt>
+                  <dd className="font-medium text-ink-2">{person.m365.accountEnabled === false ? "Disabled" : "Enabled"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted">Licensed</dt>
+                  <dd className="font-medium text-ink-2">{person.m365.licensed ? "Yes" : "No"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted">MFA</dt>
+                  <dd className={person.m365.licensed && !person.m365.mfaStrong ? "font-medium text-brand" : "font-medium text-ink-2"}>
+                    {person.m365.mfaStrong ? person.m365.methods.join(", ") || "On" : "Password only"}
+                  </dd>
+                </div>
+                {person.m365.licenses.length > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted">Licenses</dt>
+                    <dd className="text-right font-medium text-ink-2">{person.m365.licenses.join(", ")}</dd>
+                  </div>
+                )}
+              </dl>
+            ) : (
+              <p className="text-sm text-muted">No Microsoft 365 account linked.</p>
+            )}
+          </div>
         </Card>
 
-        <Card title="Portal login">
-          {person.portal ? (
-            <dl className="space-y-1 text-sm">
-              <div className="flex justify-between"><dt className="text-gray-500">Role</dt><dd>{person.portal.role}</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-500">Status</dt><dd>{person.portal.status}</dd></div>
-            </dl>
-          ) : (
-            <p className="text-sm text-gray-500">This person hasn&apos;t signed into the portal.</p>
-          )}
+        <Card>
+          <CardHeader title="Portal login" />
+          <div className="px-4 py-3.5">
+            {person.portal ? (
+              <dl className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-muted">Role</dt>
+                  <dd className="font-medium text-ink-2">{person.portal.role}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted">Status</dt>
+                  <dd className="font-medium text-ink-2">{person.portal.status}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-sm text-muted">This person hasn&apos;t signed into the portal.</p>
+            )}
+          </div>
         </Card>
       </div>
 
-      <Card title={`Devices (${person.devices.length})`}>
-        {person.devices.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            No devices linked.{" "}
-            <Link href={`/admin/clients/${person.clientId}/link-devices`} className="text-blue-600 hover:underline">
-              Link devices →
-            </Link>
-          </p>
-        ) : (
-          <ul className="divide-y divide-gray-100 text-sm">
-            {person.devices.map((d) => (
-              <li key={d.id} className="flex items-center justify-between py-2">
-                <Link href={`/admin/devices/${d.id}`} className="font-medium text-blue-600 hover:underline">
-                  {d.hostname}
-                </Link>
-                <span className="text-gray-500">{d.lastUser ?? "—"}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Card>
+        <CardHeader title="Devices" count={person.devices.length} />
+        <div className="px-4 py-3.5">
+          {person.devices.length === 0 ? (
+            <p className="text-sm text-muted">
+              No devices linked.{" "}
+              <Link href={`/admin/clients/${person.clientId}/link-devices`} className="text-brand hover:text-brand-dark">
+                Link devices →
+              </Link>
+            </p>
+          ) : (
+            <ul className="divide-y divide-line-soft text-sm">
+              {person.devices.map((d) => (
+                <li key={d.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                  <Link href={`/admin/devices/${d.id}`} className="font-medium text-ink hover:text-brand">
+                    {d.hostname}
+                  </Link>
+                  <span className="text-muted">{d.lastUser ?? "—"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Card>
     </div>
   );
