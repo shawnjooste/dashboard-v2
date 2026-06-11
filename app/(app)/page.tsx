@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveLandingPath } from "@/lib/auth/routing";
 import { createClient } from "@/lib/supabase/server";
-import { getVisibleDeviceHealth } from "@/lib/views/devices";
+import { getVisibleDeviceHealth, getFleetPatchTrend } from "@/lib/views/devices";
 import { summarize, type DeviceHealth } from "@/lib/views/health";
+import { Sparkline } from "@/components/Sparkline";
 import { getM365View, type M365View } from "@/lib/views/m365";
 import {
   getSupportScope,
@@ -85,7 +86,7 @@ export default async function AppHome() {
 
   // ---------- client_manager: account home dashboard ----------
   const supabase = await createClient();
-  const [{ data: client }, m365, ticketData] = await Promise.all([
+  const [{ data: client }, m365, ticketData, patchTrend] = await Promise.all([
     me.profile.client_id
       ? supabase.from("clients").select("name").eq("id", me.profile.client_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -93,6 +94,7 @@ export default async function AppHome() {
       ? getM365View(me.profile.client_id)
       : Promise.resolve<M365View | null>(null),
     loadTickets(),
+    getFleetPatchTrend(),
   ]);
 
   const summary = summarize(devices);
@@ -144,6 +146,7 @@ export default async function AppHome() {
       <StatGrid>
         <StatCard
           title="Support"
+          href="/support"
           left={{
             label: "Open tickets",
             value: ticketsOk ? openTickets.length : "—",
@@ -162,6 +165,7 @@ export default async function AppHome() {
         />
         <StatCard
           title="Computers"
+          href="/devices"
           left={{
             label: "Healthy",
             value: (
@@ -178,6 +182,12 @@ export default async function AppHome() {
           right={{
             label: "Updates installed",
             value: summary.fleetPatchPct === null ? "—" : `${summary.fleetPatchPct}%`,
+            extra:
+              patchTrend.length >= 2 ? (
+                <div className="mt-1">
+                  <Sparkline values={patchTrend} width={120} height={28} />
+                </div>
+              ) : undefined,
             foot:
               summary.openAlerts > 0
                 ? `${summary.openAlerts} open alert${summary.openAlerts === 1 ? "" : "s"}`
@@ -187,6 +197,7 @@ export default async function AppHome() {
         />
         <StatCard
           title="Microsoft 365"
+          href="/m365"
           left={{
             label: "Two-step sign-in on",
             value: m365On ? (
@@ -196,6 +207,12 @@ export default async function AppHome() {
             ) : (
               "—"
             ),
+            extra:
+              m365On && m365!.trend.length >= 2 ? (
+                <div className="mt-1">
+                  <Sparkline values={m365!.trend} width={120} height={28} />
+                </div>
+              ) : undefined,
             foot: !m365On
               ? "not connected yet"
               : pwOnly > 0

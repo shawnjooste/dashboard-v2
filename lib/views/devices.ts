@@ -45,6 +45,25 @@ export async function getVisibleDeviceHealth(): Promise<DeviceHealth[]> {
   });
 }
 
+/** Fleet-average patch % per snapshot date (RLS-scoped), oldest first.
+ *  Feeds the dashboard sparkline; grows with each scheduled pull. */
+export async function getFleetPatchTrend(): Promise<number[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("device_health_snapshots")
+    .select("snapshot_date, patch_pct");
+  const byDate = new Map<string, number[]>();
+  for (const r of data ?? []) {
+    if (r.patch_pct === null) continue;
+    const arr = byDate.get(r.snapshot_date) ?? [];
+    arr.push(r.patch_pct);
+    byDate.set(r.snapshot_date, arr);
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, v]) => Math.round(v.reduce((n, x) => n + x, 0) / v.length));
+}
+
 export type DeviceMeta = {
   lastReboot: string | null;
   serial: string | null;

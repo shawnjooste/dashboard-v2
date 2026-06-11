@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import Link from "next/link";
 import { Card, CardHeader } from "./Card";
 
 export type StatTone = "brand" | "good" | "warn" | "muted";
@@ -38,25 +39,39 @@ function Cell({ cell, divider }: { cell: StatCell; divider?: boolean }) {
   );
 }
 
-/** Overview stat card: title header + a two-up split of cells. */
+/** Overview stat card: title header + a two-up split of cells.
+ *  With `href`, the whole card is a link. */
 export function StatCard({
   title,
   left,
   right,
+  href,
 }: {
   title: string;
   left: StatCell;
   right: StatCell;
+  href?: string;
 }) {
-  return (
-    <Card>
-      <CardHeader title={title} />
+  const inner = (
+    <>
+      <CardHeader title={title} action={href ? <span className="text-sm text-faint">→</span> : undefined} />
       <div className="grid grid-cols-2">
         <Cell cell={left} divider />
         <Cell cell={right} />
       </div>
-    </Card>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block overflow-hidden rounded-lg border border-line bg-card transition-colors hover:border-faint"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <Card>{inner}</Card>;
 }
 
 /** Responsive 3-up row of stat cards. */
