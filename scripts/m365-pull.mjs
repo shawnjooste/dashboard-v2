@@ -91,9 +91,9 @@ async function pullOne(conn) {
     }
     const mfaStrong = methods.some((t) => !t.toLowerCase().includes("password"));
 
-    // Active accounts with an email become canonical people (identity layer).
+    // Real humans (enabled + licensed) with an email become canonical people.
     let personId = null;
-    if (u.accountEnabled && u.userPrincipalName) {
+    if (u.accountEnabled && isLicensed && u.userPrincipalName) {
       const { data } = await sb.rpc("upsert_person", {
         p_client_id: conn.client_id, p_email: u.userPrincipalName,
         p_display_name: u.displayName ?? null, p_is_active: true,

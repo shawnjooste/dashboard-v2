@@ -21,7 +21,8 @@ This slice builds the identity layer and wires the **email-native** sources (M36
   `profiles` = portal login accounts, which gain a `person_id` link. Most people have no profile.
 - **Email is the universal upsert key.** Any source creates-or-attaches a Person, deduped on
   `(client_id, lower(email))`. One `upsert_person` helper holds the dedup logic.
-- **Only active (enabled) M365 accounts create people** — disabled leavers don't pollute the directory.
+- **Only active + licensed M365 accounts create people** — i.e. real humans. Disabled leavers and
+  enabled-but-unlicensed resource accounts (shared mailboxes, rooms) don't pollute the directory.
 
 ## Schema (migration `0020_people.sql`)
 
@@ -44,9 +45,10 @@ This slice builds the identity layer and wires the **email-native** sources (M36
 
 ## Population
 
-- **M365 pull** (`scripts/m365-pull.mjs`): for each **enabled** account, call `upsert_person`
-  (email=UPN, display_name, is_active=true) and set `m365_users.person_id`. Disabled accounts leave
-  `person_id` null and create no Person. Re-running is idempotent.
+- **M365 pull** (`scripts/m365-pull.mjs`): for each **enabled + licensed** account, call
+  `upsert_person` (email=UPN, display_name, is_active=true) and set `m365_users.person_id`. Disabled
+  or unlicensed accounts leave `person_id` null and create no Person. Re-running is idempotent;
+  people no longer referenced by any source are pruned.
 - **Portal logins**: handled by the `link_profile_person` trigger (no app code needed).
 
 ## Views
