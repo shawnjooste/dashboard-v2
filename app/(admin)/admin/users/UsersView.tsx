@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { GlobalPersonRow } from "@/lib/views/people";
+import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
 
 type ClientRef = { id: string; name: string };
 
@@ -120,7 +121,7 @@ export function UsersView({
     { key: "portal", label: "PORTAL ACCESS", value: scopePortal, dot: "#15803D", hot: false },
   ];
 
-  const cols = "grid-cols-[minmax(0,2.4fr)_minmax(0,1.5fr)_120px_92px_124px]";
+  const cols = "grid-cols-[minmax(0,2.4fr)_minmax(0,1.5fr)_120px_92px_124px_88px]";
 
   return (
     <div className="space-y-0">
@@ -271,6 +272,7 @@ export function UsersView({
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Microsoft 365</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">MFA</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Portal access</div>
+          <div />
         </div>
 
         {rows.map((p) => {
@@ -356,6 +358,20 @@ export function UsersView({
                   <span className="rounded-full bg-line-soft px-[11px] py-1 text-[12.5px] font-semibold text-ink-3">{p.portalRole}</span>
                 ) : (
                   <span className="text-[12.5px] text-line">—</span>
+                )}
+              </div>
+              {/* View as */}
+              <div className="text-right">
+                {p.profileId && (
+                  <form action={startImpersonation}>
+                    <input type="hidden" name="profile_id" value={p.profileId} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-line px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors hover:bg-ink hover:text-white"
+                    >
+                      View as
+                    </button>
+                  </form>
                 )}
               </div>
             </div>

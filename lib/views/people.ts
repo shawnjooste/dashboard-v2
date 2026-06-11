@@ -41,14 +41,19 @@ export async function getClientPeople(clientId: string): Promise<PersonRow[]> {
     .sort((a, b) => Number(b.licensed) - Number(a.licensed) || a.name.localeCompare(b.name));
 }
 
-export type GlobalPersonRow = PersonRow & { clientId: string; clientName: string };
+export type GlobalPersonRow = PersonRow & {
+  clientId: string;
+  clientName: string;
+  /** Active portal profile id — present when "Sign in as" is possible. */
+  profileId: string | null;
+};
 
 /** People across every client (staff-only by RLS), optionally narrowed to one client. */
 export async function getAllPeople(clientId?: string): Promise<GlobalPersonRow[]> {
   const supabase = await createClient();
   let peopleQ = supabase.from("people").select("id, client_id, email, display_name, is_active");
   let m365Q = supabase.from("m365_users").select("person_id, is_licensed, mfa_strong");
-  let profilesQ = supabase.from("profiles").select("person_id, role");
+  let profilesQ = supabase.from("profiles").select("id, person_id, role, status");
   if (clientId) {
     peopleQ = peopleQ.eq("client_id", clientId);
     m365Q = m365Q.eq("client_id", clientId);
@@ -61,12 +66,13 @@ export async function getAllPeople(clientId?: string): Promise<GlobalPersonRow[]
     supabase.from("clients").select("id, name"),
   ]);
   const m365By = new Map((m365.data ?? []).filter((m) => m.person_id).map((m) => [m.person_id, m]));
-  const roleBy = new Map((profiles.data ?? []).filter((p) => p.person_id).map((p) => [p.person_id, p.role]));
+  const profileBy = new Map((profiles.data ?? []).filter((p) => p.person_id).map((p) => [p.person_id, p]));
   const clientBy = new Map((clients.data ?? []).map((c) => [c.id, c.name]));
 
   return (people.data ?? [])
     .map((p) => {
       const m = m365By.get(p.id);
+      const prof = profileBy.get(p.id);
       return {
         id: p.id,
         name: p.display_name ?? p.email,
@@ -75,9 +81,10 @@ export async function getAllPeople(clientId?: string): Promise<GlobalPersonRow[]
         hasM365: !!m,
         licensed: !!m?.is_licensed,
         mfaStrong: m ? m.mfa_strong : null,
-        portalRole: roleBy.get(p.id) ?? null,
+        portalRole: prof?.role ?? null,
         clientId: p.client_id,
         clientName: clientBy.get(p.client_id) ?? "—",
+        profileId: prof && prof.status === "active" ? prof.id : null,
       };
     })
     .sort(
