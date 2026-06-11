@@ -2,14 +2,17 @@
 //
 //   node scripts/create-quote.mjs quote.json            # new quote, status sent
 //   node scripts/create-quote.mjs quote.json --amend <quoteId>   # new version
+//   ... --no-email                                      # import silently
 //
 // Input file:
 // {
 //   "clientId": "..."            // or "clientName": "GSR Law"
 //   "title": "VoIP Phone System",
 //   "validUntil": "2026-07-11",  // ISO date for expiry derivation
+//   "number": "QU-GSR-002",      // optional: keep an existing number (skips the counter)
 //   "doc": { ...QuoteDoc shape (lib/quotes/doc.ts); meta.quoteNumber is filled in here },
 //   "internal": [{ "path": "s0.g0.i0", "supplierCost": 850, "note": "Miro invoice #123" }]
+//   // supplierCost convention: ex-VAT LINE TOTAL (incl-VAT cost / 1.15 × qty)
 // }
 
 import { readFileSync } from "fs";
@@ -48,6 +51,7 @@ const [file, ...rest] = process.argv.slice(2);
 if (!file) { console.error("usage: node scripts/create-quote.mjs <quote.json> [--amend <quoteId>]"); process.exit(1); }
 const amendIdx = rest.indexOf("--amend");
 const amendId = amendIdx !== -1 ? rest[amendIdx + 1] : null;
+const noEmail = rest.includes("--no-email");
 const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
 if (!doc || !title) { console.error("input needs { title, doc }"); process.exit(1); }
@@ -91,9 +95,14 @@ if (amendId) {
   await sb.from("quote_events").insert({ quote_id: quoteId, version, event: "sent" });
 } else {
   // ---------- brand-new quote ----------
-  const { data: num, error: numErr } = await sb.rpc("next_quote_number");
-  if (numErr) throw numErr;
-  quoteNumber = num; version = 1;
+  if (input.number) {
+    quoteNumber = input.number; // imported historical quote keeps its number
+  } else {
+    const { data: num, error: numErr } = await sb.rpc("next_quote_number");
+    if (numErr) throw numErr;
+    quoteNumber = num;
+  }
+  version = 1;
   doc.meta.quoteNumber = quoteNumber;
 
   const { data: q, error: qErr } = await sb.from("quotes").insert({
@@ -130,7 +139,9 @@ const { data: managers } = await sb.from("profiles").select("email")
 const to = (managers ?? []).map((m) => m.email);
 const url = `${APP_URL}/quotes/${quoteId}`;
 
-if (to.length && process.env.RESEND_API_KEY) {
+if (noEmail) {
+  console.log("Email skipped (--no-email)");
+} else if (to.length && process.env.RESEND_API_KEY) {
   const heading = amendId
     ? `Updated quote from Rocking — ${quoteNumber}`
     : `New quote from Rocking — ${quoteNumber}`;

@@ -29,7 +29,9 @@ export function QuoteDocument({ doc }: { doc: QuoteDoc }) {
           {doc.client.addressLines.map((line, i) => (
             <div key={i} className={s.clientLine}>{line}</div>
           ))}
-          <div className={`${s.clientLine} ${s.attn}`}>Attn: {doc.client.attention}</div>
+          {doc.client.attention && (
+            <div className={`${s.clientLine} ${s.attn}`}>Attn: {doc.client.attention}</div>
+          )}
         </div>
         <div className={s.quoteMeta}>
           {[
