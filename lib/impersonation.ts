@@ -2,19 +2,15 @@
 // tested; cookie I/O happens in the actions/route that use them.
 
 export const MARKER_COOKIE = "imp";
-export const BACKUP_PREFIX = "imp-bak.";
+export const BACKUP_PREFIX = "imp-bak."; // legacy; cleared on exit for in-flight markers
 
-export type ImpersonationMarker = { logId: string; email: string };
+// `email` = the impersonated target (shown in the banner).
+// `adminEmail` = the staff member, used to re-mint their session on exit.
+export type ImpersonationMarker = { logId: string; email: string; adminEmail: string };
 
 /** Is this a Supabase auth session cookie (incl. chunked .0/.1 variants)? */
 export function isAuthCookie(name: string): boolean {
   return name.startsWith("sb-") && name.includes("-auth-token");
-}
-
-export const backupName = (name: string): string => `${BACKUP_PREFIX}${name}`;
-
-export function originalName(backup: string): string | null {
-  return backup.startsWith(BACKUP_PREFIX) ? backup.slice(BACKUP_PREFIX.length) : null;
 }
 
 export function encodeMarker(m: ImpersonationMarker): string {
@@ -26,7 +22,7 @@ export function decodeMarker(value: string | undefined): ImpersonationMarker | n
   try {
     const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
     if (typeof parsed?.logId === "string" && typeof parsed?.email === "string") {
-      return { logId: parsed.logId, email: parsed.email };
+      return { logId: parsed.logId, email: parsed.email, adminEmail: parsed.adminEmail ?? "" };
     }
     return null;
   } catch {

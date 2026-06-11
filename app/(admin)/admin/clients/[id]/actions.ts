@@ -5,12 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import {
-  MARKER_COOKIE,
-  backupName,
-  encodeMarker,
-  isAuthCookie,
-} from "@/lib/impersonation";
+import { MARKER_COOKIE, encodeMarker } from "@/lib/impersonation";
 
 /**
  * Staff-only: swap the session to a target client user ("Sign in as").
@@ -65,41 +60,23 @@ export async function startImpersonation(formData: FormData) {
     throw new Error("could not create session for user");
   }
 
-  // Back up the staff auth cookies BEFORE verifyOtp overwrites them.
   const secure = process.env.NODE_ENV === "production";
-  for (const c of cookieStore.getAll()) {
-    if (isAuthCookie(c.name)) {
-      cookieStore.set(backupName(c.name), c.value, {
-        httpOnly: true,
-        secure,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 8,
-      });
-    }
-  }
 
-  // verifyOtp on the cookie-writing client swaps the live session to the target.
+  // verifyOtp swaps the live session to the target. The staff member's own
+  // session is NOT backed up — exit re-mints it from adminEmail in the marker,
+  // which is robust to any cookie state.
   const supabase = await createClient();
   const { error: verifyErr } = await supabase.auth.verifyOtp({
     token_hash: link.properties.hashed_token,
     type: "magiclink",
   });
-  if (verifyErr) {
-    // Roll back: remove backups, leave the original (untouched) session alone.
-    for (const c of cookieStore.getAll()) {
-      if (c.name.startsWith("imp-bak.")) cookieStore.delete(c.name);
-    }
-    throw new Error("could not start the session");
-  }
+  if (verifyErr) throw new Error("could not start the session");
 
-  cookieStore.set(MARKER_COOKIE, encodeMarker({ logId: log.id, email: target.email }), {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
+  cookieStore.set(
+    MARKER_COOKIE,
+    encodeMarker({ logId: log.id, email: target.email, adminEmail: me.profile.email }),
+    { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 60 * 60 * 8 },
+  );
 
   redirect("/");
 }
