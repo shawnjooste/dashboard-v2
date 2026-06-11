@@ -19,7 +19,11 @@ export type DeviceHealth = DeviceInputs & {
   needsAttention: boolean;
 };
 
-const PATCH_ISSUE = new Set(["Reboot Required", "Install Error"]);
+// Datto RMM API forms (no spaces) + the legacy CSV-export forms.
+const PATCH_ISSUE = new Set([
+  "RebootRequired", "InstallError",
+  "Reboot Required", "Install Error",
+]);
 
 export function deviceHealth(d: DeviceInputs): DeviceHealth {
   const maxDiskPct = d.usedPcts.length ? Math.max(...d.usedPcts) : null;

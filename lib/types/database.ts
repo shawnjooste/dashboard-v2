@@ -323,7 +323,7 @@ export type Database = {
           client_id: string
           cpu: string | null
           created_at: string
-          device_identity: string
+          datto_uid: string
           enrollment_date: string | null
           external_ip: string | null
           hostname: string
@@ -346,7 +346,7 @@ export type Database = {
           client_id: string
           cpu?: string | null
           created_at?: string
-          device_identity: string
+          datto_uid: string
           enrollment_date?: string | null
           external_ip?: string | null
           hostname: string
@@ -369,7 +369,7 @@ export type Database = {
           client_id?: string
           cpu?: string | null
           created_at?: string
-          device_identity?: string
+          datto_uid?: string
           enrollment_date?: string | null
           external_ip?: string | null
           hostname?: string

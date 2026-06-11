@@ -30,10 +30,11 @@ describe("deviceHealth", () => {
     expect(deviceHealth(mk({ usedPcts: [55, 92] })).flags.diskFull).toBe(true);
     expect(deviceHealth(mk({ usedPcts: [55, 92] })).maxDiskPct).toBe(92);
   });
-  it("flags reboot-required / install-error patch status", () => {
+  it("flags reboot-required / install-error patch status (API + CSV forms)", () => {
     expect(deviceHealth(mk({ patchStatus: "Reboot Required" })).flags.patchIssue).toBe(true);
-    expect(deviceHealth(mk({ patchStatus: "Install Error" })).flags.patchIssue).toBe(true);
-    expect(deviceHealth(mk({ patchStatus: "Fully Patched" })).flags.patchIssue).toBe(false);
+    expect(deviceHealth(mk({ patchStatus: "RebootRequired" })).flags.patchIssue).toBe(true);
+    expect(deviceHealth(mk({ patchStatus: "InstallError" })).flags.patchIssue).toBe(true);
+    expect(deviceHealth(mk({ patchStatus: "FullyPatched" })).flags.patchIssue).toBe(false);
   });
   it("flags open alerts", () => {
     expect(deviceHealth(mk({ openAlerts: 2 })).flags.openAlerts).toBe(true);
