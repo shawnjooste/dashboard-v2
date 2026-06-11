@@ -25,8 +25,14 @@ export const NAV: Record<UserRole, NavGroup[]> = {
     },
   ],
   client_manager: [
-    { label: "", items: [{ label: "Devices", href: "/" }] },
-    { label: "Your services", items: [{ label: "Microsoft 365", href: "/m365" }] },
+    { label: "", items: [{ label: "Account home", href: "/" }] },
+    {
+      label: "Your services",
+      items: [
+        { label: "Devices", href: "/devices" },
+        { label: "Microsoft 365", href: "/m365" },
+      ],
+    },
     {
       label: "Account",
       items: [
