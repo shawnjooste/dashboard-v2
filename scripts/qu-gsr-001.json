@@ -1,0 +1,120 @@
+{
+  "clientName": "GSR Law",
+  "title": "Laptop Parts & Repair — GSR",
+  "validUntil": "2026-07-02",
+  "number": "QU-GSR-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "GSR",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-GSR-001",
+      "date": "2 June 2026",
+      "validUntil": "2 July 2026",
+      "preparedBy": "Nathan Jooste"
+    },
+    "projectTitle": "Laptop Parts & Repair — GSR",
+    "projectIntro": "This quote covers the supply of Dell laptop parts and associated workshop labour for 3 units. Imported parts have an ETA of +/- 2 weeks from payment. Import orders close 12pm every Thursday. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "parts",
+        "title": "Parts & Labour",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell 5490 Lid / LCD Back Cover",
+                "detail": "SKU: H9K23",
+                "qty": 1,
+                "unitPrice": 747.50
+              },
+              {
+                "description": "Dell 5490 LCD",
+                "detail": "SKU: NV140FHM-N4A",
+                "qty": 1,
+                "unitPrice": 1897.50
+              },
+              {
+                "description": "Dell 5490 NB LCD Bezel",
+                "detail": "SKU: VRWJM",
+                "qty": 1,
+                "unitPrice": 540.50
+              },
+              {
+                "description": "Dell Vostro 5590 LCD Back Cover",
+                "detail": "SKU: W24RP",
+                "qty": 1,
+                "unitPrice": 1667.50
+              },
+              {
+                "description": "Dell Vostro 5590 LCD Bezel",
+                "detail": "SKU: FG89V",
+                "qty": 1,
+                "unitPrice": 862.50
+              },
+              {
+                "description": "Dell Vostro 5590 Palmrest with US Keyboard",
+                "detail": "SKU: XNR1R",
+                "qty": 1,
+                "unitPrice": 1552.50
+              },
+              {
+                "description": "Dell V5510 Palmrest with US Keyboard (No Touchpad)",
+                "detail": "SKU: Y64G2",
+                "qty": 1,
+                "unitPrice": 1552.50
+              },
+              {
+                "description": "Workshop Labour Fee",
+                "detail": "Assess and install fee for 3 units | Lab fee remains if repaired or not | 12 months warranty on imported parts",
+                "qty": 1,
+                "unitPrice": 1035.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Note: Upfront payment required for parts order. Imported parts are non-refundable. Prices may vary due to R/$ exchange rate fluctuations.",
+    "terms": [
+      "This quote is valid for 30 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Payment is due in full prior to parts being ordered.",
+      "Imported parts have an ETA of approximately 2 weeks from payment received.",
+      "Import orders close at 12pm every Thursday.",
+      "Imported parts are non-refundable once ordered.",
+      "12 months warranty applies to imported parts.",
+      "Workshop labour fee applies whether repair is successful or not."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 650.00,  "note": "Dell 5490 Lid / LCD Back Cover — SKU H9K23" },
+    { "path": "s0.g0.i1", "supplierCost": 1650.00, "note": "Dell 5490 LCD — SKU NV140FHM-N4A" },
+    { "path": "s0.g0.i2", "supplierCost": 470.00,  "note": "Dell 5490 NB LCD Bezel — SKU VRWJM" },
+    { "path": "s0.g0.i3", "supplierCost": 1450.00, "note": "Dell Vostro 5590 LCD Back Cover — SKU W24RP" },
+    { "path": "s0.g0.i4", "supplierCost": 750.00,  "note": "Dell Vostro 5590 LCD Bezel — SKU FG89V" },
+    { "path": "s0.g0.i5", "supplierCost": 1350.00, "note": "Dell Vostro 5590 Palmrest with US Keyboard — SKU XNR1R" },
+    { "path": "s0.g0.i6", "supplierCost": 1350.00, "note": "Dell V5510 Palmrest with US Keyboard (No Touchpad) — SKU Y64G2" },
+    { "path": "s0.g0.i7", "supplierCost": 900.00,  "note": "Workshop Labour Fee" }
+  ]
+}
