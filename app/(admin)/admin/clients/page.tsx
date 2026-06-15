@@ -1,73 +1,34 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getVisibleDeviceHealth } from "@/lib/views/devices";
-import { PageHeader, Card } from "@/components/ui";
+import { getAllPeople } from "@/lib/views/people";
+import { ClientsView, type ClientRow } from "./ClientsView";
 
 export default async function AdminClientsPage() {
   const supabase = await createClient();
-  const [clients, devices] = await Promise.all([
+  const [clientsRes, devices, people] = await Promise.all([
     supabase.from("clients").select("id, name").order("name"),
     getVisibleDeviceHealth(),
+    getAllPeople(),
   ]);
 
-  const countsBy = new Map<string, { total: number; attention: number }>();
+  const dev = new Map<string, { total: number; attention: number }>();
   for (const d of devices) {
-    const c = countsBy.get(d.clientId) ?? { total: 0, attention: 0 };
+    const c = dev.get(d.clientId) ?? { total: 0, attention: 0 };
     c.total += 1;
     if (d.needsAttention) c.attention += 1;
-    countsBy.set(d.clientId, c);
+    dev.set(d.clientId, c);
   }
 
-  const rows = clients.data ?? [];
+  const ppl = new Map<string, number>();
+  for (const p of people) ppl.set(p.clientId, (ppl.get(p.clientId) ?? 0) + 1);
 
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Clients" subtitle={`${rows.length} total`} />
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
-              <tr>
-                <th className="px-4 py-2.5 font-semibold">Client</th>
-                <th className="px-4 py-2.5 font-semibold">Devices</th>
-                <th className="px-4 py-2.5 font-semibold">Need attention</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((c) => {
-                const counts = countsBy.get(c.id);
-                return (
-                  <tr
-                    key={c.id}
-                    className="border-b border-line-soft last:border-0 hover:bg-canvas"
-                  >
-                    <td className="px-4 py-2.5 font-medium">
-                      {counts ? (
-                        <Link
-                          href={`/admin/clients/${c.id}`}
-                          className="text-ink hover:text-brand"
-                        >
-                          {c.name}
-                        </Link>
-                      ) : (
-                        c.name
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-ink-3">
-                      {counts?.total ?? <span className="text-faint">no devices yet</span>}
-                    </td>
-                    <td
-                      className={`px-4 py-2.5 ${counts?.attention ? "text-brand" : "text-good"}`}
-                    >
-                      {counts ? counts.attention : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
+  const rows: ClientRow[] = (clientsRes.data ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    people: ppl.get(c.id) ?? 0,
+    devices: dev.get(c.id)?.total ?? 0,
+    attention: dev.get(c.id)?.attention ?? 0,
+  }));
+
+  return <ClientsView clients={rows} />;
 }

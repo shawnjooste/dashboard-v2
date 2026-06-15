@@ -5,17 +5,13 @@ import Link from "next/link";
 import type { GlobalPersonRow } from "@/lib/views/people";
 import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
 import { setPortalRole } from "./actions";
+import { clientColor, clientInitials, hashString } from "@/lib/ui/client-avatar";
 
 type ClientRef = { id: string; name: string };
 
 const RED = "#D7141C";
 const ALL_GRADIENT =
   "conic-gradient(#4F46E5 0 25%, #D7141C 0 50%, #0D9488 0 75%, #7C3AED 0 100%)";
-
-const CLIENT_COLORS = [
-  "#4F46E5", "#D7141C", "#0D9488", "#B45309", "#7C3AED",
-  "#0E7490", "#BE185D", "#15803D", "#A16207", "#6D28D9",
-];
 
 // [bg, fg] pairs for person avatars, picked by name hash.
 const AVATAR_PALETTE: [string, string][] = [
@@ -24,27 +20,10 @@ const AVATAR_PALETTE: [string, string][] = [
   ["#FDF2F8", "#BE185D"], ["#F0FDF4", "#15803D"], ["#FEFCE8", "#A16207"],
 ];
 
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
-  return h;
-}
-
 function personInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
-}
-
-/** "GSR Law" → "GSR" (leading acronym), "Harbour & Co" → "HC". */
-function clientInitials(name: string): string {
-  const words = name.split(/\s+/).filter((w) => /[a-z0-9]/i.test(w));
-  if (words[0] && words[0].length <= 4 && words[0] === words[0].toUpperCase()) return words[0];
-  return words.slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
-function clientColor(name: string): string {
-  return CLIENT_COLORS[hash(name) % CLIENT_COLORS.length];
 }
 
 /** Shared/service mailboxes get a square avatar + "Account" tag. */
@@ -278,7 +257,7 @@ export function UsersView({
 
         {rows.map((p) => {
           const acct = isAccount(p);
-          const [avBg, avFg] = AVATAR_PALETTE[hash(p.name) % AVATAR_PALETTE.length];
+          const [avBg, avFg] = AVATAR_PALETTE[hashString(p.name) % AVATAR_PALETTE.length];
           return (
             <div
               key={p.id}
