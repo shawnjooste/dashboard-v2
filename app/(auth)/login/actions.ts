@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { notifyPendingSignup } from "@/lib/notify";
+import { notifyPendingSignup, notifyFirstSignIn } from "@/lib/notify";
 
 export type ActionState = { error?: string; codeSent?: boolean; email?: string };
 
@@ -45,13 +45,18 @@ export async function verifyCode(
     };
   }
 
-  // Notify staff if this user is sitting in the pending-approval queue.
-  // Best-effort: never let a notification failure block sign-in.
+  // Notify staff if this user is sitting in the pending-approval queue, and the
+  // first time anyone signs in. Both best-effort: never block sign-in.
   if (data.user) {
     try {
       await notifyPendingSignup(data.user.id);
     } catch (e) {
       console.error("pending-signup notification failed:", e);
+    }
+    try {
+      await notifyFirstSignIn(data.user.id);
+    } catch (e) {
+      console.error("first-sign-in notification failed:", e);
     }
   }
 

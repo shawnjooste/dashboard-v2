@@ -64,3 +64,76 @@ export async function notifyPendingSignup(userId: string): Promise<void> {
       </div>`,
   });
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  client_manager: "Manager",
+  client_member: "Member",
+  rocking_staff: "Rocking staff",
+};
+
+/**
+ * Emails staff the first time a user ever signs in, so they can act on the new
+ * arrival (e.g. promote them to manager). Idempotent: an atomic claim on
+ * first_signin_notified_at sends exactly one email per user, even across
+ * concurrent requests. Best-effort — never let it block sign-in.
+ */
+export async function notifyFirstSignIn(userId: string): Promise<void> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("profiles")
+    .update({ first_signin_notified_at: new Date().toISOString() })
+    .eq("id", userId)
+    .is("first_signin_notified_at", null)
+    .select("email, client_id, role, person_id")
+    .maybeSingle();
+
+  if (!data) return; // already notified by an earlier sign-in
+
+  // Best-effort niceties: a display name and client name for the email.
+  let name = data.email;
+  if (data.person_id) {
+    const { data: person } = await service
+      .from("people")
+      .select("display_name")
+      .eq("id", data.person_id)
+      .maybeSingle();
+    if (person?.display_name) name = person.display_name;
+  }
+  let clientName: string | null = null;
+  if (data.client_id) {
+    const { data: client } = await service
+      .from("clients")
+      .select("name")
+      .eq("id", data.client_id)
+      .maybeSingle();
+    clientName = client?.name ?? null;
+  }
+
+  const role = ROLE_LABEL[data.role] ?? data.role;
+  const usersUrl = data.client_id
+    ? `${APP_URL}/admin/users?client=${data.client_id}`
+    : `${APP_URL}/admin/users`;
+
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `First sign-in — ${name}${clientName ? ` (${clientName})` : ""}`,
+    html: `
+      <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">
+        <h2 style="margin:0 0 8px;">${name} just signed in for the first time</h2>
+        <p style="color:#444; margin:0 0 16px;">
+          They're now in the portal. If they should run the account, you can make them a manager.
+        </p>
+        <table style="font-size:14px; color:#111;">
+          <tr><td style="color:#888; padding-right:12px;">Name</td><td><strong>${name}</strong></td></tr>
+          <tr><td style="color:#888; padding-right:12px;">Email</td><td>${data.email}</td></tr>
+          ${clientName ? `<tr><td style="color:#888; padding-right:12px;">Client</td><td>${clientName}</td></tr>` : ""}
+          <tr><td style="color:#888; padding-right:12px;">Current role</td><td>${role}</td></tr>
+        </table>
+        <p style="margin:20px 0 0;">
+          <a href="${usersUrl}" style="background:#111; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none;">
+            Open in users
+          </a>
+        </p>
+      </div>`,
+  });
+}

@@ -790,6 +790,7 @@ export type Database = {
           client_id: string | null
           created_at: string
           email: string
+          first_signin_notified_at: string | null
           id: string
           pending_notified_at: string | null
           person_id: string | null
@@ -801,6 +802,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           email: string
+          first_signin_notified_at?: string | null
           id: string
           pending_notified_at?: string | null
           person_id?: string | null
@@ -812,6 +814,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           email?: string
+          first_signin_notified_at?: string | null
           id?: string
           pending_notified_at?: string | null
           person_id?: string | null
