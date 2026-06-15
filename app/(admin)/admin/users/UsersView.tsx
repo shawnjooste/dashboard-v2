@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import type { GlobalPersonRow } from "@/lib/views/people";
 import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
@@ -404,6 +404,8 @@ export function UsersView({
 function PortalRoleCell({ person }: { person: GlobalPersonRow }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const role = person.portalRole;
@@ -427,7 +429,22 @@ function PortalRoleCell({ person }: { person: GlobalPersonRow }) {
   const openMenu = () => {
     const r = btnRef.current?.getBoundingClientRect();
     if (r) setPos({ top: r.bottom + 6, left: r.left });
+    setErr(null);
     setOpen(true);
+  };
+
+  // Run the server action inside a transition so the form stays mounted through
+  // dispatch (closing the menu on click would unmount it and cancel the submit).
+  // Close only on success; surface the error otherwise.
+  const submit = (fd: FormData) => {
+    startTransition(async () => {
+      try {
+        await setPortalRole(fd);
+        setOpen(false);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Could not change the role");
+      }
+    });
   };
 
   return (
@@ -459,20 +476,23 @@ function PortalRoleCell({ person }: { person: GlobalPersonRow }) {
                 Currently {isManager ? "a manager" : "a member"}
               </div>
             </div>
-            <form action={setPortalRole}>
+            <form action={submit}>
               <input type="hidden" name="profile_id" value={person.profileId ?? ""} />
               <input type="hidden" name="role" value={targetRole} />
               <button
                 type="submit"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold text-ink hover:bg-canvas"
+                disabled={pending}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold text-ink hover:bg-canvas disabled:opacity-60"
               >
                 <span className={isManager ? "text-faint" : "text-brand"}>
                   {isManager ? "↓" : "↑"}
                 </span>
-                {actionLabel}
+                {pending ? "Saving…" : actionLabel}
               </button>
             </form>
+            {err && (
+              <div className="border-t border-line-soft px-3 py-2 text-[12px] text-[#B01218]">{err}</div>
+            )}
           </div>
         </>
       )}
