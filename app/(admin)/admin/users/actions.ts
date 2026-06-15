@@ -1,10 +1,13 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { sendOnboardingEmail } from "@/lib/notify";
 import { revalidatePath } from "next/cache";
 
 const ROLES = new Set(["client_manager", "client_member"]);
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard-v2-blue.vercel.app";
 
 /**
  * Staff-only: promote or demote a client user's portal role from the Users list.
@@ -28,4 +31,73 @@ export async function setPortalRole(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/users");
+}
+
+export type InviteResult = { ok: true; email: string } | { ok: false; error: string };
+
+/**
+ * Staff-only: invite someone to a client. Provisions a passwordless user,
+ * assigns them to the chosen client (via the staff-guarded approve RPC), then
+ * emails them a one-click magic link with the branded onboarding template.
+ */
+export async function inviteUser(_prev: InviteResult | null, formData: FormData): Promise<InviteResult> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const clientId = String(formData.get("client_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!email || !email.includes("@")) return { ok: false, error: "Enter a valid email address." };
+  if (!clientId) return { ok: false, error: "Pick a client." };
+
+  const me = await getCurrentProfile();
+  if (!me.authenticated || me.profile.role !== "rocking_staff") {
+    return { ok: false, error: "Only Rocking staff may invite users." };
+  }
+
+  const service = createServiceClient();
+
+  // A passwordless sign-in link. 'invite' creates a new user; if the address
+  // already exists, fall back to a magic link for the existing one.
+  let linkType: "invite" | "magiclink" = "invite";
+  let link = await service.auth.admin.generateLink({ type: "invite", email });
+  if (link.error) {
+    linkType = "magiclink";
+    link = await service.auth.admin.generateLink({ type: "magiclink", email });
+  }
+  const userId = link.data?.user?.id;
+  const tokenHash = link.data?.properties?.hashed_token;
+  if (link.error || !userId || !tokenHash) {
+    return { ok: false, error: "Could not create a sign-in link for that address." };
+  }
+
+  // Assign to the chosen client and activate (staff-guarded; runs as the admin).
+  const supabase = await createClient();
+  const { error: assignErr } = await supabase.rpc("approve_pending_user", {
+    p_profile_id: userId,
+    p_client_id: clientId,
+    p_make_manager: false,
+  });
+  if (assignErr) return { ok: false, error: assignErr.message };
+
+  const { data: client } = await service
+    .from("clients")
+    .select("name")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  const portalUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=${linkType}&next=/`;
+  const firstName = (name ? name.split(/\s+/)[0] : email.split("@")[0]) || "there";
+
+  try {
+    await sendOnboardingEmail({
+      to: email,
+      firstName,
+      companyName: client?.name ?? "your company",
+      portalUrl,
+    });
+  } catch (e) {
+    console.error("onboarding email failed:", e);
+    return { ok: false, error: "User set up, but the email failed to send — try again." };
+  }
+
+  revalidatePath("/admin/users");
+  return { ok: true, email };
 }

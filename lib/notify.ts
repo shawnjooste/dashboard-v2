@@ -1,6 +1,7 @@
 // Server-only email notifications via Resend (the same domain used for auth).
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { onboardingEmailHtml } from "@/lib/onboarding-email";
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
@@ -62,6 +63,24 @@ export async function notifyPendingSignup(userId: string): Promise<void> {
           </a>
         </p>
       </div>`,
+  });
+}
+
+/**
+ * Sends the branded "welcome to The Portal" onboarding email. Throws on a send
+ * failure so the caller (invite flow) can surface it. No idempotency guard — the
+ * caller decides when to send (an explicit invite), unlike the auto notifiers.
+ */
+export async function sendOnboardingEmail(opts: {
+  to: string;
+  firstName: string;
+  companyName: string;
+  portalUrl: string;
+}): Promise<void> {
+  await sendEmail({
+    to: opts.to,
+    subject: `Welcome to The Portal — ${opts.companyName}`,
+    html: onboardingEmailHtml(opts),
   });
 }
 

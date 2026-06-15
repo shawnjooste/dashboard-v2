@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { GlobalPersonRow } from "@/lib/views/people";
 import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
 import { setPortalRole } from "./actions";
+import { InviteDialog } from "./InviteDialog";
 import { clientColor, clientInitials, hashString } from "@/lib/ui/client-avatar";
 
 type ClientRef = { id: string; name: string };
@@ -121,8 +122,11 @@ export function UsersView({
           </p>
         </div>
 
+        <div className="ml-auto flex shrink-0 items-center gap-2.5">
+        <InviteDialog clients={clients} defaultClientId={clientSel !== "all" ? clientSel : undefined} />
+
         {/* Client switcher */}
-        <div className="relative ml-auto shrink-0">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => { setMenuOpen((o) => !o); setClientQ(""); }}
@@ -188,6 +192,7 @@ export function UsersView({
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
 
