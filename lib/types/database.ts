@@ -1089,6 +1089,13 @@ export type Database = {
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
       next_quote_number: { Args: never; Returns: string }
+      set_portal_role: {
+        Args: {
+          p_profile_id: string
+          p_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: undefined
+      }
       upsert_person: {
         Args: {
           p_client_id: string

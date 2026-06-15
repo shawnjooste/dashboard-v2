@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { GlobalPersonRow } from "@/lib/views/people";
 import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
+import { setPortalRole } from "./actions";
 
 type ClientRef = { id: string; name: string };
 
@@ -350,15 +351,7 @@ export function UsersView({
               </div>
               {/* Portal */}
               <div>
-                {p.portalRole === "client_manager" ? (
-                  <span className="rounded-full bg-brand-tint px-[11px] py-1 text-[12.5px] font-semibold text-[#B01218]">Manager</span>
-                ) : p.portalRole === "client_member" ? (
-                  <span className="rounded-full bg-line-soft px-[11px] py-1 text-[12.5px] font-semibold text-ink-3">Member</span>
-                ) : p.portalRole ? (
-                  <span className="rounded-full bg-line-soft px-[11px] py-1 text-[12.5px] font-semibold text-ink-3">{p.portalRole}</span>
-                ) : (
-                  <span className="text-[12.5px] text-line">—</span>
-                )}
+                <PortalRoleCell person={p} />
               </div>
               {/* View as */}
               <div className="text-right">
@@ -398,5 +391,91 @@ export function UsersView({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Portal-access cell. For client users with an active portal profile, the role
+ * pill becomes a button that opens a small menu to promote/demote (manager <->
+ * member). Anyone without a portal profile renders as before (static / dash).
+ * The menu is fixed-positioned off the pill's rect so the table's overflow-hidden
+ * (rounded corners) never clips it on the lower rows.
+ */
+function PortalRoleCell({ person }: { person: GlobalPersonRow }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const role = person.portalRole;
+  const canManage =
+    !!person.profileId && (role === "client_manager" || role === "client_member");
+
+  if (!canManage) {
+    if (role === "client_manager")
+      return <span className="rounded-full bg-brand-tint px-[11px] py-1 text-[12.5px] font-semibold text-[#B01218]">Manager</span>;
+    if (role === "client_member")
+      return <span className="rounded-full bg-line-soft px-[11px] py-1 text-[12.5px] font-semibold text-ink-3">Member</span>;
+    if (role)
+      return <span className="rounded-full bg-line-soft px-[11px] py-1 text-[12.5px] font-semibold text-ink-3">{role}</span>;
+    return <span className="text-[12.5px] text-line">—</span>;
+  }
+
+  const isManager = role === "client_manager";
+  const targetRole = isManager ? "client_member" : "client_manager";
+  const actionLabel = isManager ? "Make member" : "Make manager";
+
+  const openMenu = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 6, left: r.left });
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        className={`inline-flex items-center gap-1 rounded-full px-[11px] py-1 text-[12.5px] font-semibold transition-colors ${
+          isManager
+            ? "bg-brand-tint text-[#B01218] hover:bg-[#F6D2D4]"
+            : "bg-line-soft text-ink-3 hover:bg-line"
+        }`}
+      >
+        {isManager ? "Manager" : "Member"}
+        <span className="text-[9px] opacity-50">▾</span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            style={{ position: "fixed", top: pos.top, left: pos.left }}
+            className="z-50 w-[196px] overflow-hidden rounded-lg border border-line bg-card shadow-[0_12px_32px_rgba(24,24,27,0.14)]"
+          >
+            <div className="border-b border-line-soft px-3 py-2">
+              <div className="text-[10.5px] font-semibold uppercase tracking-[0.5px] text-faint">Portal role</div>
+              <div className="mt-0.5 text-[12.5px] text-ink-2">
+                Currently {isManager ? "a manager" : "a member"}
+              </div>
+            </div>
+            <form action={setPortalRole}>
+              <input type="hidden" name="profile_id" value={person.profileId ?? ""} />
+              <input type="hidden" name="role" value={targetRole} />
+              <button
+                type="submit"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold text-ink hover:bg-canvas"
+              >
+                <span className={isManager ? "text-faint" : "text-brand"}>
+                  {isManager ? "↓" : "↑"}
+                </span>
+                {actionLabel}
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+    </>
   );
 }
