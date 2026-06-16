@@ -1,4 +1,4 @@
-import Link from "next/link";
+const CALENDLY_URL = "https://calendly.com/shawn-rocking/portal-discovery-call";
 
 /** Shown above Devices / M365 (and the home cards) when a client has no real
  *  data yet, so prospects see a live preview of the product. */
@@ -11,12 +11,14 @@ export function SampleBanner() {
       <span className="text-[13.5px] text-[#7A5B12]">
         This is example data — a preview of what Rocking keeps an eye on for you once you&rsquo;re set up.
       </span>
-      <Link
-        href="/support/new"
+      <a
+        href={CALENDLY_URL}
+        target="_blank"
+        rel="noreferrer"
         className="ml-auto shrink-0 text-[13px] font-semibold text-[#8A4B0A] underline-offset-2 hover:underline"
       >
-        Get set up for real →
-      </Link>
+        Book a 15-min chat →
+      </a>
     </div>
   );
 }
