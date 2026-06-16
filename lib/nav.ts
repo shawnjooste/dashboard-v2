@@ -31,6 +31,7 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "Devices", href: "/devices" },
         { label: "Microsoft 365", href: "/m365" },
+        { label: "Support", href: "/support" },
       ],
     },
     {
@@ -38,12 +39,11 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "Quotes", href: "/quotes" },
         { label: "Team", href: "/team" },
-        { label: "Support", href: "/support" },
       ],
     },
   ],
   client_member: [
     { label: "", items: [{ label: "My machine", href: "/" }] },
-    { label: "Account", items: [{ label: "Support", href: "/support" }] },
+    { label: "Your services", items: [{ label: "Support", href: "/support" }] },
   ],
 };
