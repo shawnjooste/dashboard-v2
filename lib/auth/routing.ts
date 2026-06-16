@@ -12,6 +12,6 @@ export function resolveLandingPath(input: RouteInput): string {
   if (!input.authenticated) return "/login";
   if (input.role === "rocking_staff") return "/admin";
   if (input.status === "pending" || !input.hasClient) return "/pending";
-  if (input.role === "client_member" && !input.hasClaimedDevice) return "/onboarding";
+  // Members don't self-claim computers — a manager or Rocking assigns them.
   return "/app";
 }

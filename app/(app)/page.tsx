@@ -71,7 +71,9 @@ export default async function AppHome() {
           subtitle="The current health of the computer linked to your account."
         />
         {devices.length === 0 ? (
-          <p className="text-sm text-muted">No computer is linked to your account yet.</p>
+          <p className="text-sm text-muted">
+            No computer is linked to your account yet — your manager or the Rocking team will set this up for you.
+          </p>
         ) : (
           <div className="space-y-6">
             {devices.map((d) => (

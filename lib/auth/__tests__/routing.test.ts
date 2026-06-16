@@ -19,8 +19,8 @@ describe("resolveLandingPath", () => {
   it("sends pending users to /pending", () => {
     expect(resolveLandingPath({ ...base, status: "pending", hasClient: false })).toBe("/pending");
   });
-  it("sends active members with no claimed device to onboarding", () => {
-    expect(resolveLandingPath({ ...base, hasClaimedDevice: false })).toBe("/onboarding");
+  it("sends active members with no claimed device to /app (no self-claim)", () => {
+    expect(resolveLandingPath({ ...base, hasClaimedDevice: false })).toBe("/app");
   });
   it("sends fully-onboarded members to /app", () => {
     expect(resolveLandingPath(base)).toBe("/app");
