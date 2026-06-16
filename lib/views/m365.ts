@@ -1,4 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/types/database";
 import { friendlySku } from "@/lib/m365-skus";
 import { mfaCoveragePct, strongMethodLabels } from "@/lib/m365-derive";
 
@@ -130,8 +132,11 @@ export async function getM365Users(clientId: string): Promise<M365User[]> {
 }
 
 /** Assembles the M365 view for one client (RLS-scoped). */
-export async function getM365View(clientId: string): Promise<M365View> {
-  const supabase = await createClient();
+export async function getM365View(
+  clientId: string,
+  client?: SupabaseClient<Database>,
+): Promise<M365View> {
+  const supabase = client ?? (await createClient());
   const [tenant, usersRes, licensesRes, snapsRes] = await Promise.all([
     supabase.from("m365_tenant").select("*").eq("client_id", clientId).maybeSingle(),
     supabase.from("m365_users").select("display_name, user_principal_name, account_enabled, is_licensed, assigned_licenses, mfa_methods, mfa_strong").eq("client_id", clientId),

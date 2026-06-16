@@ -13,20 +13,35 @@ export async function getVisibleDeviceHealth(): Promise<DeviceHealth[]> {
     supabase.from("device_storage").select("device_id, used_pct, drive_type"),
     supabase.from("device_alerts").select("device_id, resolved"),
   ]);
+  return assembleDeviceHealth(devices.data ?? [], patch.data ?? [], storage.data ?? [], alerts.data ?? []);
+}
 
-  const patchBy = new Map((patch.data ?? []).map((p) => [p.device_id, p]));
+type DeviceRow = { id: string; client_id: string; hostname: string; assigned_user_label: string | null; operating_system: string | null; av_ok: boolean | null };
+type PatchRow = { device_id: string; patch_status: string | null; patches_installed: number | null; patches_approved_pending: number | null };
+type StorageRow = { device_id: string; used_pct: number | null; drive_type: string | null };
+type AlertRow = { device_id: string; resolved: boolean };
+
+/** Pure transform: rows → device health. Shared by the live (RLS) and the
+ *  sample (service-client) fetchers so they stay identical. */
+export function assembleDeviceHealth(
+  devices: DeviceRow[],
+  patch: PatchRow[],
+  storage: StorageRow[],
+  alerts: AlertRow[],
+): DeviceHealth[] {
+  const patchBy = new Map(patch.map((p) => [p.device_id, p]));
   const disksBy = new Map<string, number[]>();
-  for (const s of storage.data ?? []) {
+  for (const s of storage) {
     if (s.used_pct === null || !(s.drive_type ?? "").toLowerCase().includes("local")) continue;
     (disksBy.get(s.device_id) ?? disksBy.set(s.device_id, []).get(s.device_id)!).push(Number(s.used_pct));
   }
   const openBy = new Map<string, number>();
-  for (const a of alerts.data ?? []) {
+  for (const a of alerts) {
     if (a.resolved) continue;
     openBy.set(a.device_id, (openBy.get(a.device_id) ?? 0) + 1);
   }
 
-  return (devices.data ?? []).map((d) => {
+  return devices.map((d) => {
     const p = patchBy.get(d.id);
     const inputs: DeviceInputs = {
       id: d.id,
