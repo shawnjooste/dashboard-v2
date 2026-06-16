@@ -795,6 +795,7 @@ export type Database = {
         Row: {
           client_id: string | null
           created_at: string
+          decline_reason: string | null
           email: string
           first_signin_notified_at: string | null
           id: string
@@ -807,6 +808,7 @@ export type Database = {
         Insert: {
           client_id?: string | null
           created_at?: string
+          decline_reason?: string | null
           email: string
           first_signin_notified_at?: string | null
           id: string
@@ -819,6 +821,7 @@ export type Database = {
         Update: {
           client_id?: string | null
           created_at?: string
+          decline_reason?: string | null
           email?: string
           first_signin_notified_at?: string | null
           id?: string
@@ -1072,9 +1075,14 @@ export type Database = {
       approve_pending_user: {
         Args: {
           p_client_id: string
+          p_link_domain?: boolean
           p_make_manager?: boolean
           p_profile_id: string
         }
+        Returns: undefined
+      }
+      reject_pending_user: {
+        Args: { p_profile_id: string; p_reason?: string }
         Returns: undefined
       }
       claim_device: { Args: { p_device_id: string }; Returns: undefined }
@@ -1117,7 +1125,7 @@ export type Database = {
     }
     Enums: {
       client_status: "active" | "inactive"
-      profile_status: "pending" | "active"
+      profile_status: "pending" | "active" | "rejected"
       user_role: "rocking_staff" | "client_manager" | "client_member"
     }
     CompositeTypes: {
@@ -1247,7 +1255,7 @@ export const Constants = {
   public: {
     Enums: {
       client_status: ["active", "inactive"],
-      profile_status: ["pending", "active"],
+      profile_status: ["pending", "active", "rejected"],
       user_role: ["rocking_staff", "client_manager", "client_member"],
     },
   },
