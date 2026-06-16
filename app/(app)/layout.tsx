@@ -18,12 +18,15 @@ export default async function AppLayout({
   let accountName: string | null = null;
   if (me.profile.client_id) {
     const supabase = await createClient();
-    const { data: client } = await supabase
-      .from("clients")
-      .select("name")
-      .eq("id", me.profile.client_id)
-      .maybeSingle();
+    const [{ data: client }, { data: person }] = await Promise.all([
+      supabase.from("clients").select("name").eq("id", me.profile.client_id).maybeSingle(),
+      me.profile.person_id
+        ? supabase.from("people").select("first_name").eq("id", me.profile.person_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     accountName = client?.name ?? null;
+    // First-login gate: capture the user's name before they use the portal.
+    if (me.profile.person_id && !person?.first_name) redirect("/welcome");
   }
 
   return (
