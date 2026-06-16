@@ -26,7 +26,7 @@ for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard-v2-blue.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
 // ---------- totals (keep in sync with lib/quotes/doc.ts computeTotals) ----------
 function computeTotals(doc) {

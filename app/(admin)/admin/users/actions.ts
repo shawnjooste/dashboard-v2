@@ -7,7 +7,7 @@ import { sendOnboardingEmail } from "@/lib/notify";
 import { revalidatePath } from "next/cache";
 
 const ROLES = new Set(["client_manager", "client_member"]);
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard-v2-blue.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
 /**
  * Staff-only: promote or demote a client user's portal role from the Users list.

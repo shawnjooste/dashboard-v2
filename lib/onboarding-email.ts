@@ -2,7 +2,7 @@
 // passwordless sign-in (a one-click magic link, no password). Sent by the admin
 // invite flow. Plain string output so it can post straight to Resend.
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard-v2-blue.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 const SUPPORT_EMAIL = "shawn@rocking.one";
 
 function esc(s: string): string {

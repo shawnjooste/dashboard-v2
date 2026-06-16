@@ -5,7 +5,7 @@ import { onboardingEmailHtml } from "@/lib/onboarding-email";
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard-v2-blue.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
 async function sendEmail(opts: { to: string; subject: string; html: string }): Promise<void> {
   const key = process.env.RESEND_API_KEY;
