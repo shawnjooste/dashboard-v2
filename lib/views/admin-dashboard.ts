@@ -75,7 +75,7 @@ async function getOpenTickets(): Promise<AdminDashboard["tickets"]> {
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const supabase = await createClient();
   const [clientsRes, pendingRes, devices, people, quotes, m365, tickets] = await Promise.all([
-    supabase.from("clients").select("id, name").order("name"),
+    supabase.from("clients").select("id, name, status").order("name"),
     supabase.from("profiles").select("id, email, client_id, created_at").eq("status", "pending"),
     getVisibleDeviceHealth(),
     getAllPeople(),
@@ -136,7 +136,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
 
   return {
     kpis: {
-      clients: (clientsRes.data ?? []).length,
+      clients: (clientsRes.data ?? []).filter((c) => c.status !== "inactive").length,
       devices: devices.length,
       pipeline,
       mfaCoverage: m365.totals.mfaCoverage,

@@ -6,7 +6,7 @@ import { ClientsView, type ClientRow } from "./ClientsView";
 export default async function AdminClientsPage() {
   const supabase = await createClient();
   const [clientsRes, devices, people] = await Promise.all([
-    supabase.from("clients").select("id, name").order("name"),
+    supabase.from("clients").select("id, name, status").order("name"),
     getVisibleDeviceHealth(),
     getAllPeople(),
   ]);
@@ -28,6 +28,7 @@ export default async function AdminClientsPage() {
     people: ppl.get(c.id) ?? 0,
     devices: dev.get(c.id)?.total ?? 0,
     attention: dev.get(c.id)?.attention ?? 0,
+    archived: c.status === "inactive",
   }));
 
   return <ClientsView clients={rows} />;
