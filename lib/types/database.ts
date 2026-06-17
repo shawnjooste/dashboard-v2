@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       client_domains: {
@@ -1084,14 +1109,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      reject_pending_user: {
-        Args: { p_profile_id: string; p_reason?: string }
-        Returns: undefined
-      }
-      set_my_name: {
-        Args: { p_first: string; p_last: string }
-        Returns: undefined
-      }
       claim_device: { Args: { p_device_id: string }; Returns: undefined }
       claimable_devices: {
         Args: never
@@ -1112,7 +1129,16 @@ export type Database = {
       }
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
+      my_first_name: { Args: never; Returns: string }
       next_quote_number: { Args: never; Returns: string }
+      reject_pending_user: {
+        Args: { p_profile_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      set_my_name: {
+        Args: { p_first: string; p_last: string }
+        Returns: undefined
+      }
       set_portal_role: {
         Args: {
           p_profile_id: string
@@ -1259,6 +1285,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       client_status: ["active", "inactive"],

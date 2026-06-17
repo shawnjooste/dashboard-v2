@@ -18,17 +18,20 @@ export default async function AppLayout({
   let accountName: string | null = null;
   if (me.profile.client_id) {
     const supabase = await createClient();
-    const [{ data: client }, { data: person }] = await Promise.all([
+    const [{ data: client }, { data: firstName }] = await Promise.all([
       supabase.from("clients").select("name").eq("id", me.profile.client_id).maybeSingle(),
+      // Read the caller's own name via SECURITY DEFINER, not the RLS people query:
+      // a person row stranded under a different client would be hidden by RLS and
+      // loop this gate back to /welcome forever.
       me.profile.person_id
-        ? supabase.from("people").select("first_name").eq("id", me.profile.person_id).maybeSingle()
+        ? supabase.rpc("my_first_name")
         : Promise.resolve({ data: null }),
     ]);
     accountName = client?.name ?? null;
     // First-login gate: capture the user's name before they use the portal.
     // Skipped while a staff member is impersonating — saving is a write, which
     // the read-only impersonation guard blocks, so forcing it would dead-end.
-    if (!marker && me.profile.person_id && !person?.first_name) redirect("/welcome");
+    if (!marker && me.profile.person_id && !firstName) redirect("/welcome");
   }
 
   return (

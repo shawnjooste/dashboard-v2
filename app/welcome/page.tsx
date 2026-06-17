@@ -12,12 +12,10 @@ export default async function WelcomePage() {
   if (!me.profile.client_id || !me.profile.person_id) redirect("/");
 
   const supabase = await createClient();
-  const { data: person } = await supabase
-    .from("people")
-    .select("first_name")
-    .eq("id", me.profile.person_id)
-    .maybeSingle();
-  if (person?.first_name) redirect("/"); // already named — nothing to do
+  // SECURITY DEFINER read (not the RLS people query): matches the layout gate so
+  // a person row stranded under another client can't desync the two checks.
+  const { data: firstName } = await supabase.rpc("my_first_name");
+  if (firstName) redirect("/"); // already named — nothing to do
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-canvas px-4">
