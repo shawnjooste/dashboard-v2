@@ -77,6 +77,23 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
   });
   if (assignErr) return { ok: false, error: assignErr.message };
 
+  // If a name was given, set it on the person now (approve linked the person),
+  // so the invitee skips the first-login name step.
+  if (name) {
+    const parts = name.split(/\s+/);
+    const { data: prof } = await service
+      .from("profiles")
+      .select("person_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (prof?.person_id) {
+      await service
+        .from("people")
+        .update({ first_name: parts[0], last_name: parts.slice(1).join(" ") || null, display_name: name })
+        .eq("id", prof.person_id);
+    }
+  }
+
   const { data: client } = await service
     .from("clients")
     .select("name")

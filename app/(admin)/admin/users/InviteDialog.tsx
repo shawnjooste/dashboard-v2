@@ -58,8 +58,9 @@ export function InviteDialog({
                 <input name="email" type="email" required autoFocus placeholder="name@company.co.za" className={field} />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-[0.4px] text-faint">Name (optional)</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.4px] text-faint">Full name (optional)</span>
                 <input name="name" type="text" placeholder="Monique Siers" className={field} />
+                <span className="mt-1 block text-[11.5px] text-faint">If set, they skip the name step on first login.</span>
               </label>
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-[0.4px] text-faint">Client</span>
