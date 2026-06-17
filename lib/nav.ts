@@ -16,6 +16,7 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       ],
     },
     { label: "Services", items: [{ label: "Microsoft 365", href: "/admin/m365" }] },
+    { label: "Business", items: [{ label: "Quotes", href: "/admin/quotes" }] },
     {
       label: "Account",
       items: [

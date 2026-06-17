@@ -18,6 +18,52 @@ export type QuoteListRow = {
   createdAt: string;
 };
 
+/** A quote row for the global admin list — adds client name + invoicing. */
+export type AdminQuoteRow = {
+  id: string;
+  quoteNumber: string;
+  clientName: string;
+  title: string;
+  status: DerivedStatus;
+  grandTotal: number | null;
+  monthlyTotal: number | null;
+  createdAt: string;
+  invoicedAt: string | null;
+};
+
+/** Every quote across every client (staff-only via RLS), newest first. */
+export async function getAllQuotesAdmin(): Promise<AdminQuoteRow[]> {
+  const supabase = await createClient();
+  const { data: quotes } = await supabase
+    .from("quotes")
+    .select("id, client_id, quote_number, title, status, current_version, created_at, invoiced_at")
+    .order("created_at", { ascending: false });
+  if (!quotes?.length) return [];
+
+  const ids = quotes.map((q) => q.id);
+  const [{ data: versions }, { data: clients }] = await Promise.all([
+    supabase.from("quote_versions").select("quote_id, version, grand_total, valid_until").in("quote_id", ids),
+    supabase.from("clients").select("id, name"),
+  ]);
+  const byKey = new Map((versions ?? []).map((v) => [`${v.quote_id}|${v.version}`, v]));
+  const nameById = new Map((clients ?? []).map((c) => [c.id, c.name]));
+
+  return quotes.map((q) => {
+    const v = byKey.get(`${q.id}|${q.current_version}`);
+    return {
+      id: q.id,
+      quoteNumber: q.quote_number,
+      clientName: nameById.get(q.client_id) ?? "—",
+      title: q.title,
+      status: derivedStatus(q.status as QuoteStatus, v?.valid_until ?? null),
+      grandTotal: v?.grand_total ?? null,
+      monthlyTotal: null,
+      createdAt: q.created_at,
+      invoicedAt: q.invoiced_at ?? null,
+    };
+  });
+}
+
 export type QuoteDecision = {
   event: "accepted" | "rejected" | "changes_requested";
   actorName: string | null;

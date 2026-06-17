@@ -994,6 +994,7 @@ export type Database = {
           created_by: string | null
           current_version: number
           id: string
+          invoiced_at: string | null
           quote_number: string
           status: string
           title: string
@@ -1005,6 +1006,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          invoiced_at?: string | null
           quote_number: string
           status?: string
           title: string
@@ -1016,6 +1018,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          invoiced_at?: string | null
           quote_number?: string
           status?: string
           title?: string

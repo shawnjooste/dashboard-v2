@@ -69,6 +69,7 @@ export default async function AdminHome() {
           title="Quotes awaiting client"
           count={d.quotes.count}
           items={d.quotes.items}
+          viewAll={{ label: "All quotes", href: "/admin/quotes" }}
           empty="No quotes waiting on a client."
         />
         <DashboardPanel
