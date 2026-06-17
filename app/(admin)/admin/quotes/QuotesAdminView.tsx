@@ -61,7 +61,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
     { key: "closed", label: "CLOSED", value: counts.closed, dot: "#94A3B8", hot: false },
   ];
 
-  const cols = "grid-cols-[128px_minmax(0,1.2fr)_minmax(0,1.7fr)_110px_150px_140px]";
+  const cols = "grid-cols-[120px_minmax(0,1fr)_minmax(0,1.5fr)_110px_186px_140px]";
 
   return (
     <div className="space-y-0">
@@ -154,7 +154,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
               {x.grandTotal != null ? fmtMoney(x.grandTotal) : "—"}
             </div>
             <div>
-              <QuoteStatusPill status={x.status} />
+              <QuoteStatusPill status={x.status} admin />
             </div>
             <div className="flex justify-end">
               <InvoiceAction quote={x} />

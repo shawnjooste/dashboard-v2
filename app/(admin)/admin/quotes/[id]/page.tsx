@@ -48,7 +48,7 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
           subtitle={
             <span className="inline-flex items-center gap-2">
               <span>v{quote.version}</span>
-              <QuoteStatusPill status={quote.status} />
+              <QuoteStatusPill status={quote.status} admin />
             </span>
           }
         />

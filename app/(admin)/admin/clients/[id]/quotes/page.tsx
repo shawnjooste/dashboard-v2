@@ -50,7 +50,7 @@ export default async function AdminClientQuotesPage({
                   {q.validUntil ? ` · valid until ${q.validUntil}` : ""}
                 </span>
               </span>
-              <QuoteStatusPill status={q.status} />
+              <QuoteStatusPill status={q.status} admin />
             </Link>
           ))}
         </Card>
