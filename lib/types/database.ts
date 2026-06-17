@@ -1088,6 +1088,10 @@ export type Database = {
         Args: { p_profile_id: string; p_reason?: string }
         Returns: undefined
       }
+      set_my_name: {
+        Args: { p_first: string; p_last: string }
+        Returns: undefined
+      }
       claim_device: { Args: { p_device_id: string }; Returns: undefined }
       claimable_devices: {
         Args: never
