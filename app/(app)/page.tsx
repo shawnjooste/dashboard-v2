@@ -48,19 +48,7 @@ function deviceReason(d: DeviceHealth): string {
   return "needs attention";
 }
 
-// TEMP diagnostic: Next's redirect()/notFound() signal via a thrown error with a
-// `digest` — those must propagate, not be shown.
-function isNextControlFlow(e: unknown): boolean {
-  const d = (e as { digest?: unknown })?.digest;
-  return typeof d === "string" && (d.startsWith("NEXT_REDIRECT") || d === "NEXT_NOT_FOUND");
-}
-function errText(e: unknown): string {
-  if (e instanceof Error) return `${e.name}: ${e.message}\n\n${e.stack ?? ""}`;
-  return String(e);
-}
-
 export default async function AppHome() {
-  try {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
   const path = resolveLandingPath({
@@ -421,18 +409,6 @@ export default async function AppHome() {
       </Card>
     </div>
   );
-  } catch (e) {
-    if (isNextControlFlow(e)) throw e;
-    return (
-      <div className="space-y-3 p-6">
-        <h1 className="text-lg font-bold text-brand">Home render error (debug)</h1>
-        <p className="text-sm text-muted">Temporary — paste this to your engineer.</p>
-        <pre className="overflow-auto rounded-lg border border-line bg-line-soft p-4 text-[11px] leading-relaxed text-ink-2">
-          {errText(e)}
-        </pre>
-      </div>
-    );
-  }
 }
 
 async function loadTickets(): Promise<{ tickets: TicketSummary[]; ticketsOk: boolean }> {
