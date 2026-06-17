@@ -17,8 +17,11 @@ export default async function DevicesPage() {
   let devices = await getVisibleDeviceHealth();
   let sample = false;
   if (devices.length === 0) {
-    devices = await getSampleDeviceHealth();
-    sample = true;
+    const s = await getSampleDeviceHealth();
+    if (s.length > 0) {
+      devices = s;
+      sample = true;
+    }
   }
 
   return (

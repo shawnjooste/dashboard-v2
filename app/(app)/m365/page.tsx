@@ -15,8 +15,11 @@ export default async function M365Page() {
   let view = await getM365View(me.profile.client_id);
   let sample = false;
   if (!view.connected) {
-    view = await getSampleM365View();
-    sample = true;
+    const s = await getSampleM365View();
+    if (s.connected) {
+      view = s;
+      sample = true;
+    }
   }
 
   return (

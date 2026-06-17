@@ -109,13 +109,19 @@ export default async function AppHome() {
   let devicesSample = false;
   let m365Sample = false;
   if (devices.length === 0) {
-    devices = await getSampleDeviceHealth();
-    patchTrend = await getSampleFleetPatchTrend();
-    devicesSample = true;
+    const s = await getSampleDeviceHealth();
+    if (s.length > 0) {
+      devices = s;
+      patchTrend = await getSampleFleetPatchTrend();
+      devicesSample = true;
+    }
   }
   if (!m365?.connected) {
-    m365 = await getSampleM365View();
-    m365Sample = true;
+    const s = await getSampleM365View();
+    if (s.connected) {
+      m365 = s;
+      m365Sample = true;
+    }
   }
   const sample = devicesSample || m365Sample;
 
