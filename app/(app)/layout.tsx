@@ -26,7 +26,9 @@ export default async function AppLayout({
     ]);
     accountName = client?.name ?? null;
     // First-login gate: capture the user's name before they use the portal.
-    if (me.profile.person_id && !person?.first_name) redirect("/welcome");
+    // Skipped while a staff member is impersonating — saving is a write, which
+    // the read-only impersonation guard blocks, so forcing it would dead-end.
+    if (!marker && me.profile.person_id && !person?.first_name) redirect("/welcome");
   }
 
   return (
