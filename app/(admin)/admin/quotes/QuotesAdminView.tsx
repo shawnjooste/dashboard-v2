@@ -21,6 +21,13 @@ function shortDate(iso: string): string {
   return iso.slice(0, 10);
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "18 Jun 2026" from an ISO timestamp — deterministic (no locale/TZ) for SSR. */
+function sentDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d} ${MONTHS[Number(m) - 1]} ${y}`;
+}
+
 export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Bucket>("all");
@@ -61,7 +68,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
     { key: "closed", label: "CLOSED", value: counts.closed, dot: "#94A3B8", hot: false },
   ];
 
-  const cols = "grid-cols-[120px_minmax(0,1fr)_minmax(0,1.5fr)_110px_186px_140px]";
+  const cols = "grid-cols-[120px_minmax(0,1fr)_minmax(0,1.3fr)_104px_110px_172px_132px]";
 
   return (
     <div className="space-y-0">
@@ -135,6 +142,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
           </button>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Client</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Title</div>
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Sent</div>
           <div className="text-right text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Amount</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Status</div>
           <div />
@@ -150,6 +158,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
             </Link>
             <div className="truncate text-[13px] text-ink-2">{x.clientName}</div>
             <div className="truncate text-[13px] text-ink-3">{x.title}</div>
+            <div className="whitespace-nowrap text-[13px] text-ink-3">{sentDate(x.createdAt)}</div>
             <div className="text-right text-[13px] font-semibold text-ink">
               {x.grandTotal != null ? fmtMoney(x.grandTotal) : "—"}
             </div>
