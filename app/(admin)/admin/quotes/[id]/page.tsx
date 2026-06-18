@@ -5,6 +5,7 @@ import { computeTotals, fmtMoney } from "@/lib/quotes/doc";
 import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
+import { AdminQuoteDecision } from "./AdminQuoteDecision";
 
 const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
 
@@ -30,6 +31,7 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
     .maybeSingle();
 
   const totals = computeTotals(quote.doc);
+  const decidable = quote.rawStatus === "sent" || quote.rawStatus === "changes_requested";
   const marginPct =
     quote.margin !== null && quote.supplierCost !== null && quote.supplierCost > 0
       ? Math.round((100 * quote.margin) / quote.supplierCost)
@@ -62,6 +64,9 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
 
         {/* Detail cards — right sidebar (hidden on print) */}
         <div className="flex flex-col gap-4 lg:w-[300px] lg:shrink-0 print:hidden">
+          {/* Accept / reject on the client's behalf — only while decidable */}
+          {decidable && <AdminQuoteDecision quoteId={quote.id} />}
+
           {/* Margin (internal) */}
           <Card>
             <CardHeader title="Margin (internal)" />
