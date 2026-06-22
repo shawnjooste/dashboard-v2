@@ -508,6 +508,160 @@ export type Database = {
         }
         Relationships: []
       }
+      job_tasks: {
+        Row: {
+          assignee_profile_id: string | null
+          created_at: string
+          done: boolean
+          id: string
+          job_id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          assignee_profile_id?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          job_id: string
+          label: string
+          position?: number
+        }
+        Update: {
+          assignee_profile_id?: string | null
+          created_at?: string
+          done?: boolean
+          id?: string
+          job_id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tasks_assignee_profile_id_fkey"
+            columns: ["assignee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_updates: {
+        Row: {
+          body: string | null
+          created_at: string
+          emailed_count: number
+          id: string
+          job_id: string
+          kind: string
+          posted_by_profile_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          emailed_count?: number
+          id?: string
+          job_id: string
+          kind: string
+          posted_by_profile_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          emailed_count?: number
+          id?: string
+          job_id?: string
+          kind?: string
+          posted_by_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_updates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_updates_posted_by_profile_id_fkey"
+            columns: ["posted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          owner_profile_id: string | null
+          quote_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          waiting_note: string | null
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_profile_id?: string | null
+          quote_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          waiting_note?: string | null
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_profile_id?: string | null
+          quote_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          waiting_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       m365_connections: {
         Row: {
           client_id: string

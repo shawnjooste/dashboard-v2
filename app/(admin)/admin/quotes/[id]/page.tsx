@@ -7,6 +7,7 @@ import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { AdminQuoteDecision } from "./AdminQuoteDecision";
 import { PrintQuoteButton } from "./PrintQuoteButton";
+import { CreateJobFromQuote } from "./CreateJobFromQuote";
 
 const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
 
@@ -66,6 +67,9 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
         {/* Detail cards — right sidebar (hidden on print) */}
         <div className="flex flex-col gap-4 lg:w-[300px] lg:shrink-0 print:hidden">
           <PrintQuoteButton />
+
+          {/* Accepted → spin up a job to fulfil it */}
+          {quote.rawStatus === "accepted" && <CreateJobFromQuote quoteId={quote.id} />}
 
           {/* Accept / reject on the client's behalf — only while decidable */}
           {decidable && <AdminQuoteDecision quoteId={quote.id} />}
