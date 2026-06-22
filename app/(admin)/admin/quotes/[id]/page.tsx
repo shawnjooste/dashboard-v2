@@ -76,7 +76,7 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
             <dl className="space-y-1.5 px-4 py-3.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted">Price (ex VAT)</dt>
-                <dd className="font-medium text-ink-2">{fmtMoney(totals.subtotal)}</dd>
+                <dd className="font-medium text-ink-2">{fmtMoney(totals.revenueExVat)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">Supplier cost</dt>

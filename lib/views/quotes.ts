@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
+  computeTotals,
   derivedStatus,
   type DerivedStatus,
   type QuoteDoc,
@@ -42,7 +43,7 @@ export async function getAllQuotesAdmin(): Promise<AdminQuoteRow[]> {
 
   const ids = quotes.map((q) => q.id);
   const [{ data: versions }, { data: clients }] = await Promise.all([
-    supabase.from("quote_versions").select("quote_id, version, grand_total, valid_until").in("quote_id", ids),
+    supabase.from("quote_versions").select("quote_id, version, grand_total, monthly_total, valid_until").in("quote_id", ids),
     supabase.from("clients").select("id, name"),
   ]);
   const byKey = new Map((versions ?? []).map((v) => [`${v.quote_id}|${v.version}`, v]));
@@ -57,7 +58,7 @@ export async function getAllQuotesAdmin(): Promise<AdminQuoteRow[]> {
       title: q.title,
       status: derivedStatus(q.status as QuoteStatus, v?.valid_until ?? null),
       grandTotal: v?.grand_total ?? null,
-      monthlyTotal: null,
+      monthlyTotal: v?.monthly_total ?? null,
       createdAt: q.created_at,
       invoicedAt: q.invoiced_at ?? null,
     };
@@ -221,7 +222,7 @@ export async function getQuoteAdminDetail(quoteId: string): Promise<QuoteAdminDe
   const [versionsRes, eventsRes] = await Promise.all([
     supabase
       .from("quote_versions")
-      .select("id, version, created_at, grand_total, subtotal")
+      .select("id, version, created_at, grand_total, doc")
       .eq("quote_id", quoteId)
       .order("version", { ascending: false }),
     supabase
@@ -242,7 +243,10 @@ export async function getQuoteAdminDetail(quoteId: string): Promise<QuoteAdminDe
 
   const versions: QuoteVersionSummary[] = (versionsRes.data ?? []).map((v) => {
     const cost = costBy.has(v.id) ? costBy.get(v.id)! : null;
-    const margin = cost !== null && v.subtotal !== null ? Number(v.subtotal) - cost : null;
+    // Margin is ex-VAT revenue across ALL sections (once-off + recurring) minus
+    // supplier cost — recurring revenue lives outside the once-off subtotal.
+    const revenueExVat = computeTotals(v.doc as QuoteDoc).revenueExVat;
+    const margin = cost !== null ? revenueExVat - cost : null;
     return {
       version: v.version,
       createdAt: v.created_at,

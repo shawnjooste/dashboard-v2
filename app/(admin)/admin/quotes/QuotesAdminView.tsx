@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { fmtMoney } from "@/lib/quotes/doc";
+import { fmtMoney, formatQuoteAmount } from "@/lib/quotes/doc";
 import type { AdminQuoteRow } from "@/lib/views/quotes";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { setQuoteInvoiced } from "./actions";
@@ -159,8 +159,8 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
             <div className="truncate text-[13px] text-ink-2">{x.clientName}</div>
             <div className="truncate text-[13px] text-ink-3">{x.title}</div>
             <div className="whitespace-nowrap text-[13px] text-ink-3">{sentDate(x.createdAt)}</div>
-            <div className="text-right text-[13px] font-semibold text-ink">
-              {x.grandTotal != null ? fmtMoney(x.grandTotal) : "—"}
+            <div className="whitespace-nowrap text-right text-[13px] font-semibold text-ink">
+              {formatQuoteAmount(x.grandTotal, x.monthlyTotal)}
             </div>
             <div>
               <QuoteStatusPill status={x.status} admin />

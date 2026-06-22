@@ -52,6 +52,20 @@ export const fmtMoney = (n: number | null | undefined): string => {
 
 export const isMonthly = (s: QuoteSection): boolean => s.monthly ?? s.id === "recurring";
 
+/** Compact amount for list rows: once-off incl VAT and/or recurring per period.
+ *  A recurring-only quote (grand 0) shows just the monthly, never "R 0,00". */
+export function formatQuoteAmount(
+  grandTotal: number | null,
+  monthlyTotal: number | null,
+  opts?: { per?: string },
+): string {
+  const per = opts?.per ?? "mo";
+  const once = grandTotal != null && grandTotal > 0 ? fmtMoney(grandTotal) : null;
+  const monthly = monthlyTotal != null ? `${fmtMoney(monthlyTotal)} / ${per}` : null;
+  if (once && monthly) return `${once} + ${monthly}`;
+  return monthly ?? once ?? (grandTotal != null ? fmtMoney(grandTotal) : "—");
+}
+
 export type SectionTotals = {
   id: string;
   title: string;
@@ -70,6 +84,8 @@ export type QuoteTotals = {
   grand: number;
   /** Recurring grand (incl VAT) per month, null when no monthly section. */
   monthly: number | null;
+  /** Ex-VAT value of every section (once-off + recurring) — the basis for margin. */
+  revenueExVat: number;
 };
 
 /** Per-section and rolled-up totals. Usage-based lines (null qty/price) are skipped. */
@@ -101,6 +117,7 @@ export function computeTotals(doc: Pick<QuoteDoc, "sections" | "vatPercent">): Q
     vat,
     grand: subtotal + vat,
     monthly: monthlySecs.length ? monthlySecs.reduce((n, s) => n + s.grand, 0) : null,
+    revenueExVat: sections.reduce((n, s) => n + s.subtotal, 0),
   };
 }
 

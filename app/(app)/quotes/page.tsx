@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getVisibleQuotes } from "@/lib/views/quotes";
-import { fmtMoney } from "@/lib/quotes/doc";
+import { formatQuoteAmount } from "@/lib/quotes/doc";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 
@@ -36,8 +36,7 @@ export default async function QuotesPage() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13.5px] font-medium text-ink">{q.title}</span>
                 <span className="mt-px block text-xs text-faint">
-                  {fmtMoney(q.grandTotal)} incl VAT
-                  {q.monthlyTotal != null ? ` + ${fmtMoney(q.monthlyTotal)} / month` : ""}
+                  {formatQuoteAmount(q.grandTotal, q.monthlyTotal, { per: "month" })} incl VAT
                   {q.validUntil ? ` · valid until ${q.validUntil}` : ""}
                 </span>
               </span>

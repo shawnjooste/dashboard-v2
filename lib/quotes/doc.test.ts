@@ -3,6 +3,7 @@ import {
   computeTotals,
   derivedStatus,
   fmtMoney,
+  formatQuoteAmount,
   isExpired,
   linePath,
   type QuoteSection,
@@ -56,6 +57,13 @@ describe("computeTotals", () => {
     expect(computeTotals({ sections: [setup], vatPercent: 15 }).monthly).toBeNull();
   });
 
+  it("revenueExVat sums every section's ex-VAT total, recurring included", () => {
+    // once-off 6406.25 + recurring 396 = 6802.25
+    expect(computeTotals({ sections: [setup, recurring], vatPercent: 15 }).revenueExVat).toBeCloseTo(6802.25, 2);
+    // a recurring-only quote: revenue is the monthly ex-VAT, not zero
+    expect(computeTotals({ sections: [recurring], vatPercent: 15 }).revenueExVat).toBeCloseTo(396, 2);
+  });
+
   it("respects an explicit monthly flag over the id convention", () => {
     const t = computeTotals({
       sections: [{ ...setup, id: "anything", monthly: true }],
@@ -70,6 +78,25 @@ describe("fmtMoney", () => {
   it("formats rands with two decimals", () => {
     expect(fmtMoney(968.75)).toMatch(/^R\s.*968[.,]75$/);
     expect(fmtMoney(null)).toBe("—");
+  });
+});
+
+describe("formatQuoteAmount", () => {
+  it("shows the once-off total for a once-off quote", () => {
+    expect(formatQuoteAmount(5750, null)).toMatch(/^R\s.*5\s?750[.,]00$/);
+  });
+  it("shows the monthly total for a recurring-only quote (no R0,00 once-off)", () => {
+    expect(formatQuoteAmount(0, 2300)).toMatch(/^R\s.*2\s?300[.,]00 \/ mo$/);
+  });
+  it("shows both when a quote has once-off and recurring", () => {
+    expect(formatQuoteAmount(1000, 500)).toMatch(/1\s?000[.,]00 \+ R\s.*500[.,]00 \/ mo$/);
+  });
+  it("honours a custom per-period label", () => {
+    expect(formatQuoteAmount(0, 2300, { per: "month" })).toMatch(/2\s?300[.,]00 \/ month$/);
+  });
+  it("falls back to R0,00 when there is nothing, and — when null", () => {
+    expect(formatQuoteAmount(0, null)).toMatch(/0[.,]00$/);
+    expect(formatQuoteAmount(null, null)).toBe("—");
   });
 });
 
