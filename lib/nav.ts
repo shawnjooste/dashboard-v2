@@ -32,6 +32,7 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "Support", href: "/support" },
         { label: "Devices", href: "/devices" },
+        { label: "Network", href: "/network" },
         { label: "Microsoft 365", href: "/m365" },
       ],
     },

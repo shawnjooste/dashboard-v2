@@ -772,6 +772,237 @@ export type Database = {
           },
         ]
       }
+      network_devices: {
+        Row: {
+          client_count: number | null
+          client_id: string
+          created_at: string
+          firmware: string | null
+          id: string
+          ip: string | null
+          kind: string | null
+          last_import_run_id: string | null
+          last_seen_at: string | null
+          model: string | null
+          name: string | null
+          site_id: string | null
+          source: string
+          source_device_id: string
+          status: string | null
+          updated_at: string
+          uptime_s: number | null
+        }
+        Insert: {
+          client_count?: number | null
+          client_id: string
+          created_at?: string
+          firmware?: string | null
+          id?: string
+          ip?: string | null
+          kind?: string | null
+          last_import_run_id?: string | null
+          last_seen_at?: string | null
+          model?: string | null
+          name?: string | null
+          site_id?: string | null
+          source: string
+          source_device_id: string
+          status?: string | null
+          updated_at?: string
+          uptime_s?: number | null
+        }
+        Update: {
+          client_count?: number | null
+          client_id?: string
+          created_at?: string
+          firmware?: string | null
+          id?: string
+          ip?: string | null
+          kind?: string | null
+          last_import_run_id?: string | null
+          last_seen_at?: string | null
+          model?: string | null
+          name?: string | null
+          site_id?: string | null
+          source?: string
+          source_device_id?: string
+          status?: string | null
+          updated_at?: string
+          uptime_s?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_devices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_devices_last_import_run_id_fkey"
+            columns: ["last_import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_devices_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "network_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_health_snapshots: {
+        Row: {
+          client_count: number | null
+          client_id: string
+          created_at: string
+          devices_down: number | null
+          devices_total: number | null
+          devices_up: number | null
+          id: string
+          site_id: string
+          snapshot_date: string
+          status: string | null
+        }
+        Insert: {
+          client_count?: number | null
+          client_id: string
+          created_at?: string
+          devices_down?: number | null
+          devices_total?: number | null
+          devices_up?: number | null
+          id?: string
+          site_id: string
+          snapshot_date: string
+          status?: string | null
+        }
+        Update: {
+          client_count?: number | null
+          client_id?: string
+          created_at?: string
+          devices_down?: number | null
+          devices_total?: number | null
+          devices_up?: number | null
+          id?: string
+          site_id?: string
+          snapshot_date?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_health_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_health_snapshots_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "network_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_sites: {
+        Row: {
+          client_count: number | null
+          client_id: string
+          created_at: string
+          device_count: number | null
+          id: string
+          last_import_run_id: string | null
+          last_seen_at: string | null
+          name: string
+          source: string
+          source_site_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_count?: number | null
+          client_id: string
+          created_at?: string
+          device_count?: number | null
+          id?: string
+          last_import_run_id?: string | null
+          last_seen_at?: string | null
+          name: string
+          source: string
+          source_site_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_count?: number | null
+          client_id?: string
+          created_at?: string
+          device_count?: number | null
+          id?: string
+          last_import_run_id?: string | null
+          last_seen_at?: string | null
+          name?: string
+          source?: string
+          source_site_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_sites_last_import_run_id_fkey"
+            columns: ["last_import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_source_aliases: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          label: string | null
+          source: string
+          source_key: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          source: string
+          source_key: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          source?: string
+          source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_source_aliases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           client_id: string
