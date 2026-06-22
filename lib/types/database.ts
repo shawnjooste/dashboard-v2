@@ -1358,9 +1358,18 @@ export type Database = {
         Args: { p_device_id: string }
         Returns: boolean
       }
+      ingest_network_report: { Args: { payload: Json }; Returns: Json }
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
       my_first_name: { Args: never; Returns: string }
+      network_ingest_targets: {
+        Args: never
+        Returns: {
+          label: string
+          source: string
+          source_key: string
+        }[]
+      }
       next_quote_number: { Args: never; Returns: string }
       reject_pending_user: {
         Args: { p_profile_id: string; p_reason?: string }

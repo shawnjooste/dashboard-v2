@@ -26,6 +26,7 @@ export default async function NetworkPage() {
   if (me.profile.role !== "client_manager") redirect("/");
 
   const net = await getClientNetwork();
+  const stale = net?.lastSyncAt ? Date.now() - Date.parse(net.lastSyncAt) > 36 * 3600 * 1000 : false;
 
   return (
     <div className="space-y-6">
@@ -46,6 +47,12 @@ export default async function NetworkPage() {
         </div>
       ) : (
         <>
+          {stale && (
+            <div className="flex items-center gap-2 rounded-xl border border-warn-line bg-warn-tint px-4 py-2.5 text-[13px] font-medium text-warn-ink">
+              <span aria-hidden>⚠</span> Data may be stale — last synced {stamp(net.lastSyncAt)}.
+            </div>
+          )}
+
           {/* Status hero */}
           <div className={`flex items-center gap-4 rounded-xl border border-line ${OVERALL[net.overall].tint} px-5 py-4`}>
             <span className="flex h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: OVERALL[net.overall].dot }} />
