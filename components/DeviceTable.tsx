@@ -5,9 +5,12 @@ import { StatusPill } from "./ui/status";
 export function DeviceTable({
   devices,
   rowHref,
+  clientName,
 }: {
   devices: DeviceHealth[];
   rowHref?: (id: string) => string;
+  /** When provided, prepends a Client column (for cross-client admin views). */
+  clientName?: (clientId: string) => string | undefined;
 }) {
   if (devices.length === 0)
     return (
@@ -20,6 +23,7 @@ export function DeviceTable({
       <table className="w-full text-sm">
         <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
           <tr>
+            {clientName && <th className="px-4 py-2.5 font-semibold">Client</th>}
             <th className="px-4 py-2.5 font-semibold">Device</th>
             <th className="px-4 py-2.5 font-semibold">User</th>
             <th className="px-4 py-2.5 font-semibold">OS</th>
@@ -33,6 +37,7 @@ export function DeviceTable({
         <tbody>
           {devices.map((d) => (
             <tr key={d.id} className="border-b border-line-soft last:border-0 hover:bg-canvas">
+              {clientName && <td className="px-4 py-2.5 text-ink-2">{clientName(d.clientId) ?? "—"}</td>}
               <td className="px-4 py-2.5 font-medium">
                 {rowHref ? (
                   <Link href={rowHref(d.id)} className="text-ink hover:text-brand">
