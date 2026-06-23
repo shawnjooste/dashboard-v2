@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { supplierDocumentUrl, deleteSupplierDocument } from "../actions";
 
-export function DocActions({ docId, supplierId }: { docId: string; supplierId: string }) {
+export function DocActions({ docId, supplierId, hasFile }: { docId: string; supplierId: string; hasFile: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -32,14 +32,16 @@ export function DocActions({ docId, supplierId }: { docId: string; supplierId: s
 
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        onClick={open}
-        disabled={pending}
-        className="rounded-md border border-line px-2.5 py-1 text-[12px] font-semibold text-ink-2 hover:bg-line-soft disabled:opacity-60"
-      >
-        Open
-      </button>
+      {hasFile && (
+        <button
+          type="button"
+          onClick={open}
+          disabled={pending}
+          className="rounded-md border border-line px-2.5 py-1 text-[12px] font-semibold text-ink-2 hover:bg-line-soft disabled:opacity-60"
+        >
+          Open
+        </button>
+      )}
       <button
         type="button"
         onClick={del}

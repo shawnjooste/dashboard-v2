@@ -73,18 +73,22 @@ export async function uploadSupplierDocument(_prev: UploadResult | null, formDat
   const title = str(formData, "title");
   const file = formData.get("file");
   if (!supplierId || !title) return { ok: false, error: "A title is required." };
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a file to upload." };
-  if (file.size > 15_000_000) return { ok: false, error: "File is over the 15 MB limit." };
+
+  // The file is optional — a document can be a metadata-only record.
+  const upload = file instanceof File && file.size > 0 ? file : null;
+  if (upload && upload.size > 15_000_000) return { ok: false, error: "File is over the 15 MB limit." };
 
   const docType = String(formData.get("doc_type") ?? "quote");
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${supplierId}/${crypto.randomUUID()}-${safeName}`;
   const service = createServiceClient();
-
-  const { error: upErr } = await service.storage
-    .from(BUCKET)
-    .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type || "application/octet-stream", upsert: false });
-  if (upErr) return { ok: false, error: `Upload failed: ${upErr.message}` };
+  let storagePath: string | null = null;
+  if (upload) {
+    const safeName = upload.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    storagePath = `${supplierId}/${crypto.randomUUID()}-${safeName}`;
+    const { error: upErr } = await service.storage
+      .from(BUCKET)
+      .upload(storagePath, Buffer.from(await upload.arrayBuffer()), { contentType: upload.type || "application/octet-stream", upsert: false });
+    if (upErr) return { ok: false, error: `Upload failed: ${upErr.message}` };
+  }
 
   const supabase = await createClient();
   const amountRaw = str(formData, "amount");
@@ -98,14 +102,14 @@ export async function uploadSupplierDocument(_prev: UploadResult | null, formDat
     doc_date: str(formData, "doc_date"),
     valid_until: str(formData, "valid_until"),
     notes: str(formData, "notes"),
-    storage_path: path,
-    file_name: file.name,
-    file_size: file.size,
-    mime_type: file.type || null,
+    storage_path: storagePath,
+    file_name: upload?.name ?? null,
+    file_size: upload?.size ?? null,
+    mime_type: upload ? upload.type || null : null,
     uploaded_by_profile_id: me.id,
   });
   if (insErr) {
-    await service.storage.from(BUCKET).remove([path]); // no orphan file
+    if (storagePath) await service.storage.from(BUCKET).remove([storagePath]); // no orphan file
     return { ok: false, error: insErr.message };
   }
   revalidatePath(`/admin/suppliers/${supplierId}`);
@@ -135,7 +139,7 @@ export async function deleteSupplier(id: string) {
   await staff();
   const supabase = await createClient();
   const { data: docs } = await supabase.from("supplier_documents").select("storage_path").eq("supplier_id", id);
-  const paths = (docs ?? []).map((d) => d.storage_path).filter(Boolean);
+  const paths = (docs ?? []).map((d) => d.storage_path).filter((p): p is string => !!p);
   if (paths.length) await createServiceClient().storage.from(BUCKET).remove(paths);
   await supabase.from("suppliers").delete().eq("id", id); // cascades document rows
   revalidatePath("/admin/suppliers");

@@ -53,7 +53,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
           </Card>
 
           <Card>
-            <CardHeader title="Upload document" />
+            <CardHeader title="Add document" />
             <div className="px-4 py-4">
               <UploadDocForm supplierId={s.id} />
             </div>
@@ -115,10 +115,11 @@ function DocRow({ d, supplierId }: { d: SupplierDoc; supplierId: string }) {
             {d.docDate && <span>{d.docDate}</span>}
             {d.validUntil && <span className={expired ? "text-brand" : ""}>valid to {d.validUntil}</span>}
             {d.fileName && <span className="text-faint">{d.fileName} {fmtSize(d.fileSize)}</span>}
+            {!d.hasFile && <span className="italic text-faint">no file attached</span>}
           </div>
           {d.notes && <div className="mt-1 text-xs text-ink-3">{d.notes}</div>}
         </div>
-        <DocActions docId={d.id} supplierId={supplierId} />
+        <DocActions docId={d.id} supplierId={supplierId} hasFile={d.hasFile} />
       </div>
     </div>
   );

@@ -1493,7 +1493,7 @@ export type Database = {
           mime_type: string | null
           notes: string | null
           reference: string | null
-          storage_path: string
+          storage_path: string | null
           supplier_id: string
           title: string
           uploaded_by_profile_id: string | null
@@ -1511,7 +1511,7 @@ export type Database = {
           mime_type?: string | null
           notes?: string | null
           reference?: string | null
-          storage_path: string
+          storage_path?: string | null
           supplier_id: string
           title: string
           uploaded_by_profile_id?: string | null
@@ -1529,7 +1529,7 @@ export type Database = {
           mime_type?: string | null
           notes?: string | null
           reference?: string | null
-          storage_path?: string
+          storage_path?: string | null
           supplier_id?: string
           title?: string
           uploaded_by_profile_id?: string | null

@@ -67,11 +67,10 @@ export function UploadDocForm({ supplierId }: { supplierId: string }) {
       </label>
 
       <label className="block">
-        <span className={LABEL}>File (PDF, Excel/CSV, image — max 15 MB)</span>
+        <span className={LABEL}>File (optional — PDF, Excel/CSV, image, max 15 MB)</span>
         <input
           name="file"
           type="file"
-          required
           accept=".pdf,.xls,.xlsx,.csv,application/pdf,image/*"
           className="mt-1 w-full text-[13px] text-ink-2 file:mr-3 file:rounded-md file:border file:border-line file:bg-card file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold file:text-ink-2 hover:file:bg-line-soft"
         />
@@ -90,7 +89,7 @@ export function UploadDocForm({ supplierId }: { supplierId: string }) {
           disabled={pending}
           className="rounded-lg bg-ink px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-black disabled:opacity-60"
         >
-          {pending ? "Uploading…" : "Upload document"}
+          {pending ? "Saving…" : "Save document"}
         </button>
       </div>
     </form>

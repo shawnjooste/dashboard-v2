@@ -31,6 +31,7 @@ export type SupplierDoc = {
   notes: string | null;
   fileName: string | null;
   fileSize: number | null;
+  hasFile: boolean;
   createdAt: string;
 };
 
@@ -77,7 +78,7 @@ export async function getSupplierDetail(id: string): Promise<SupplierDetail | nu
   if (!s) return null;
   const { data: docs } = await supabase
     .from("supplier_documents")
-    .select("id, title, doc_type, reference, amount, currency, doc_date, valid_until, notes, file_name, file_size, created_at")
+    .select("id, title, doc_type, reference, amount, currency, doc_date, valid_until, notes, file_name, file_size, storage_path, created_at")
     .eq("supplier_id", id)
     .order("created_at", { ascending: false });
   return {
@@ -101,6 +102,7 @@ export async function getSupplierDetail(id: string): Promise<SupplierDetail | nu
       notes: d.notes,
       fileName: d.file_name,
       fileSize: d.file_size,
+      hasFile: !!d.storage_path,
       createdAt: d.created_at,
     })),
   };
