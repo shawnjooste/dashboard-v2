@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addTask, toggleTask, deleteTask, setTaskAssignee } from "../actions";
+import { addTask, toggleTask, deleteTask, setTaskAssignee, moveTask } from "../actions";
 import type { JobTask, AssigneeOption } from "@/lib/views/jobs";
 
 export function JobChecklist({ jobId, tasks, assignees }: { jobId: string; tasks: JobTask[]; assignees: AssigneeOption[] }) {
@@ -27,7 +27,7 @@ export function JobChecklist({ jobId, tasks, assignees }: { jobId: string; tasks
   return (
     <div>
       <div className="divide-y divide-line-soft">
-        {tasks.map((t) => (
+        {tasks.map((t, i) => (
           <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
             <input
               type="checkbox"
@@ -64,6 +64,26 @@ export function JobChecklist({ jobId, tasks, assignees }: { jobId: string; tasks
                 </optgroup>
               )}
             </select>
+            <div className="flex shrink-0 items-center text-faint">
+              <button
+                type="button"
+                disabled={pending || i === 0}
+                onClick={() => run(() => moveTask(t.id, jobId, "up"))}
+                className="px-0.5 leading-none hover:text-ink disabled:opacity-30 disabled:hover:text-faint"
+                aria-label="Move task up"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                disabled={pending || i === tasks.length - 1}
+                onClick={() => run(() => moveTask(t.id, jobId, "down"))}
+                className="px-0.5 leading-none hover:text-ink disabled:opacity-30 disabled:hover:text-faint"
+                aria-label="Move task down"
+              >
+                ↓
+              </button>
+            </div>
             <button
               type="button"
               disabled={pending}

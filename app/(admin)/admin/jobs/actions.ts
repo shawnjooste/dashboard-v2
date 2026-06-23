@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { notifyJobOpened, notifyJobCompleted, notifyJobUpdate, notifyTaskAssigned } from "@/lib/job-emails";
 import type { PersonName, AssigneeKind } from "@/lib/job-email-helpers";
+import { reorderSwap } from "@/lib/job-task-helpers";
 import type { JobStatus } from "@/lib/views/jobs";
 
 const STATUSES: JobStatus[] = ["todo", "in_progress", "waiting", "done", "cancelled"];
@@ -127,6 +128,23 @@ export async function deleteTask(taskId: string, jobId: string) {
   await staff();
   const supabase = await createClient();
   await supabase.from("job_tasks").delete().eq("id", taskId);
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Move a task one step up or down its checklist (swaps positions with its neighbour). */
+export async function moveTask(taskId: string, jobId: string, direction: "up" | "down") {
+  await staff();
+  const supabase = await createClient();
+  const { data: tasks } = await supabase
+    .from("job_tasks")
+    .select("id, position")
+    .eq("job_id", jobId)
+    .order("position")
+    .order("created_at");
+  const swap = reorderSwap(tasks ?? [], taskId, direction);
+  if (!swap) return; // at an end / unknown task — nothing to do
+  await Promise.all(swap.map((s) => supabase.from("job_tasks").update({ position: s.position }).eq("id", s.id)));
+  await supabase.from("jobs").update({ updated_at: new Date().toISOString() }).eq("id", jobId);
   revalidatePath(`/admin/jobs/${jobId}`);
 }
 
