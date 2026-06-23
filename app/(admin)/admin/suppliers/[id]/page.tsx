@@ -1,22 +1,12 @@
 import Link from "next/link";
-import { getSupplierDetail, DOC_TYPE_LABEL, type SupplierDoc } from "@/lib/views/suppliers";
+import { getSupplierDetail } from "@/lib/views/suppliers";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { updateSupplier } from "../actions";
 import { AddDocDialog } from "./AddDocDialog";
-import { DocActions } from "./DocActions";
+import { DocRow } from "./DocRow";
 
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.3px] text-faint";
-
-function fmtAmount(amount: number | null, currency: string): string | null {
-  if (amount === null) return null;
-  return `${currency} ${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-function fmtSize(bytes: number | null): string {
-  if (!bytes) return "";
-  return bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.round(bytes / 1000)} KB`;
-}
-const today = () => new Date().toISOString().slice(0, 10);
 
 export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -90,33 +80,5 @@ function Field({ label, name, defaultValue, required }: { label: string; name: s
       <span className={LABEL}>{label}</span>
       <input name={name} defaultValue={defaultValue ?? ""} required={required} className={FIELD} />
     </label>
-  );
-}
-
-function DocRow({ d, supplierId }: { d: SupplierDoc; supplierId: string }) {
-  const expired = d.validUntil ? d.validUntil < today() : false;
-  const amount = fmtAmount(d.amount, d.currency);
-  return (
-    <div className="border-b border-line-soft px-4 py-3 last:border-0">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[13.5px] font-semibold text-ink">{d.title}</span>
-            <span className="rounded bg-line-soft px-1.5 py-0.5 text-[11px] text-ink-3">{DOC_TYPE_LABEL[d.docType]}</span>
-            {expired && <span className="rounded bg-brand-tint px-1.5 py-0.5 text-[11px] font-semibold text-[#B01218]">Expired</span>}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-            {d.reference && <span>Ref {d.reference}</span>}
-            {amount && <span className="font-medium text-ink-2">{amount}</span>}
-            {d.docDate && <span>{d.docDate}</span>}
-            {d.validUntil && <span className={expired ? "text-brand" : ""}>valid to {d.validUntil}</span>}
-            {d.fileName && <span className="text-faint">{d.fileName} {fmtSize(d.fileSize)}</span>}
-            {!d.hasFile && <span className="italic text-faint">no file attached</span>}
-          </div>
-          {d.notes && <div className="mt-1 text-xs text-ink-3">{d.notes}</div>}
-        </div>
-        <DocActions docId={d.id} supplierId={supplierId} hasFile={d.hasFile} />
-      </div>
-    </div>
   );
 }
