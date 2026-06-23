@@ -2,13 +2,19 @@
 // job action. Recipients = active managers of the job's client. Returns the
 // number of recipients (stored on job_updates.emailed_count).
 import { createServiceClient } from "@/lib/supabase/service";
-import { greetingName, type PersonName } from "@/lib/job-email-helpers";
+import {
+  greetingName,
+  assigneeGreetingName,
+  assignmentEmailContent,
+  type PersonName,
+  type AssigneeKind,
+} from "@/lib/job-email-helpers";
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
 
 type ManagerRecipient = { email: string; name: string };
 
-async function sendEmail(to: string[], subject: string, html: string): Promise<void> {
+async function sendEmail(to: string[], subject: string, html: string, bcc?: string[]): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", subject);
@@ -17,9 +23,25 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<v
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify({ from: FROM, to, subject, html, ...(bcc && bcc.length ? { bcc } : {}) }),
   });
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
+}
+
+/** The job owner's email (for BCC), or null when there's no owner / no row. */
+async function ownerEmail(ownerProfileId: string | null | undefined): Promise<string | null> {
+  if (!ownerProfileId) return null;
+  const service = createServiceClient();
+  const { data } = await service.from("profiles").select("email").eq("id", ownerProfileId).maybeSingle();
+  return data?.email ?? null;
+}
+
+/** Owner address to BCC, unless it's already one of the `to` recipients (case-insensitive). */
+function ownerBcc(owner: string | null, to: string[]): string[] | undefined {
+  if (!owner) return undefined;
+  const lower = owner.toLowerCase();
+  if (to.some((e) => e.toLowerCase() === lower)) return undefined;
+  return [owner];
 }
 
 /** Active managers of a client, each with a first-name greeting for personalised mail. */
@@ -42,11 +64,13 @@ const wrap = (body: string) => `
     ${body}
   </div>`;
 
-/** Job opened → active managers, each greeted by first name. Returns the number sent. */
-export async function notifyJobOpened(opts: { clientId: string; title: string }): Promise<number> {
+/** Job opened → active managers, each greeted by first name. Owner BCC'd once. Returns the number sent. */
+export async function notifyJobOpened(opts: { clientId: string; title: string; ownerProfileId?: string | null }): Promise<number> {
   const recipients = await managerRecipients(opts.clientId);
+  const owner = await ownerEmail(opts.ownerProfileId);
+  const bcc = ownerBcc(owner, recipients.map((r) => r.email));
   let sent = 0;
-  for (const r of recipients) {
+  for (const [i, r] of recipients.entries()) {
     try {
       await sendEmail(
         [r.email],
@@ -56,6 +80,7 @@ export async function notifyJobOpened(opts: { clientId: string; title: string })
       <h2 style="margin:0 0 8px;">We're on it</h2>
       <p style="color:#444; margin:0;">Rocking has opened a job for you: <strong>${opts.title}</strong>. We'll keep you posted on how it progresses.</p>
     `),
+        i === 0 ? bcc : undefined, // owner copy rides the first send only
       );
       sent++;
     } catch (e) {
@@ -65,10 +90,11 @@ export async function notifyJobOpened(opts: { clientId: string; title: string })
   return sent;
 }
 
-/** Job completed → active managers. Returns the recipient count. */
-export async function notifyJobCompleted(opts: { clientId: string; title: string }): Promise<number> {
+/** Job completed → active managers, owner BCC'd. Returns the recipient count. */
+export async function notifyJobCompleted(opts: { clientId: string; title: string; ownerProfileId?: string | null }): Promise<number> {
   const to = (await managerRecipients(opts.clientId)).map((r) => r.email);
   if (to.length === 0) return 0;
+  const bcc = ownerBcc(await ownerEmail(opts.ownerProfileId), to);
   await sendEmail(
     to,
     `Completed — ${opts.title}`,
@@ -76,14 +102,16 @@ export async function notifyJobCompleted(opts: { clientId: string; title: string
       <h2 style="margin:0 0 8px;">All done</h2>
       <p style="color:#444; margin:0;"><strong>${opts.title}</strong> is complete. Thanks — reach out any time if you need anything else.</p>
     `),
+    bcc,
   );
   return to.length;
 }
 
-/** Manual "Post update" → active managers. Returns the recipient count. */
-export async function notifyJobUpdate(opts: { clientId: string; title: string; body: string }): Promise<number> {
+/** Manual "Post update" → active managers, owner BCC'd. Returns the recipient count. */
+export async function notifyJobUpdate(opts: { clientId: string; title: string; body: string; ownerProfileId?: string | null }): Promise<number> {
   const to = (await managerRecipients(opts.clientId)).map((r) => r.email);
   if (to.length === 0) return 0;
+  const bcc = ownerBcc(await ownerEmail(opts.ownerProfileId), to);
   await sendEmail(
     to,
     `Update — ${opts.title}`,
@@ -92,6 +120,24 @@ export async function notifyJobUpdate(opts: { clientId: string; title: string; b
       <p style="color:#444; margin:0 0 4px;"><strong>${opts.title}</strong></p>
       <p style="color:#444; margin:0; white-space:pre-wrap;">${opts.body}</p>
     `),
+    bcc,
   );
   return to.length;
+}
+
+/**
+ * Task assigned → the assignee (two tones, by kind). Owner BCC'd unless they're
+ * the assignee. Returns 1 if a send was attempted, else 0.
+ */
+export async function notifyTaskAssigned(opts: {
+  assignee: { email: string; kind: AssigneeKind; person: PersonName };
+  jobTitle: string;
+  taskLabel: string;
+  ownerEmail?: string | null;
+}): Promise<number> {
+  const name = assigneeGreetingName({ kind: opts.assignee.kind, email: opts.assignee.email, person: opts.assignee.person });
+  const { subject, body } = assignmentEmailContent({ kind: opts.assignee.kind, name, jobTitle: opts.jobTitle, taskLabel: opts.taskLabel });
+  const bcc = ownerBcc(opts.ownerEmail ?? null, [opts.assignee.email]);
+  await sendEmail([opts.assignee.email], subject, wrap(body), bcc);
+  return 1;
 }

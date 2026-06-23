@@ -25,7 +25,7 @@ export type JobCard = {
   updatedAt: string;
 };
 
-export type JobTask = { id: string; label: string; done: boolean; assigneeLabel: string | null; position: number };
+export type JobTask = { id: string; label: string; done: boolean; assigneeProfileId: string | null; assigneeLabel: string | null; position: number };
 export type JobUpdate = { id: string; kind: string; body: string | null; author: string | null; emailedCount: number; createdAt: string };
 
 export type JobDetail = {
@@ -35,6 +35,7 @@ export type JobDetail = {
   clientName: string;
   status: JobStatus;
   ownerProfileId: string | null;
+  ownerLabel: string | null;
   notes: string | null;
   waitingNote: string | null;
   quoteId: string | null;
@@ -46,6 +47,7 @@ export type JobDetail = {
 
 export type StaffOption = { id: string; label: string };
 export type ClientOption = { id: string; name: string };
+export type AssigneeOption = { id: string; label: string; kind: "staff" | "client" };
 
 /** A friendly label from an email local-part (staff rarely have people rows). */
 function emailLabel(email: string | undefined | null): string | null {
@@ -107,12 +109,13 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
     clientName: client?.name ?? "—",
     status: j.status as JobStatus,
     ownerProfileId: j.owner_profile_id,
+    ownerLabel: emailLabel(em.get(j.owner_profile_id ?? "")),
     notes: j.notes,
     waitingNote: j.waiting_note,
     quoteId: j.quote_id,
     quoteNumber: (quoteRes.data as { quote_number: string } | null)?.quote_number ?? null,
     completedAt: j.completed_at,
-    tasks: (tasks ?? []).map((t) => ({ id: t.id, label: t.label, done: t.done, assigneeLabel: emailLabel(em.get(t.assignee_profile_id ?? "")), position: t.position })),
+    tasks: (tasks ?? []).map((t) => ({ id: t.id, label: t.label, done: t.done, assigneeProfileId: t.assignee_profile_id, assigneeLabel: emailLabel(em.get(t.assignee_profile_id ?? "")), position: t.position })),
     updates: (updates ?? []).map((u) => ({ id: u.id, kind: u.kind, body: u.body, author: emailLabel(em.get(u.posted_by_profile_id ?? "")), emailedCount: u.emailed_count, createdAt: u.created_at })),
   };
 }
@@ -127,4 +130,29 @@ export async function getJobFormOptions(): Promise<{ clients: ClientOption[]; st
     clients: (clients ?? []).map((c) => ({ id: c.id, name: c.name })),
     staff: (staff ?? []).map((s) => ({ id: s.id, label: emailLabel(s.email) ?? s.email })),
   };
+}
+
+/** People a task can be assigned to: all active staff + this client's active managers. */
+export async function getJobAssignees(clientId: string): Promise<AssigneeOption[]> {
+  const supabase = await createClient();
+  const [{ data: staff }, { data: managers }] = await Promise.all([
+    supabase.from("profiles").select("id, email").eq("role", "rocking_staff").eq("status", "active"),
+    supabase
+      .from("profiles")
+      .select("id, email, people:person_id(display_name)")
+      .eq("role", "client_manager")
+      .eq("status", "active")
+      .eq("client_id", clientId),
+  ]);
+  const staffOpts: AssigneeOption[] = (staff ?? []).map((s) => ({
+    id: s.id,
+    label: emailLabel(s.email) ?? s.email,
+    kind: "staff",
+  }));
+  const clientOpts: AssigneeOption[] = (managers ?? []).map((m) => {
+    const person = (Array.isArray(m.people) ? m.people[0] : m.people) as { display_name: string | null } | null;
+    return { id: m.id, label: person?.display_name?.trim() || emailLabel(m.email) || m.email, kind: "client" };
+  });
+  const byLabel = (a: AssigneeOption, b: AssigneeOption) => a.label.localeCompare(b.label);
+  return [...staffOpts.sort(byLabel), ...clientOpts.sort(byLabel)];
 }

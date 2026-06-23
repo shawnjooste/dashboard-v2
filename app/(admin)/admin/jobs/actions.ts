@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { notifyJobOpened, notifyJobCompleted, notifyJobUpdate } from "@/lib/job-emails";
+import { notifyJobOpened, notifyJobCompleted, notifyJobUpdate, notifyTaskAssigned } from "@/lib/job-emails";
+import type { PersonName, AssigneeKind } from "@/lib/job-email-helpers";
 import type { JobStatus } from "@/lib/views/jobs";
 
 const STATUSES: JobStatus[] = ["todo", "in_progress", "waiting", "done", "cancelled"];
@@ -41,7 +42,7 @@ async function openJob(
 
   let emailed = 0;
   try {
-    emailed = await notifyJobOpened({ clientId: args.clientId, title: args.title });
+    emailed = await notifyJobOpened({ clientId: args.clientId, title: args.title, ownerProfileId: args.ownerProfileId });
   } catch (e) {
     console.error("job opened email failed:", e);
   }
@@ -77,7 +78,7 @@ export async function setJobStatus(jobId: string, status: JobStatus, waitingNote
   const me = await staff();
   if (!STATUSES.includes(status)) throw new Error("invalid status");
   const supabase = await createClient();
-  const { data: job } = await supabase.from("jobs").select("client_id, title, status").eq("id", jobId).maybeSingle();
+  const { data: job } = await supabase.from("jobs").select("client_id, title, status, owner_profile_id").eq("id", jobId).maybeSingle();
   if (!job) throw new Error("job not found");
 
   const justCompleted = status === "done" && job.status !== "done";
@@ -93,7 +94,7 @@ export async function setJobStatus(jobId: string, status: JobStatus, waitingNote
   if (justCompleted) {
     let emailed = 0;
     try {
-      emailed = await notifyJobCompleted({ clientId: job.client_id, title: job.title });
+      emailed = await notifyJobCompleted({ clientId: job.client_id, title: job.title, ownerProfileId: job.owner_profile_id });
     } catch (e) {
       console.error("job completed email failed:", e);
     }
@@ -134,11 +135,11 @@ export async function postJobUpdate(jobId: string, body: string) {
   const clean = body.trim();
   if (!clean) return;
   const supabase = await createClient();
-  const { data: job } = await supabase.from("jobs").select("client_id, title").eq("id", jobId).maybeSingle();
+  const { data: job } = await supabase.from("jobs").select("client_id, title, owner_profile_id").eq("id", jobId).maybeSingle();
   if (!job) throw new Error("job not found");
   let emailed = 0;
   try {
-    emailed = await notifyJobUpdate({ clientId: job.client_id, title: job.title, body: clean });
+    emailed = await notifyJobUpdate({ clientId: job.client_id, title: job.title, body: clean, ownerProfileId: job.owner_profile_id });
   } catch (e) {
     console.error("job update email failed:", e);
   }
@@ -154,5 +155,61 @@ export async function saveJobNotes(formData: FormData) {
   if (!jobId) return;
   const supabase = await createClient();
   await supabase.from("jobs").update({ notes, updated_at: new Date().toISOString() }).eq("id", jobId);
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Assign (or clear) a task's assignee. Emails a newly-assigned person; owner BCC'd. */
+export async function setTaskAssignee(taskId: string, jobId: string, assigneeProfileId: string | null) {
+  await staff();
+  const supabase = await createClient();
+  const { data: task } = await supabase.from("job_tasks").select("assignee_profile_id, label").eq("id", taskId).maybeSingle();
+  if (!task) throw new Error("task not found");
+  const { data: job } = await supabase.from("jobs").select("client_id, title, owner_profile_id").eq("id", jobId).maybeSingle();
+  if (!job) throw new Error("job not found");
+
+  // Validate the assignee is allowed for this job: active staff, or an active
+  // manager of *this* client. Reject anything else.
+  let assignee: { email: string; kind: AssigneeKind; person: PersonName } | null = null;
+  if (assigneeProfileId) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("email, role, status, client_id, people:person_id(first_name, display_name)")
+      .eq("id", assigneeProfileId)
+      .maybeSingle();
+    if (!prof || prof.status !== "active") throw new Error("invalid assignee");
+    const person = (Array.isArray(prof.people) ? prof.people[0] : prof.people) as PersonName;
+    if (prof.role === "rocking_staff") assignee = { email: prof.email, kind: "staff", person };
+    else if (prof.role === "client_manager" && prof.client_id === job.client_id) assignee = { email: prof.email, kind: "client", person };
+    else throw new Error("assignee not allowed for this job");
+  }
+
+  await supabase.from("job_tasks").update({ assignee_profile_id: assigneeProfileId }).eq("id", taskId);
+  await supabase.from("jobs").update({ updated_at: new Date().toISOString() }).eq("id", jobId);
+
+  // Email only on a *new* assignment (not unassign, not re-selecting the same person).
+  if (assignee && assigneeProfileId !== task.assignee_profile_id) {
+    try {
+      let ownerEmailAddr: string | null = null;
+      if (job.owner_profile_id) {
+        const { data: o } = await supabase.from("profiles").select("email").eq("id", job.owner_profile_id).maybeSingle();
+        ownerEmailAddr = o?.email ?? null;
+      }
+      await notifyTaskAssigned({ assignee, jobTitle: job.title, taskLabel: task.label, ownerEmail: ownerEmailAddr });
+    } catch (e) {
+      console.error("task assigned email failed:", e);
+    }
+  }
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Set (or clear) the job owner. Owner must be active rocking_staff. No email. */
+export async function setJobOwner(jobId: string, ownerProfileId: string | null) {
+  await staff();
+  const supabase = await createClient();
+  if (ownerProfileId) {
+    const { data: prof } = await supabase.from("profiles").select("role, status").eq("id", ownerProfileId).maybeSingle();
+    if (!prof || prof.role !== "rocking_staff" || prof.status !== "active") throw new Error("owner must be active staff");
+  }
+  await supabase.from("jobs").update({ owner_profile_id: ownerProfileId, updated_at: new Date().toISOString() }).eq("id", jobId);
   revalidatePath(`/admin/jobs/${jobId}`);
 }

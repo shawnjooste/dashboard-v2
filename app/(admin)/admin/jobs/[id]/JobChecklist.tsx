@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addTask, toggleTask, deleteTask } from "../actions";
-import type { JobTask } from "@/lib/views/jobs";
+import { addTask, toggleTask, deleteTask, setTaskAssignee } from "../actions";
+import type { JobTask, AssigneeOption } from "@/lib/views/jobs";
 
-export function JobChecklist({ jobId, tasks }: { jobId: string; tasks: JobTask[] }) {
+export function JobChecklist({ jobId, tasks, assignees }: { jobId: string; tasks: JobTask[]; assignees: AssigneeOption[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [label, setLabel] = useState("");
+  const staffOptions = assignees.filter((a) => a.kind === "staff");
+  const clientOptions = assignees.filter((a) => a.kind === "client");
 
   const run = (fn: () => Promise<void>) =>
     start(async () => {
@@ -35,7 +37,33 @@ export function JobChecklist({ jobId, tasks }: { jobId: string; tasks: JobTask[]
               className="h-4 w-4 shrink-0 accent-[#D7141C]"
             />
             <span className={`flex-1 text-[13.5px] ${t.done ? "text-faint line-through" : "text-ink"}`}>{t.label}</span>
-            {t.assigneeLabel && <span className="shrink-0 text-[11px] capitalize text-faint">{t.assigneeLabel}</span>}
+            <select
+              value={t.assigneeProfileId ?? ""}
+              disabled={pending}
+              onChange={(e) => run(() => setTaskAssignee(t.id, jobId, e.target.value || null))}
+              className="shrink-0 max-w-[140px] rounded-md border border-line bg-canvas px-2 py-1 text-[11.5px] text-ink-2 outline-none focus:border-faint disabled:opacity-60"
+              aria-label="Assignee"
+            >
+              <option value="">Unassigned</option>
+              {staffOptions.length > 0 && (
+                <optgroup label="Rocking">
+                  {staffOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {clientOptions.length > 0 && (
+                <optgroup label="Client">
+                  {clientOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
             <button
               type="button"
               disabled={pending}

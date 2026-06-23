@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getJobDetail, type JobUpdate } from "@/lib/views/jobs";
+import { getJobDetail, getJobAssignees, getJobFormOptions, type JobUpdate } from "@/lib/views/jobs";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { saveJobNotes } from "../actions";
 import { JobStatusControl } from "./JobStatusControl";
+import { JobOwnerControl } from "./JobOwnerControl";
 import { JobChecklist } from "./JobChecklist";
 import { PostUpdate } from "./PostUpdate";
 
@@ -19,6 +20,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       </p>
     );
   }
+  const [assignees, { staff }] = await Promise.all([getJobAssignees(job.clientId), getJobFormOptions()]);
 
   return (
     <div className="space-y-5">
@@ -48,9 +50,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <div className="min-w-0 flex-1 space-y-5">
           <JobStatusControl jobId={job.id} status={job.status} waitingNote={job.waitingNote} />
 
+          <JobOwnerControl jobId={job.id} ownerProfileId={job.ownerProfileId} staff={staff} />
+
           <Card>
             <CardHeader title="Checklist" count={job.tasks.length} />
-            <JobChecklist jobId={job.id} tasks={job.tasks} />
+            <JobChecklist jobId={job.id} tasks={job.tasks} assignees={assignees} />
           </Card>
 
           <Card>
