@@ -1,0 +1,69 @@
+{
+  "clientId": "4a87a584-7d74-4253-b5f7-7db578cad809",
+  "title": "Microsoft Exchange Online (Plan 2) Licence",
+  "validUntil": "2026-07-07",
+  "number": "QU-SUN-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Sun Destinations",
+      "attention": "Monique Grobler",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-SUN-001",
+      "date": "23 June 2026",
+      "validUntil": "7 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Microsoft Exchange Online (Plan 2) Licence",
+    "projectIntro": "This quote covers one Microsoft Exchange Online (Plan 2) licence for Sun Destinations — a 100GB mailbox with in-place archiving, data loss prevention and anti-malware / anti-spam protection. Provided as a Microsoft NCE subscription on a 12-month term, billed monthly. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "recurring",
+        "title": "Section 1 — Microsoft 365 Licensing",
+        "subtitle": "Exchange Online — billed monthly",
+        "monthly": true,
+        "totalLabel": "TOTAL (incl VAT / month)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Microsoft Exchange Online (Plan 2) — 100GB mailbox",
+                "detail": "Per-user licence (Microsoft NCE), 12-month term billed monthly. Includes a 100GB mailbox, in-place archiving, data loss prevention and anti-malware / anti-spam. Assigned user: Shondre.",
+                "qty": 1,
+                "unitPrice": 144.75
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Billed monthly on a 12-month Microsoft NCE term. Licence is per user (assigned to Shondre). Additional licences can be added at the same per-user rate.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "This is a Microsoft NCE subscription with a 12-month commitment, billed monthly in advance, and renews annually unless cancelled before the renewal date.",
+      "The licence is assigned per user.",
+      "Microsoft pricing is subject to OEM (Microsoft) price changes and exchange-rate movement.",
+      "Payment of the monthly licence fee is due in advance."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 125.87, "note": "Multi NCE — Exchange Online Plan 2, R125.87 ex VAT/mo cost. Standard 15% markup. SKU CFQ7TTC0LH1P:0001:Commercial. For Sun Destinations user Shondre (requested by Tim Clarke, 2026-06-17)." }
+  ]
+}
