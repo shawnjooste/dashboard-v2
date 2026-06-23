@@ -1480,6 +1480,117 @@ export type Database = {
           },
         ]
       }
+      supplier_documents: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string
+          doc_date: string | null
+          doc_type: string
+          file_name: string | null
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          reference: string | null
+          storage_path: string
+          supplier_id: string
+          title: string
+          uploaded_by_profile_id: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          doc_date?: string | null
+          doc_type?: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          reference?: string | null
+          storage_path: string
+          supplier_id: string
+          title: string
+          uploaded_by_profile_id?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string
+          doc_date?: string | null
+          doc_type?: string
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          reference?: string | null
+          storage_path?: string
+          supplier_id?: string
+          title?: string
+          uploaded_by_profile_id?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_documents_uploaded_by_profile_id_fkey"
+            columns: ["uploaded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          category: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          category?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          category?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
