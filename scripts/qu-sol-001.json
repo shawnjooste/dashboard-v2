@@ -1,0 +1,68 @@
+{
+  "clientId": "292578c3-70b2-4148-a809-22bcebf65b04",
+  "title": "Dell Latitude 7480 — Laptop Assessment",
+  "validUntil": "2026-07-07",
+  "number": "QU-SOL-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Solutions Technology",
+      "attention": "Donovan",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-SOL-001",
+      "date": "23 June 2026",
+      "validUntil": "7 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell Latitude 7480 — Laptop Assessment",
+    "projectIntro": "This quote covers a diagnostic assessment of Donovan's Dell Latitude 7480 laptop. Our technicians will inspect and test the unit and provide a report on the fault(s) found and the recommended repair. Any repairs identified will be quoted separately for your approval. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "assessment",
+        "title": "Section 1 — Diagnostic Assessment",
+        "subtitle": "Inspection, testing & fault report",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Laptop Diagnostic Assessment — Dell Latitude 7480",
+                "detail": "Full hardware and software diagnostic of the unit (assigned user: Donovan), with a written fault report and recommended repair. Diagnosis and reporting only — parts and repair labour are not included.",
+                "qty": 1,
+                "unitPrice": 600.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Assessment and fault report only. The assessment fee is payable whether or not the unit is subsequently repaired. Any repair will be quoted separately for your approval before work proceeds.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "This is a diagnostic assessment fee and is payable whether or not the unit is subsequently repaired.",
+      "The assessment covers diagnosis and reporting only; parts and labour for any repair are not included.",
+      "Any repairs identified will be quoted separately for your approval before work proceeds.",
+      "Payment is due on completion of the assessment."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 500.00, "note": "Assessment cost R500 ex VAT; charge R600 ex VAT (explicit price per Shawn). Solutions Technology — Donovan's Dell Latitude 7480. Links to RFQ 439e2212 (requested by Timbo)." }
+  ]
+}
