@@ -1,0 +1,70 @@
+{
+  "clientId": "124666dd-1fd1-4a97-809e-c2881376c362",
+  "title": "Dell Pro Micro QCM1250 Desktop (16GB)",
+  "validUntil": "2026-07-07",
+  "number": "QU-INT-002",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Interland",
+      "attention": "",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-INT-002",
+      "date": "23 June 2026",
+      "validUntil": "7 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell Pro Micro QCM1250 Desktop (16GB)",
+    "projectIntro": "This quote covers the supply of a Dell Pro Micro QCM1250 compact desktop PC for Interland — an Intel Core i5 micro-form-factor machine with 16GB RAM, a 512GB SSD, Windows 11 Pro and a 3-year Dell ProSupport warranty. Supply only. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Dell Desktop Supply",
+        "subtitle": "Compact micro-form-factor PC",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell Pro Micro QCM1250 — i5-14500T / 16GB / 512GB / Win 11 Pro",
+                "detail": "Micro form factor. Intel Core i5-14500T (14-core, up to 4.8GHz) · 16GB (1×16GB) DDR5 5600 · 512GB SSD · Intel integrated graphics · Intel Wi-Fi 6E AX211 + Bluetooth · Dell MS116 mouse + KB216 keyboard · Windows 11 Pro 64-bit · 3-year Dell ProSupport.",
+                "qty": 1,
+                "unitPrice": 23149.50
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Supply only — setup, imaging and on-site installation can be quoted separately if required.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only — setup and configuration can be quoted separately on request.",
+      "Includes a 3-year Dell ProSupport warranty.",
+      "Pricing is subject to exchange-rate movement and OEM price changes, and is confirmed at order placement.",
+      "Delivery lead time is subject to Dell stock availability.",
+      "Payment is due in full prior to order placement.",
+      "Hardware remains the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 20130.00, "note": "Pinnacle BTO008_QCM1250 via Nicholus de Jager — R20,130 ex VAT. Standard 15% markup (client ex VAT = supplier incl VAT)." }
+  ]
+}
