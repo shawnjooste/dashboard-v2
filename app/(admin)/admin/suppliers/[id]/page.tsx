@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getSupplierDetail, DOC_TYPE_LABEL, type SupplierDoc } from "@/lib/views/suppliers";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { updateSupplier } from "../actions";
-import { UploadDocForm } from "./UploadDocForm";
+import { AddDocDialog } from "./AddDocDialog";
 import { DocActions } from "./DocActions";
 
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
@@ -31,32 +31,28 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        breadcrumb={
-          <Link href="/admin/suppliers" className="hover:text-ink">
-            ← Suppliers
-          </Link>
-        }
-        title={s.name}
-        subtitle={s.category ?? undefined}
-      />
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader
+          breadcrumb={
+            <Link href="/admin/suppliers" className="hover:text-ink">
+              ← Suppliers
+            </Link>
+          }
+          title={s.name}
+          subtitle={s.category ?? undefined}
+        />
+        <AddDocDialog supplierId={s.id} />
+      </div>
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-5">
           <Card>
             <CardHeader title="Documents" count={s.documents.length} />
             {s.documents.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-faint">No documents yet — upload the supplier&rsquo;s first quote below.</div>
+              <div className="px-4 py-6 text-sm text-faint">No documents yet — use “+ Add document” to record the supplier&rsquo;s first quote.</div>
             ) : (
               s.documents.map((d) => <DocRow key={d.id} d={d} supplierId={s.id} />)
             )}
-          </Card>
-
-          <Card>
-            <CardHeader title="Add document" />
-            <div className="px-4 py-4">
-              <UploadDocForm supplierId={s.id} />
-            </div>
           </Card>
         </div>
 

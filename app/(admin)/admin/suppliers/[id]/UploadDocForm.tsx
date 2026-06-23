@@ -6,13 +6,16 @@ import { uploadSupplierDocument, type UploadResult } from "../actions";
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.3px] text-faint";
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 
-export function UploadDocForm({ supplierId }: { supplierId: string }) {
+export function UploadDocForm({ supplierId, onSuccess }: { supplierId: string; onSuccess?: () => void }) {
   const [state, action, pending] = useActionState<UploadResult | null, FormData>(uploadSupplierDocument, null);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state?.ok) formRef.current?.reset();
-  }, [state]);
+    if (state?.ok) {
+      formRef.current?.reset();
+      onSuccess?.();
+    }
+  }, [state, onSuccess]);
 
   return (
     <form ref={formRef} action={action} className="space-y-3">
