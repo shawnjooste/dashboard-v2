@@ -2,8 +2,11 @@
 // job action. Recipients = active managers of the job's client. Returns the
 // number of recipients (stored on job_updates.emailed_count).
 import { createServiceClient } from "@/lib/supabase/service";
+import { greetingName, type PersonName } from "@/lib/job-email-helpers";
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
+
+type ManagerRecipient = { email: string; name: string };
 
 async function sendEmail(to: string[], subject: string, html: string): Promise<void> {
   const key = process.env.RESEND_API_KEY;
@@ -19,15 +22,19 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<v
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
 }
 
-async function managerEmails(clientId: string): Promise<string[]> {
+/** Active managers of a client, each with a first-name greeting for personalised mail. */
+async function managerRecipients(clientId: string): Promise<ManagerRecipient[]> {
   const service = createServiceClient();
   const { data } = await service
     .from("profiles")
-    .select("email")
+    .select("email, people:person_id(first_name, display_name)")
     .eq("client_id", clientId)
     .eq("role", "client_manager")
     .eq("status", "active");
-  return (data ?? []).map((p) => p.email);
+  return (data ?? []).map((p) => {
+    const person = (Array.isArray(p.people) ? p.people[0] : p.people) as PersonName;
+    return { email: p.email, name: greetingName(person) };
+  });
 }
 
 const wrap = (body: string) => `
@@ -35,24 +42,32 @@ const wrap = (body: string) => `
     ${body}
   </div>`;
 
-/** Job opened → active managers. Returns the recipient count. */
+/** Job opened → active managers, each greeted by first name. Returns the number sent. */
 export async function notifyJobOpened(opts: { clientId: string; title: string }): Promise<number> {
-  const to = await managerEmails(opts.clientId);
-  if (to.length === 0) return 0;
-  await sendEmail(
-    to,
-    `We've started work — ${opts.title}`,
-    wrap(`
+  const recipients = await managerRecipients(opts.clientId);
+  let sent = 0;
+  for (const r of recipients) {
+    try {
+      await sendEmail(
+        [r.email],
+        `We've started work — ${opts.title}`,
+        wrap(`
+      <p style="color:#444; margin:0 0 14px;">Hi ${r.name},</p>
       <h2 style="margin:0 0 8px;">We're on it</h2>
-      <p style="color:#444; margin:0;">Rocking has opened a job for you: <strong>${opts.title}</strong>. We'll let you know as it progresses, and when it's done.</p>
+      <p style="color:#444; margin:0;">Rocking has opened a job for you: <strong>${opts.title}</strong>. We'll keep you posted on how it progresses.</p>
     `),
-  );
-  return to.length;
+      );
+      sent++;
+    } catch (e) {
+      console.error("job opened email failed for", r.email, e);
+    }
+  }
+  return sent;
 }
 
 /** Job completed → active managers. Returns the recipient count. */
 export async function notifyJobCompleted(opts: { clientId: string; title: string }): Promise<number> {
-  const to = await managerEmails(opts.clientId);
+  const to = (await managerRecipients(opts.clientId)).map((r) => r.email);
   if (to.length === 0) return 0;
   await sendEmail(
     to,
@@ -67,7 +82,7 @@ export async function notifyJobCompleted(opts: { clientId: string; title: string
 
 /** Manual "Post update" → active managers. Returns the recipient count. */
 export async function notifyJobUpdate(opts: { clientId: string; title: string; body: string }): Promise<number> {
-  const to = await managerEmails(opts.clientId);
+  const to = (await managerRecipients(opts.clientId)).map((r) => r.email);
   if (to.length === 0) return 0;
   await sendEmail(
     to,
