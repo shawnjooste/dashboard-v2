@@ -1,0 +1,109 @@
+{
+  "clientId": "124666dd-1fd1-4a97-809e-c2881376c362",
+  "title": "Network Security — Meraki Licence vs MikroTik Replacement",
+  "validUntil": "2026-07-07",
+  "number": "QU-INT-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Interland",
+      "attention": "",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-INT-001",
+      "date": "23 June 2026",
+      "validUntil": "7 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Network Security — Meraki Licence vs MikroTik Replacement",
+    "projectIntro": "Interland's edge security currently runs on a Cisco Meraki Z1, which is limited to 100 Mbps. This quote covers replacing it and presents three alternative options so you can choose the approach that suits you best. Options A and B upgrade you to a Cisco Meraki MX64 — Rocking provides the MX64 hardware at no charge, so you pay only for the Meraki Advanced Security Licence and support, for either one year (Option A) or three years (Option B); the MX64 also lifts the 100 Mbps ceiling of the current Z1. Option C replaces the Meraki entirely with a once-off MikroTik RB4011iGS+RM router. Meraki is a cloud-managed, subscription platform — the Advanced Security Licence bundles intrusion prevention, content filtering, anti-malware and full vendor support, managed centrally from the Meraki dashboard with automatic updates; the trade-off is that it is a renewable subscription, and the security features and support lapse if the licence is not renewed at the end of each term. MikroTik (RouterOS) is a once-off purchase with no recurring licence — a powerful, highly configurable router/firewall with excellent price-performance that we configure, manage and monitor for you, at a far lower total cost of ownership; the trade-off is that it does not include Meraki's turnkey cloud dashboard or the bundled subscription security suite. These three options are alternatives — please select one. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "meraki-1y",
+        "title": "Option A — Meraki MX64 Upgrade + Security Licence (1 Year)",
+        "subtitle": "MX64 hardware included · cloud-managed security · annual licence",
+        "totalLabel": "Option A — Meraki MX64 Licence, 1 Year (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Cisco Meraki MX64 — Advanced Security Licence + Support (1 Year)",
+                "detail": "Replaces the bandwidth-limited Meraki Z1 with a Cisco Meraki MX64 — hardware provided by Rocking at no charge; you pay for the licence and support only. Includes intrusion prevention, content filtering, anti-malware (AMP), auto-VPN and vendor support, managed via the Meraki cloud dashboard. Renewable each year.",
+                "qty": 1,
+                "unitPrice": 10096.40
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "meraki-3y",
+        "title": "Option B — Meraki MX64 Upgrade + Security Licence (3 Years)",
+        "subtitle": "MX64 hardware included · cloud-managed security · 3-year licence (best per-year value)",
+        "totalLabel": "Option B — Meraki MX64 Licence, 3 Years (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Cisco Meraki MX64 — Advanced Security Licence + Support (3 Years)",
+                "detail": "Replaces the bandwidth-limited Meraki Z1 with a Cisco Meraki MX64 — hardware provided by Rocking at no charge; you pay for the licence and support only. Same cloud-managed security suite and vendor support as Option A, locked in for three years at a lower per-year cost. Renewable at the end of the term.",
+                "qty": 1,
+                "unitPrice": 22721.20
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mikrotik",
+        "title": "Option C — Replace with MikroTik RB4011iGS+RM Router",
+        "subtitle": "Once-off · includes supply, configuration & full migration · no recurring licence",
+        "totalLabel": "Option C — MikroTik Replacement (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "MikroTik RB4011iGS+RM Router — supply, configuration & migration",
+                "detail": "Replaces the Meraki with a MikroTik RB4011iGS+RM rack-mount router/firewall: 10× Gigabit Ethernet + 1× SFP+ 10G, quad-core CPU, RouterOS Level 5 licence included. Price includes supply, configuration, and full migration from the existing Meraki. Once-off — no annual licence or renewal. Managed and monitored by Rocking.",
+                "qty": 1,
+                "unitPrice": 9500.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "These options are alternatives — please choose one, not all three. Options A and B (Meraki) are licence + support subscriptions: they must be renewed at the end of the 1-year or 3-year term to keep the security features and vendor support active. The MX64 hardware is provided by Rocking at no charge. Option C (MikroTik) is a single once-off purchase with no renewal, and includes the labour to configure and migrate across from the existing Meraki. We're happy to talk through the best fit for Interland.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Options A, B and C are alternatives — please select one.",
+      "The Meraki MX64 hardware is provided by Rocking at no charge; Options A and B cover the Advanced Security Licence and support only.",
+      "Meraki licence and support (Options A and B) are renewable subscriptions and must be renewed at the end of the 1-year or 3-year term to maintain security features and vendor support.",
+      "Option C (MikroTik) is a once-off purchase and includes supply, configuration and full migration from the existing Meraki; the RouterOS licence is included with no recurring fee.",
+      "Meraki pricing is subject to exchange-rate movement (≤ R17.20/US$) and OEM price changes, and is confirmed at order placement.",
+      "Payment is due in full prior to order placement.",
+      "Hardware remains the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 4745.31, "note": "Jurumani QU-9409 — Meraki MX64 Adv Security 1Y. Client charged list/unit R10,096.40 ex VAT; our cost = discounted R4,745.31 (53% off). FX ≤R17.20/US$; supplier quote expired 2026-06-20" },
+    { "path": "s1.g0.i0", "supplierCost": 10678.96, "note": "Jurumani QU-9410 — Meraki MX64 Adv Security 3Y. Client charged list/unit R22,721.20 ex VAT; our cost = discounted R10,678.96 (53% off). FX ≤R17.20/US$; supplier quote expired 2026-06-20" },
+    { "path": "s2.g0.i0", "supplierCost": 3150.00, "note": "MikroTik RB4011iGS+RM device dealer cost ex VAT R3,150. Client price R9,500 ex VAT includes substantial migration/config labour (labour not reflected in this supplier_cost figure)" }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "Cisco Catalyst 9200L 24-Port Switch & Licensing",
+  "validUntil": "2026-06-25",
+  "number": "QU-CFS-002",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions (Pty) Ltd",
+      "attention": "Siyamthanda Notshikila",
+      "addressLines": [
+        "61 Cannon Island Way Ext.",
+        "Capricorn Technology Park",
+        "Muizenberg, Cape Town, 7945, South Africa"
+      ]
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-002",
+      "date": "18 June 2026",
+      "validUntil": "25 June 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Cisco Catalyst 9200L 24-Port Switch & Licensing",
+    "projectIntro": "Pricing for a Cisco Catalyst 9200L 24-port PoE+ switch with Network Essentials, SmartNet 8x5xNBD support, and Cisco DNA Essentials licensing, delivered to Cape Town. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "switch",
+        "title": "Cisco Catalyst 9200L Switch & Licensing",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Cisco Catalyst 9200L 24-Port PoE+ Switch",
+                "detail": "C9200L-24P-4G-E — 24-port PoE+, 4 x 1G uplinks, Network Essentials",
+                "qty": 1,
+                "unitPrice": 31911.79
+              },
+              {
+                "description": "SmartNet Support — 12 Months",
+                "detail": "CON-SNT-C920L24G — SNTC-8X5XNBD, Catalyst 9200L 24-port PoE+",
+                "qty": 1,
+                "unitPrice": 4915.34
+              },
+              {
+                "description": "Cisco DNA Essentials License Spare — 24-Port",
+                "detail": "C9200L-DNA-E-24= — term license spare",
+                "qty": 1,
+                "unitPrice": 0.00
+              },
+              {
+                "description": "Cisco DNA Essentials License — 3 Year, 24-Port",
+                "detail": "C9200L-DNA-E-24-3Y — 36-month term license",
+                "qty": 1,
+                "unitPrice": 7609.73
+              },
+              {
+                "description": "Shipping & Handling",
+                "detail": "Estimated — final shipping confirmed on dispatch to Cape Town",
+                "qty": 1,
+                "unitPrice": 862.50
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Pricing is based on imported Cisco hardware and is subject to exchange-rate movement and OEM price changes until order confirmation.",
+    "terms": [
+      "This quote is valid for 7 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Pricing is subject to exchange-rate movement (quoted at ≤ R16.84/US$) and OEM price changes, and is confirmed at order placement.",
+      "Payment is due in full prior to order placement.",
+      "Delivery lead time is subject to Cisco/OEM stock availability.",
+      "Shipping is estimated; the final shipping cost is confirmed on dispatch to Cape Town.",
+      "Hardware remains the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 27749.38, "note": "C9200L-24P-4G-E — Catalyst 9200L 24-port PoE+ (Jurumani QU-9367)" },
+    { "path": "s0.g0.i1", "supplierCost": 4274.21, "note": "CON-SNT-C920L24G — SmartNet 12mo (Jurumani QU-9367)" },
+    { "path": "s0.g0.i2", "supplierCost": 0.00, "note": "C9200L-DNA-E-24= — DNA Essentials license spare (Jurumani QU-9367)" },
+    { "path": "s0.g0.i3", "supplierCost": 6617.16, "note": "C9200L-DNA-E-24-3Y — DNA Essentials 3yr (Jurumani QU-9367)" },
+    { "path": "s0.g0.i4", "supplierCost": 750.00, "note": "Shipping & Handling est. (Jurumani QU-9367)" }
+  ]
+}
