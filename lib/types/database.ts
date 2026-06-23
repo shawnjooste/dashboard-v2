@@ -1451,6 +1451,127 @@ export type Database = {
           },
         ]
       }
+      rfq_events: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          posted_by_profile_id: string | null
+          rfq_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          posted_by_profile_id?: string | null
+          rfq_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          posted_by_profile_id?: string | null
+          rfq_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_events_posted_by_profile_id_fkey"
+            columns: ["posted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_events_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfqs: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          closed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          lost_reason: string | null
+          needed_by: string | null
+          notes: string | null
+          owner_profile_id: string | null
+          quote_id: string | null
+          requested_by: string | null
+          sourcing_note: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lost_reason?: string | null
+          needed_by?: string | null
+          notes?: string | null
+          owner_profile_id?: string | null
+          quote_id?: string | null
+          requested_by?: string | null
+          sourcing_note?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lost_reason?: string | null
+          needed_by?: string | null
+          notes?: string | null
+          owner_profile_id?: string | null
+          quote_id?: string | null
+          requested_by?: string | null
+          sourcing_note?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfqs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_aliases: {
         Row: {
           client_id: string
