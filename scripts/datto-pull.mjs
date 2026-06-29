@@ -1,12 +1,21 @@
 // Canonical Datto RMM pull. Keys devices on Datto's stable `uid` (with a
 // first-run hostname backfill for CSV-seeded rows). Idempotent.
 //
-//   node scripts/datto-pull.mjs
+//   node scripts/datto-pull.mjs                 # all mapped sites
+//   node scripts/datto-pull.mjs --site Concargo # one site only (per-client agent)
+//
+// With --site, only that Datto site is processed; everything downstream
+// (storage/patch/alerts/health) already scopes to the pulled devices, so a
+// scoped run touches no other client's data.
 
 import { createClient } from "@supabase/supabase-js";
 import { dattoEnv, getToken, dattoGet, dattoPaged, epochToIso } from "../lib/datto-rmm.mjs";
 
 const SYSTEM_SITES = new Set(["Managed", "OnDemand", "Deleted Devices"]);
+const SITE_FILTER = (() => {
+  const i = process.argv.indexOf("--site");
+  return i >= 0 ? process.argv[i + 1] ?? null : null;
+})();
 const reportDate = new Date().toISOString().slice(0, 10);
 
 const env = dattoEnv();
@@ -40,6 +49,7 @@ const patchByUid = new Map();
 
 for (const site of sites) {
   if (SYSTEM_SITES.has(site.name)) continue;
+  if (SITE_FILTER && site.name !== SITE_FILTER) continue;
   const clientId = clientBySite.get(site.name);
   if (!clientId) { if (site.devicesStatus?.numberOfDevices) counts.skippedSites.push(site.name); continue; }
 
@@ -175,5 +185,8 @@ for (const [uid, deviceId] of idByUid) {
 if (snapRows.length) await sb.from("device_health_snapshots").upsert(snapRows, { onConflict: "device_id,snapshot_date" });
 
 await sb.from("import_runs").update({ counts }).eq("id", runId);
-console.log("Datto RMM pull complete:", JSON.stringify(counts, null, 1));
+console.log(`Datto RMM pull complete${SITE_FILTER ? ` (site: ${SITE_FILTER})` : ""}:`, JSON.stringify(counts, null, 1));
+if (SITE_FILTER && counts.devices === 0) {
+  console.warn(`WARNING: site "${SITE_FILTER}" produced no devices — check the name matches Datto + site_aliases exactly.`);
+}
 if (counts.skippedSites.length) console.log("Unmapped sites with devices:", counts.skippedSites.join(", "));
