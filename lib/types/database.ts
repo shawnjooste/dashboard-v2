@@ -92,6 +92,8 @@ export type Database = {
       device_alerts: {
         Row: {
           alert_policy: string | null
+          alert_type: string | null
+          context: Json | null
           device_id: string
           id: string
           import_run_id: string | null
@@ -104,6 +106,8 @@ export type Database = {
         }
         Insert: {
           alert_policy?: string | null
+          alert_type?: string | null
+          context?: Json | null
           device_id: string
           id?: string
           import_run_id?: string | null
@@ -116,6 +120,8 @@ export type Database = {
         }
         Update: {
           alert_policy?: string | null
+          alert_type?: string | null
+          context?: Json | null
           device_id?: string
           id?: string
           import_run_id?: string | null

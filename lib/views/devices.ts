@@ -105,8 +105,20 @@ export type DeviceDetail = {
   health: DeviceHealth;
   meta: DeviceMeta;
   drives: { drive: string; sizeGb: number | null; usedPct: number | null }[];
-  alerts: { triggeredAt: string; message: string; priority: string | null; resolved: boolean }[];
+  alerts: DeviceAlert[];
   trend: { date: string; patchPct: number | null; maxDiskPct: number | null; openAlerts: number | null }[];
+};
+
+export type DeviceAlert = {
+  triggeredAt: string;
+  message: string;
+  alertType: string | null;
+  priority: string | null;
+  resolved: boolean;
+  resolvedAt: string | null;
+  ticketNumber: string | null;
+  policy: string | null;
+  context: Record<string, unknown> | null;
 };
 
 /** Full detail for one device (RLS still applies — returns null if not visible). */
@@ -119,7 +131,7 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
   const [meta, drives, alerts, snaps] = await Promise.all([
     supabase.from("devices").select("last_reboot, serial_number, agent_version, manufacturer, model, online, last_seen, reboot_required, warranty_date, software_status, domain, bios_version").eq("id", deviceId).maybeSingle(),
     supabase.from("device_storage").select("drive, size_gb, used_pct").eq("device_id", deviceId),
-    supabase.from("device_alerts").select("triggered_at, message, priority, resolved").eq("device_id", deviceId).order("triggered_at", { ascending: false }).limit(20),
+    supabase.from("device_alerts").select("triggered_at, message, alert_type, priority, resolved, resolved_at, ticket_number, alert_policy, context").eq("device_id", deviceId).order("triggered_at", { ascending: false }).limit(50),
     supabase.from("device_health_snapshots").select("snapshot_date, patch_pct, max_disk_pct, open_alert_count").eq("device_id", deviceId).order("snapshot_date"),
   ]);
 
@@ -140,7 +152,17 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
       biosVersion: meta.data?.bios_version ?? null,
     },
     drives: (drives.data ?? []).map((d) => ({ drive: d.drive, sizeGb: d.size_gb, usedPct: d.used_pct })),
-    alerts: (alerts.data ?? []).map((a) => ({ triggeredAt: a.triggered_at, message: a.message, priority: a.priority, resolved: a.resolved })),
+    alerts: (alerts.data ?? []).map((a) => ({
+      triggeredAt: a.triggered_at,
+      message: a.message,
+      alertType: a.alert_type ?? null,
+      priority: a.priority,
+      resolved: a.resolved,
+      resolvedAt: a.resolved_at ?? null,
+      ticketNumber: a.ticket_number ?? null,
+      policy: a.alert_policy ?? null,
+      context: (a.context as Record<string, unknown> | null) ?? null,
+    })),
     trend: (snaps.data ?? []).map((s) => ({ date: s.snapshot_date, patchPct: s.patch_pct, maxDiskPct: s.max_disk_pct, openAlerts: s.open_alert_count })),
   };
 }

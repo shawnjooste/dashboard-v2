@@ -197,21 +197,57 @@ for (const [uid, p] of patchByUid) {
 if (patchRows.length) await sb.from("device_patch_status").upsert(patchRows, { onConflict: "device_id" });
 counts.patch = patchRows.length;
 
-// Open alerts -> device_alerts.
+// Open alerts -> device_alerts. Replace the pulled devices' set with the
+// current open alerts so resolved ones drop off instead of lingering.
+const ALERT_LABELS = {
+  perf_disk_usage_ctx: "Disk usage",
+  perf_resource_usage_ctx: "Resource usage",
+  eventlog_ctx: "Event log",
+  comp_script_ctx: "Component monitor",
+  online_offline_status_ctx: "Device offline",
+  patch_ctx: "Patch",
+  antivirus_ctx: "Antivirus",
+  srvc_status_ctx: "Service status",
+};
+const labelOf = (cls) => ALERT_LABELS[cls] ?? (cls ? cls.replace(/_ctx$/, "").replace(/_/g, " ") : "Alert");
+const cleanText = (s) =>
+  (s ?? "")
+    .replace(/[‎‏‪-‮]/g, "") // strip LTR/RTL marks
+    .replace(/&lrm;|&rlm;/gi, "")
+    .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+const gb = (kb) => (Number(kb) ? `${(Number(kb) / 1024 / 1024).toFixed(1)} GB` : null);
+function alertSummary(al) {
+  const c = al.alertContext ?? {};
+  const cls = c["@class"];
+  if (cls === "perf_disk_usage_ctx" && c.totalVolume) {
+    const usedPct = Math.round(100 * (1 - c.freeSpace / c.totalVolume));
+    return `${c.diskName ?? "Disk"} ${usedPct}% used (${gb(c.freeSpace)} free of ${gb(c.totalVolume)})`;
+  }
+  if (cls === "eventlog_ctx") return `Event log${c.type ? `: ${c.type}` : ""}${c.eventId ? ` (#${c.eventId})` : ""}`;
+  return null;
+}
+
 const openAlerts = await dattoPaged(env, token, "/api/v2/account/alerts/open", "alerts");
 const alertRows = [];
 for (const al of openAlerts) {
   const deviceId = idByUid.get(al.alertSourceInfo?.deviceUid);
   const triggered = epochToIso(al.timestamp);
   if (!deviceId || !triggered) continue;
+  const cls = al.alertContext?.["@class"] ?? null;
+  const diag = cleanText(al.alertMonitorInfo?.diagnostics || al.diagnostics);
+  const message = (diag || alertSummary(al) || `${labelOf(cls)} (${al.priority ?? "alert"})`).slice(0, 500);
   alertRows.push({
-    device_id: deviceId, triggered_at: triggered,
-    message: (al.alertMonitorInfo?.diagnostics || al.diagnostics || `${al.priority ?? ""} alert`).slice(0, 500),
+    device_id: deviceId, triggered_at: triggered, message,
+    alert_type: labelOf(cls),
     priority: al.priority ?? null, resolved: !!al.resolved,
     resolved_at: epochToIso(al.resolvedOn), ticket_number: al.ticketNumber || null,
-    alert_policy: al.alertContext?.["@class"] ?? null, import_run_id: runId,
+    alert_policy: cls, context: al.alertContext ?? null, import_run_id: runId,
   });
 }
+await sb.from("device_alerts").delete().in("device_id", deviceIds);
 if (alertRows.length)
   await sb.from("device_alerts").upsert(alertRows, { onConflict: "device_id,triggered_at,message", ignoreDuplicates: true });
 counts.alerts = alertRows.length;

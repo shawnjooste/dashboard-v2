@@ -1,5 +1,6 @@
 import type { DeviceDetail } from "@/lib/views/devices";
 import { DeviceHealthCard } from "./DeviceHealthCard";
+import { DeviceAlerts } from "./DeviceAlerts";
 import { Sparkline } from "./Sparkline";
 import { Card, CardHeader } from "./ui/Card";
 
@@ -79,28 +80,7 @@ export function DeviceDetailView({ detail }: { detail: DeviceDetail }) {
         </table>
       </Card>
 
-      <Card>
-        <CardHeader title="Recent alerts" count={alerts.length} />
-        {alerts.length === 0 ? (
-          <p className="px-4 py-3.5 text-sm text-muted">No alerts on record.</p>
-        ) : (
-          <ul>
-            {alerts.map((a, i) => (
-              <li key={i} className="border-b border-line-soft px-4 py-3 last:border-0">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-ink">{a.message}</span>
-                  <span className={`shrink-0 text-xs font-semibold ${a.resolved ? "text-good" : "text-brand"}`}>
-                    {a.resolved ? "Resolved" : "Open"}
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  {fmt(a.triggeredAt)}{a.priority ? ` · ${a.priority}` : ""}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <DeviceAlerts alerts={alerts} />
     </div>
   );
 }
