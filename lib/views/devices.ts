@@ -85,6 +85,20 @@ export type DeviceMeta = {
   agentVersion: string | null;
   manufacturer: string | null;
   model: string | null;
+  online: boolean | null;
+  lastSeen: string | null;
+  rebootRequired: boolean | null;
+  warrantyDate: string | null;
+  softwareStatus: string | null;
+  domain: string | null;
+  biosVersion: string | null;
+};
+
+/** Staff-only enrichment (network, software inventory, Datto UDFs). */
+export type DeviceExtras = {
+  nics: { label: string | null; mac: string | null; ipv4: string | null; ipv6: string | null; nicType: string | null }[];
+  software: { name: string; version: string | null }[];
+  udfs: { slot: string; value: string | null }[];
 };
 
 export type DeviceDetail = {
@@ -103,7 +117,7 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
   if (!health) return null;
 
   const [meta, drives, alerts, snaps] = await Promise.all([
-    supabase.from("devices").select("last_reboot, serial_number, agent_version, manufacturer, model").eq("id", deviceId).maybeSingle(),
+    supabase.from("devices").select("last_reboot, serial_number, agent_version, manufacturer, model, online, last_seen, reboot_required, warranty_date, software_status, domain, bios_version").eq("id", deviceId).maybeSingle(),
     supabase.from("device_storage").select("drive, size_gb, used_pct").eq("device_id", deviceId),
     supabase.from("device_alerts").select("triggered_at, message, priority, resolved").eq("device_id", deviceId).order("triggered_at", { ascending: false }).limit(20),
     supabase.from("device_health_snapshots").select("snapshot_date, patch_pct, max_disk_pct, open_alert_count").eq("device_id", deviceId).order("snapshot_date"),
@@ -117,9 +131,31 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
       agentVersion: meta.data?.agent_version ?? null,
       manufacturer: meta.data?.manufacturer ?? null,
       model: meta.data?.model ?? null,
+      online: meta.data?.online ?? null,
+      lastSeen: meta.data?.last_seen ?? null,
+      rebootRequired: meta.data?.reboot_required ?? null,
+      warrantyDate: meta.data?.warranty_date ?? null,
+      softwareStatus: meta.data?.software_status ?? null,
+      domain: meta.data?.domain ?? null,
+      biosVersion: meta.data?.bios_version ?? null,
     },
     drives: (drives.data ?? []).map((d) => ({ drive: d.drive, sizeGb: d.size_gb, usedPct: d.used_pct })),
     alerts: (alerts.data ?? []).map((a) => ({ triggeredAt: a.triggered_at, message: a.message, priority: a.priority, resolved: a.resolved })),
     trend: (snaps.data ?? []).map((s) => ({ date: s.snapshot_date, patchPct: s.patch_pct, maxDiskPct: s.max_disk_pct, openAlerts: s.open_alert_count })),
+  };
+}
+
+/** Staff-only enrichment for a device. RLS restricts these tables to rocking_staff. */
+export async function getDeviceExtras(deviceId: string): Promise<DeviceExtras> {
+  const supabase = await createClient();
+  const [nics, software, udfs] = await Promise.all([
+    supabase.from("device_nics").select("label, mac, ipv4, ipv6, nic_type").eq("device_id", deviceId),
+    supabase.from("device_software").select("name, version").eq("device_id", deviceId).order("name"),
+    supabase.from("device_udfs").select("slot, value").eq("device_id", deviceId).order("slot"),
+  ]);
+  return {
+    nics: (nics.data ?? []).map((n) => ({ label: n.label, mac: n.mac, ipv4: n.ipv4, ipv6: n.ipv6, nicType: n.nic_type })),
+    software: (software.data ?? []).map((s) => ({ name: s.name, version: s.version })),
+    udfs: (udfs.data ?? []).map((u) => ({ slot: u.slot, value: u.value })),
   };
 }

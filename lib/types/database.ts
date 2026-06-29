@@ -237,6 +237,54 @@ export type Database = {
           },
         ]
       }
+      device_nics: {
+        Row: {
+          device_id: string
+          id: string
+          import_run_id: string | null
+          ipv4: string | null
+          ipv6: string | null
+          label: string | null
+          mac: string | null
+          nic_type: string | null
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          import_run_id?: string | null
+          ipv4?: string | null
+          ipv6?: string | null
+          label?: string | null
+          mac?: string | null
+          nic_type?: string | null
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          import_run_id?: string | null
+          ipv4?: string | null
+          ipv6?: string | null
+          label?: string | null
+          mac?: string | null
+          nic_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_nics_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_nics_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_patch_status: {
         Row: {
           device_id: string
@@ -278,6 +326,45 @@ export type Database = {
           },
           {
             foreignKeyName: "device_patch_status_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_software: {
+        Row: {
+          device_id: string
+          id: string
+          import_run_id: string | null
+          name: string
+          version: string | null
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          import_run_id?: string | null
+          name: string
+          version?: string | null
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          import_run_id?: string | null
+          name?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_software_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_software_import_run_id_fkey"
             columns: ["import_run_id"]
             isOneToOne: false
             referencedRelation: "import_runs"
@@ -339,81 +426,141 @@ export type Database = {
           },
         ]
       }
+      device_udfs: {
+        Row: {
+          device_id: string
+          id: string
+          import_run_id: string | null
+          slot: string
+          value: string | null
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          import_run_id?: string | null
+          slot: string
+          value?: string | null
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          import_run_id?: string | null
+          slot?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_udfs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_udfs_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           agent_version: string | null
           assigned_user_label: string | null
           av_ok: boolean | null
           av_status_raw: string | null
+          bios_version: string | null
           client_id: string
           cpu: string | null
           created_at: string
           datto_uid: string
+          domain: string | null
           enrollment_date: string | null
           external_ip: string | null
           hostname: string
           id: string
           last_import_run_id: string | null
           last_reboot: string | null
+          last_seen: string | null
           last_user: string | null
           manufacturer: string | null
           memory: string | null
           model: string | null
+          online: boolean | null
           operating_system: string | null
           person_id: string | null
           physical_cores: number | null
+          reboot_required: boolean | null
           serial_number: string | null
+          software_status: string | null
           updated_at: string
+          warranty_date: string | null
         }
         Insert: {
           agent_version?: string | null
           assigned_user_label?: string | null
           av_ok?: boolean | null
           av_status_raw?: string | null
+          bios_version?: string | null
           client_id: string
           cpu?: string | null
           created_at?: string
           datto_uid: string
+          domain?: string | null
           enrollment_date?: string | null
           external_ip?: string | null
           hostname: string
           id?: string
           last_import_run_id?: string | null
           last_reboot?: string | null
+          last_seen?: string | null
           last_user?: string | null
           manufacturer?: string | null
           memory?: string | null
           model?: string | null
+          online?: boolean | null
           operating_system?: string | null
           person_id?: string | null
           physical_cores?: number | null
+          reboot_required?: boolean | null
           serial_number?: string | null
+          software_status?: string | null
           updated_at?: string
+          warranty_date?: string | null
         }
         Update: {
           agent_version?: string | null
           assigned_user_label?: string | null
           av_ok?: boolean | null
           av_status_raw?: string | null
+          bios_version?: string | null
           client_id?: string
           cpu?: string | null
           created_at?: string
           datto_uid?: string
+          domain?: string | null
           enrollment_date?: string | null
           external_ip?: string | null
           hostname?: string
           id?: string
           last_import_run_id?: string | null
           last_reboot?: string | null
+          last_seen?: string | null
           last_user?: string | null
           manufacturer?: string | null
           memory?: string | null
           model?: string | null
+          online?: boolean | null
           operating_system?: string | null
           person_id?: string | null
           physical_cores?: number | null
+          reboot_required?: boolean | null
           serial_number?: string | null
+          software_status?: string | null
           updated_at?: string
+          warranty_date?: string | null
         }
         Relationships: [
           {

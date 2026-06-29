@@ -8,8 +8,13 @@ const fmt = (ts: string | null) => (ts ? ts.replace("T", " ").slice(0, 16) : "�
 export function DeviceDetailView({ detail }: { detail: DeviceDetail }) {
   const { health, meta, drives, alerts, trend } = detail;
   const metaItems = [
+    { label: "Status", value: meta.online == null ? "—" : meta.online ? "Online" : "Offline" },
+    { label: "Last seen", value: fmt(meta.lastSeen) },
     { label: "Operating system", value: health.os ?? "—" },
     { label: "Last reboot", value: fmt(meta.lastReboot) },
+    { label: "Reboot required", value: meta.rebootRequired == null ? "—" : meta.rebootRequired ? "Yes" : "No" },
+    { label: "Warranty", value: meta.warrantyDate ?? "—" },
+    { label: "Software", value: meta.softwareStatus ?? "—" },
     { label: "Make / model", value: [meta.manufacturer, meta.model].filter(Boolean).join(" ") || "—" },
     { label: "Serial", value: meta.serial ?? "—" },
     { label: "Agent version", value: meta.agentVersion ?? "—" },

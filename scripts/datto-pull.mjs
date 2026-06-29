@@ -40,12 +40,15 @@ for (const d of existing ?? []) {
 const { data: run } = await sb.from("import_runs")
   .insert({ source: "datto", report_date: reportDate, file_names: [] }).select("id").single();
 const runId = run.id;
-const counts = { devices: 0, storage: 0, patch: 0, alerts: 0, skippedSites: [], auditFails: 0 };
+const counts = { devices: 0, storage: 0, patch: 0, alerts: 0, nics: 0, software: 0, udfs: 0, skippedSites: [], auditFails: 0 };
 
 const sites = await dattoPaged(env, token, "/api/v2/account/sites", "sites");
 const deviceRows = [];
 const storageByUid = new Map();
 const patchByUid = new Map();
+const nicsByUid = new Map();
+const softwareByUid = new Map();
+const udfsByUid = new Map();
 
 for (const site of sites) {
   if (SYSTEM_SITES.has(site.name)) continue;
@@ -91,10 +94,35 @@ for (const site of sites) {
       agent_version: d.cagVersion ?? null,
       enrollment_date: epochToIso(d.creationDate),
       last_user: d.lastLoggedInUser ?? null,
+      // Enrichment (Datto live status + warranty; client-safe scalars).
+      online: d.online ?? null,
+      last_seen: epochToIso(d.lastSeen),
+      reboot_required: d.rebootRequired ?? null,
+      warranty_date: epochToIso(d.warrantyDate)?.slice(0, 10) ?? null,
+      software_status: d.softwareStatus ?? null,
+      domain: d.domain ?? null,
+      bios_version: audit.bios?.smBiosVersion ?? audit.bios?.instance ?? null,
       last_import_run_id: runId,
     });
 
     storageByUid.set(d.uid, (audit.logicalDisks ?? []).filter((x) => /local/i.test(x.description ?? "")));
+
+    // Network adapters (staff-only), keep ones with a MAC or IP.
+    nicsByUid.set(d.uid, (audit.nics ?? [])
+      .filter((n) => n.macAddress || n.ipv4)
+      .map((n) => ({ label: n.instance ?? null, mac: n.macAddress ?? null, ipv4: n.ipv4 ?? null, ipv6: n.ipv6 ?? null, nic_type: n.type ?? null })));
+
+    // Non-null user-defined fields (staff-only).
+    udfsByUid.set(d.uid, Object.entries(d.udf ?? {})
+      .filter(([, v]) => v != null && String(v).trim() !== "")
+      .map(([slot, value]) => ({ slot, value: String(value).slice(0, 1000) })));
+
+    // Installed software inventory (staff-only). One extra audit call per device.
+    const sw = await dattoGet(env, token, `/api/v2/audit/device/${d.uid}/software`);
+    const swList = sw.ok ? (sw.body.software ?? sw.body ?? []) : [];
+    softwareByUid.set(d.uid, (Array.isArray(swList) ? swList : [])
+      .filter((s) => s.name)
+      .map((s) => ({ name: String(s.name).slice(0, 300), version: s.version ? String(s.version).slice(0, 100) : null })));
     const pm = d.patchManagement ?? {};
     patchByUid.set(d.uid, {
       patches_approved_pending: pm.patchesApprovedPending ?? null,
@@ -134,6 +162,31 @@ for (const [uid, disks] of storageByUid) {
 }
 if (storageRows.length) await sb.from("device_storage").insert(storageRows);
 counts.storage = storageRows.length;
+
+// Enrichment side-tables (staff-only): replace per device.
+const buildRows = (byUid, map) => {
+  const rows = [];
+  for (const [uid, items] of byUid) {
+    const deviceId = idByUid.get(uid);
+    if (!deviceId) continue;
+    for (const it of items) rows.push({ device_id: deviceId, ...map(it), import_run_id: runId });
+  }
+  return rows;
+};
+await sb.from("device_nics").delete().in("device_id", deviceIds);
+const nicRows = buildRows(nicsByUid, (n) => n);
+if (nicRows.length) await sb.from("device_nics").insert(nicRows);
+counts.nics = nicRows.length;
+
+await sb.from("device_software").delete().in("device_id", deviceIds);
+const softwareRows = buildRows(softwareByUid, (s) => s);
+if (softwareRows.length) await sb.from("device_software").insert(softwareRows);
+counts.software = softwareRows.length;
+
+await sb.from("device_udfs").delete().in("device_id", deviceIds);
+const udfRows = buildRows(udfsByUid, (u) => u);
+if (udfRows.length) await sb.from("device_udfs").insert(udfRows);
+counts.udfs = udfRows.length;
 
 // Patch status: upsert by device_id.
 const patchRows = [];

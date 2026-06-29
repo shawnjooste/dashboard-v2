@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getDeviceDetail } from "@/lib/views/devices";
+import { getDeviceDetail, getDeviceExtras } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
+import { DeviceAdminExtras } from "@/components/DeviceAdminExtras";
 import { createClient } from "@/lib/supabase/server";
 import { suggestPerson } from "@/lib/views/device-link";
 import { Card, CardHeader, PageHeader, PrimaryButton } from "@/components/ui";
@@ -66,7 +67,7 @@ export default async function AdminDevicePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getDeviceDetail(id);
+  const [detail, extras] = await Promise.all([getDeviceDetail(id), getDeviceExtras(id)]);
 
   if (!detail) {
     return (
@@ -93,6 +94,7 @@ export default async function AdminDevicePage({
       />
       <DevicePersonCard deviceId={id} />
       <DeviceDetailView detail={detail} />
+      <DeviceAdminExtras meta={detail.meta} extras={extras} />
     </div>
   );
 }
