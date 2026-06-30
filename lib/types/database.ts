@@ -39,6 +39,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_billing: {
+        Row: {
+          as_of: string | null
+          client_id: string
+          currency: string | null
+          outstanding: number
+          overdue: number
+          updated_at: string
+        }
+        Insert: {
+          as_of?: string | null
+          client_id: string
+          currency?: string | null
+          outstanding?: number
+          overdue?: number
+          updated_at?: string
+        }
+        Update: {
+          as_of?: string | null
+          client_id?: string
+          currency?: string | null
+          outstanding?: number
+          overdue?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_billing_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_domains: {
         Row: {
           client_id: string
@@ -74,18 +109,21 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["client_status"]
+          xero_contact_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           status?: Database["public"]["Enums"]["client_status"]
+          xero_contact_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["client_status"]
+          xero_contact_id?: string | null
         }
         Relationships: []
       }
@@ -1907,6 +1945,111 @@ export type Database = {
         }
         Relationships: []
       }
+      xero_connection: {
+        Row: {
+          created_at: string
+          id: number
+          last_pull_at: string | null
+          status: string
+          tenant_id: string | null
+          tenant_name: string | null
+          token_ciphertext: string
+          token_iv: string
+          token_tag: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          last_pull_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tenant_name?: string | null
+          token_ciphertext: string
+          token_iv: string
+          token_tag: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          last_pull_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tenant_name?: string | null
+          token_ciphertext?: string
+          token_iv?: string
+          token_tag?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      xero_invoices: {
+        Row: {
+          amount_due: number | null
+          amount_paid: number | null
+          client_id: string
+          currency: string | null
+          date: string | null
+          due_date: string | null
+          id: string
+          import_run_id: string | null
+          number: string | null
+          status: string
+          total: number | null
+          type: string
+          updated_at: string
+          xero_invoice_id: string
+        }
+        Insert: {
+          amount_due?: number | null
+          amount_paid?: number | null
+          client_id: string
+          currency?: string | null
+          date?: string | null
+          due_date?: string | null
+          id?: string
+          import_run_id?: string | null
+          number?: string | null
+          status: string
+          total?: number | null
+          type: string
+          updated_at?: string
+          xero_invoice_id: string
+        }
+        Update: {
+          amount_due?: number | null
+          amount_paid?: number | null
+          client_id?: string
+          currency?: string | null
+          date?: string | null
+          due_date?: string | null
+          id?: string
+          import_run_id?: string | null
+          number?: string | null
+          status?: string
+          total?: number | null
+          type?: string
+          updated_at?: string
+          xero_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xero_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xero_invoices_import_run_id_fkey"
+            columns: ["import_run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2117,3 +2260,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.108.0 (currently installed v2.95.4)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
