@@ -9,14 +9,71 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
+export type OnboardingFeature = { title: string; body: string };
+
+const DEFAULT_FEATURES: OnboardingFeature[] = [
+  { title: "Raise and follow support tickets", body: "See what we’re working on and reply in plain English — no phone tag." },
+  { title: "Check your team’s computers and backups", body: "Everything organised by person, so you can see who needs a hand at a glance." },
+  { title: "Manage Microsoft 365 & licences", body: "See who has what, and ask us to add a new starter in a couple of clicks." },
+];
+
+/** Render the numbered "what's inside" rows from a feature list. */
+function featureRows(features: OnboardingFeature[]): string {
+  return features
+    .map((f, i) => {
+      const pad = i === features.length - 1 ? "0" : "0 0 18px 0";
+      return `<tr>
+                        <td width="44" valign="top" style="padding:${pad};">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                            <td width="32" height="32" align="center" valign="middle" bgcolor="#FDECEC" style="border-radius:8px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#D7141C;">${i + 1}</td>
+                          </tr></table>
+                        </td>
+                        <td valign="top" style="padding:${pad}; font-family:Arial,Helvetica,sans-serif;">
+                          <div style="font-size:15px; font-weight:bold; color:#18181B;">${esc(f.title)}</div>
+                          <div style="font-size:14px; line-height:21px; color:#71717A; padding-top:2px;">${esc(f.body)}</div>
+                        </td>
+                      </tr>`;
+    })
+    .join("\n");
+}
+
 export function onboardingEmailHtml(opts: {
   firstName: string;
   companyName: string;
   portalUrl: string;
+  intro?: string;
+  eyebrow?: string;
+  features?: OnboardingFeature[];
+  preheader?: string;
+  supportNote?: string | null;
 }): string {
   const name = esc(opts.firstName);
   const company = esc(opts.companyName);
   const portalUrl = opts.portalUrl;
+  const preheader = esc(opts.preheader ?? "Your Rocking customer portal is ready — see your support, computers and Microsoft 365 in one place.");
+  const supportNote =
+    opts.supportNote === undefined
+      ? "Stuck on anything? Just reply to this email and a real person — usually Shawn — will pick it up, normally within the hour on weekdays."
+      : opts.supportNote;
+  // The support box also carries the card's bottom padding; when omitted, render a spacer instead.
+  const supportHtml = supportNote
+    ? `<tr>
+                  <td class="px" style="padding:28px 40px 36px 40px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAFAFB; border:1px solid #F0F0F2; border-radius:10px;">
+                      <tr>
+                        <td style="padding:16px 18px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:21px; color:#52525B;">
+                          ${esc(supportNote)}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>`
+    : `<tr><td style="padding:0 0 36px 0; font-size:0; line-height:0;">&nbsp;</td></tr>`;
+  const intro =
+    opts.intro ??
+    `We&rsquo;ve set up a home for everything Rocking looks after for ${company} &mdash; your support tickets, computers, Microsoft&nbsp;365 and more, all in one simple place. No technical know-how needed.`;
+  const eyebrow = esc(opts.eyebrow ?? "What you can do inside");
+  const featuresHtml = featureRows(opts.features ?? DEFAULT_FEATURES);
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -47,7 +104,7 @@ export function onboardingEmailHtml(opts: {
 <body style="margin:0; padding:0; background-color:#FAFAFB;">
 
   <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#FAFAFB; opacity:0;">
-    Your Rocking customer portal is ready — see your support, computers and Microsoft 365 in one place.
+    ${preheader}
     &#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;
   </div>
 
@@ -88,7 +145,7 @@ export function onboardingEmailHtml(opts: {
                       Welcome to The Portal, ${name}
                     </h1>
                     <p style="margin:16px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:16px; line-height:25px; color:#3F3F46;">
-                      We&rsquo;ve set up a home for everything Rocking looks after for ${company} &mdash; your support tickets, computers, Microsoft&nbsp;365 and more, all in one simple place. No technical know-how needed.
+                      ${intro}
                     </p>
                   </td>
                 </tr>
@@ -130,7 +187,7 @@ export function onboardingEmailHtml(opts: {
                 <tr>
                   <td class="px" style="padding:24px 40px 0 40px;">
                     <p style="margin:0 0 4px 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; color:#A1A1AA;">
-                      What you can do inside
+                      ${eyebrow}
                     </p>
                   </td>
                 </tr>
@@ -138,54 +195,12 @@ export function onboardingEmailHtml(opts: {
                 <tr>
                   <td class="px" style="padding:14px 40px 0 40px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td width="44" valign="top" style="padding:0 0 18px 0;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                            <td width="32" height="32" align="center" valign="middle" bgcolor="#FDECEC" style="border-radius:8px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#D7141C;">1</td>
-                          </tr></table>
-                        </td>
-                        <td valign="top" style="padding:0 0 18px 0; font-family:Arial,Helvetica,sans-serif;">
-                          <div style="font-size:15px; font-weight:bold; color:#18181B;">Raise and follow support tickets</div>
-                          <div style="font-size:14px; line-height:21px; color:#71717A; padding-top:2px;">See what we&rsquo;re working on and reply in plain English &mdash; no phone tag.</div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td width="44" valign="top" style="padding:0 0 18px 0;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                            <td width="32" height="32" align="center" valign="middle" bgcolor="#FDECEC" style="border-radius:8px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#D7141C;">2</td>
-                          </tr></table>
-                        </td>
-                        <td valign="top" style="padding:0 0 18px 0; font-family:Arial,Helvetica,sans-serif;">
-                          <div style="font-size:15px; font-weight:bold; color:#18181B;">Check your team&rsquo;s computers and backups</div>
-                          <div style="font-size:14px; line-height:21px; color:#71717A; padding-top:2px;">Everything organised by person, so you can see who needs a hand at a glance.</div>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td width="44" valign="top" style="padding:0;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-                            <td width="32" height="32" align="center" valign="middle" bgcolor="#FDECEC" style="border-radius:8px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#D7141C;">3</td>
-                          </tr></table>
-                        </td>
-                        <td valign="top" style="padding:0; font-family:Arial,Helvetica,sans-serif;">
-                          <div style="font-size:15px; font-weight:bold; color:#18181B;">Manage Microsoft 365 &amp; licences</div>
-                          <div style="font-size:14px; line-height:21px; color:#71717A; padding-top:2px;">See who has what, and ask us to add a new starter in a couple of clicks.</div>
-                        </td>
-                      </tr>
+                      ${featuresHtml}
                     </table>
                   </td>
                 </tr>
 
-                <tr>
-                  <td class="px" style="padding:28px 40px 36px 40px;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAFAFB; border:1px solid #F0F0F2; border-radius:10px;">
-                      <tr>
-                        <td style="padding:16px 18px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:21px; color:#52525B;">
-                          Stuck on anything? Just reply to this email and a real person &mdash; usually Shawn &mdash; will pick it up, normally within the hour on weekdays.
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
+                ${supportHtml}
               </table>
 
             </td>

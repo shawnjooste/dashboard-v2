@@ -1,7 +1,7 @@
 // Server-only email notifications via Resend (the same domain used for auth).
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { onboardingEmailHtml } from "@/lib/onboarding-email";
+import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-email";
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
@@ -76,6 +76,11 @@ export async function sendOnboardingEmail(opts: {
   firstName: string;
   companyName: string;
   portalUrl: string;
+  intro?: string;
+  eyebrow?: string;
+  features?: OnboardingFeature[];
+  preheader?: string;
+  supportNote?: string | null;
 }): Promise<void> {
   await sendEmail({
     to: opts.to,
