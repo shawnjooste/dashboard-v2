@@ -65,10 +65,14 @@ export function onboardingEmailHtml(opts: {
   features?: OnboardingFeature[];
   preheader?: string;
   supportNote?: string | null;
+  headline?: string;
+  ctaLabel?: string;
 }): string {
   const name = esc(opts.firstName);
   const company = esc(opts.companyName);
   const portalUrl = opts.portalUrl;
+  const headline = opts.headline ? esc(opts.headline) : `Welcome to The Portal, ${name}`;
+  const ctaLabel = esc(opts.ctaLabel ?? "Sign in to The Portal");
   const preheader = esc(opts.preheader ?? "Your Rocking customer portal is ready — see your support, computers and Microsoft 365 in one place.");
   const supportNote =
     opts.supportNote === undefined
@@ -161,7 +165,7 @@ export function onboardingEmailHtml(opts: {
                 <tr>
                   <td class="px" style="padding:36px 40px 0 40px;">
                     <h1 class="h1" style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:30px; line-height:36px; font-weight:bold; color:#18181B; letter-spacing:-0.5px;">
-                      Welcome to The Portal, ${name}
+                      ${headline}
                     </h1>
                     <p style="margin:16px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:16px; line-height:25px; color:#3F3F46;">
                       ${intro}
@@ -178,12 +182,12 @@ export function onboardingEmailHtml(opts: {
                           <!--[if mso]>
                           <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${portalUrl}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="17%" stroke="f" fillcolor="#D7141C">
                           <w:anchorlock/>
-                          <center style="color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;">Sign in to The Portal</center>
+                          <center style="color:#FFFFFF;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;">${ctaLabel}</center>
                           </v:roundrect>
                           <![endif]-->
                           <!--[if !mso]><!-->
                           <a class="hover-btn" href="${portalUrl}" target="_blank" style="display:inline-block; padding:14px 32px; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:bold; color:#FFFFFF; background-color:#D7141C; border-radius:8px;">
-                            Sign in to The Portal
+                            ${ctaLabel}
                           </a>
                           <!--<![endif]-->
                         </td>
