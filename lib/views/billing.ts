@@ -27,6 +27,23 @@ export type ClientBilling = {
 
 const EMPTY: ClientBilling = { enabled: false, outstanding: 0, overdue: 0, currency: null, asOf: null, open: [], paid: [], creditNotes: [] };
 
+export type ClientBillingSummary = { enabled: boolean; outstanding: number; overdue: number; currency: string | null; asOf: string | null };
+
+/** Just the balance figures (no invoice lists) — for the account-home callout. */
+export async function getClientBillingSummary(clientId: string): Promise<ClientBillingSummary> {
+  const supabase = await createClient();
+  const { data: client } = await supabase.from("clients").select("xero_contact_id").eq("id", clientId).maybeSingle();
+  if (!client?.xero_contact_id) return { enabled: false, outstanding: 0, overdue: 0, currency: null, asOf: null };
+  const { data: b } = await supabase.from("client_billing").select("outstanding, overdue, currency, as_of").eq("client_id", clientId).maybeSingle();
+  return {
+    enabled: true,
+    outstanding: Number(b?.outstanding ?? 0),
+    overdue: Number(b?.overdue ?? 0),
+    currency: b?.currency ?? null,
+    asOf: b?.as_of ?? null,
+  };
+}
+
 export async function getClientBilling(clientId: string): Promise<ClientBilling> {
   const supabase = await createClient();
   const { data: client } = await supabase.from("clients").select("xero_contact_id").eq("id", clientId).maybeSingle();

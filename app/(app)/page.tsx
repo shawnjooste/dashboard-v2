@@ -5,6 +5,7 @@ import { resolveLandingPath } from "@/lib/auth/routing";
 import { createClient } from "@/lib/supabase/server";
 import { getVisibleDeviceHealth, getFleetPatchTrend } from "@/lib/views/devices";
 import { getSampleDeviceHealth, getSampleFleetPatchTrend, getSampleM365View } from "@/lib/views/sample";
+import { getClientBillingSummary, type ClientBillingSummary } from "@/lib/views/billing";
 import { summarize, type DeviceHealth } from "@/lib/views/health";
 import { Sparkline } from "@/components/Sparkline";
 import { SampleBanner } from "@/components/SampleBanner";
@@ -90,7 +91,7 @@ export default async function AppHome() {
 
   // ---------- client_manager: account home dashboard ----------
   const supabase = await createClient();
-  const [clientRes, m365Res, ticketData, patchTrendRes] = await Promise.all([
+  const [clientRes, m365Res, ticketData, patchTrendRes, billing] = await Promise.all([
     me.profile.client_id
       ? supabase.from("clients").select("name").eq("id", me.profile.client_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -99,6 +100,9 @@ export default async function AppHome() {
       : Promise.resolve<M365View | null>(null),
     loadTickets(),
     getFleetPatchTrend(),
+    me.profile.client_id
+      ? getClientBillingSummary(me.profile.client_id)
+      : Promise.resolve<ClientBillingSummary>({ enabled: false, outstanding: 0, overdue: 0, currency: null, asOf: null }),
   ]);
   const client = clientRes.data;
   let m365 = m365Res;
@@ -175,6 +179,28 @@ export default async function AppHome() {
         title={client?.name ?? "Your company"}
         action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>}
       />
+
+      {billing.enabled && billing.outstanding > 0 && (
+        <Link
+          href="/billing"
+          className="block rounded-xl border border-[#F1C9CB] bg-brand-tint px-5 py-4 transition-colors hover:border-brand"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.4px] text-brand">Amount outstanding</p>
+              <p className="mt-1 text-[28px] font-bold leading-none text-brand">
+                {billing.currency ?? ""} {billing.outstanding.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              {billing.overdue > 0 && (
+                <p className="mt-1.5 text-sm font-semibold text-brand">
+                  {billing.currency ?? ""} {billing.overdue.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} overdue
+                </p>
+              )}
+            </div>
+            <span className="text-sm font-semibold text-brand">View billing →</span>
+          </div>
+        </Link>
+      )}
 
       <h2 className="mt-8 text-base font-bold text-ink">Overview</h2>
 
