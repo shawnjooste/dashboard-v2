@@ -39,8 +39,9 @@ async function pageAll(path) {
     const res = await xeroGet(access, conn.tenant_id, `${path}${path.includes("?") ? "&" : "?"}page=${page}`);
     const batch = res.Invoices ?? res.CreditNotes ?? [];
     out.push(...batch);
-    if (batch.length < 100) break;
+    if (batch.length < 100) return out;
   }
+  console.warn(`WARNING: hit the 20-page (2000-doc) cap for ${path} — results may be truncated.`);
   return out;
 }
 
