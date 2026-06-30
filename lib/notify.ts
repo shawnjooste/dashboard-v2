@@ -5,9 +5,10 @@ import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-em
 
 const FROM = '"Rocking" <no-reply@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
+const SUPPORT_EMAIL = "support@rocking.co.za"; // FreeScout helpdesk inbox — replies land as tickets
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-async function sendEmail(opts: { to: string; subject: string; html: string }): Promise<void> {
+async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string }): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", opts.subject);
@@ -16,7 +17,13 @@ async function sendEmail(opts: { to: string; subject: string; html: string }): P
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to: opts.to, subject: opts.subject, html: opts.html }),
+    body: JSON.stringify({
+      from: FROM,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
 }
@@ -86,6 +93,7 @@ export async function sendOnboardingEmail(opts: {
     to: opts.to,
     subject: `Welcome to The Portal — ${opts.companyName}`,
     html: onboardingEmailHtml(opts),
+    replyTo: SUPPORT_EMAIL,
   });
 }
 

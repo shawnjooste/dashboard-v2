@@ -3,7 +3,7 @@
 // invite flow. Plain string output so it can post straight to Resend.
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
-const SUPPORT_EMAIL = "shawn@rocking.one";
+const SUPPORT_EMAIL = "support@rocking.co.za";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -37,6 +37,25 @@ function featureRows(features: OnboardingFeature[]): string {
     .join("\n");
 }
 
+/** Support-rollout copy: reframes the welcome around raising + following tickets. */
+export function supportOnboardingContent(company: string): {
+  preheader: string;
+  intro: string;
+  eyebrow: string;
+  features: OnboardingFeature[];
+} {
+  return {
+    preheader: "Your Rocking support portal — raise a request and follow it through.",
+    intro: `We&rsquo;ve set up a simple place for ${esc(company)} to get IT help from Rocking &mdash; raise a request, see what we&rsquo;re working on, and reply without digging through email. No technical know-how needed.`,
+    eyebrow: "What you can do here",
+    features: [
+      { title: "Raise a request in seconds", body: "Tell us what you need in plain English — no phone tag, no chasing." },
+      { title: "Follow it through", body: "See the status of every request and reply right here as we work on it." },
+      { title: "Everything in one place", body: "All your requests, and how each was resolved, kept together." },
+    ],
+  };
+}
+
 export function onboardingEmailHtml(opts: {
   firstName: string;
   companyName: string;
@@ -53,7 +72,7 @@ export function onboardingEmailHtml(opts: {
   const preheader = esc(opts.preheader ?? "Your Rocking customer portal is ready — see your support, computers and Microsoft 365 in one place.");
   const supportNote =
     opts.supportNote === undefined
-      ? "Stuck on anything? Just reply to this email and a real person — usually Shawn — will pick it up, normally within the hour on weekdays."
+      ? "Stuck on anything? Just reply to this email and a real person — Tim or Gareth — will pick it up, normally within the hour on weekdays."
       : opts.supportNote;
   // The support box also carries the card's bottom padding; when omitted, render a spacer instead.
   const supportHtml = supportNote

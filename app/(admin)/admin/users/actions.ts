@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { sendOnboardingEmail } from "@/lib/notify";
+import { supportOnboardingContent } from "@/lib/onboarding-email";
 import { revalidatePath } from "next/cache";
 
 const ROLES = new Set(["client_manager", "client_member"]);
@@ -109,6 +110,7 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
       firstName,
       companyName: client?.name ?? "your company",
       portalUrl,
+      ...supportOnboardingContent(client?.name ?? "your company"),
     });
   } catch (e) {
     console.error("onboarding email failed:", e);
