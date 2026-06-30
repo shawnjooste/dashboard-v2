@@ -104,23 +104,27 @@ export default async function AppHome() {
   let m365 = m365Res;
   let patchTrend = patchTrendRes;
 
-  // Prospect preview: a client with no real data sees the sample (JoosteCo) set
-  // behind a banner — Devices and M365 as a live sales demo.
+  // Prospect preview: only a client with NO real data sees the sample (JoosteCo)
+  // set behind a banner — Devices and M365 as a live sales demo. A real, set-up
+  // client (one that has devices) never sees sample data; an unconnected M365 for
+  // them just shows its honest "not connected yet" state, so the page is never
+  // mislabelled as a preview.
+  const isProspect = devices.length === 0;
   let devicesSample = false;
   let m365Sample = false;
-  if (devices.length === 0) {
+  if (isProspect) {
     const s = await getSampleDeviceHealth();
     if (s.length > 0) {
       devices = s;
       patchTrend = await getSampleFleetPatchTrend();
       devicesSample = true;
     }
-  }
-  if (!m365?.connected) {
-    const s = await getSampleM365View();
-    if (s.connected) {
-      m365 = s;
-      m365Sample = true;
+    if (!m365?.connected) {
+      const sm = await getSampleM365View();
+      if (sm.connected) {
+        m365 = sm;
+        m365Sample = true;
+      }
     }
   }
   const sample = devicesSample || m365Sample;
