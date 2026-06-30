@@ -24,7 +24,7 @@ export function DeviceDetailView({ detail }: { detail: DeviceDetail }) {
 
   return (
     <div className="space-y-4">
-      <DeviceHealthCard device={health} />
+      <DeviceHealthCard device={health} openAlerts={alerts.filter((a) => !a.resolved).map((a) => a.message)} />
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

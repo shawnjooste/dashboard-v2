@@ -2,12 +2,21 @@ import type { DeviceHealth } from "@/lib/views/health";
 import { Card } from "./ui/Card";
 import { StatusBadge } from "./ui/status";
 
-export function DeviceHealthCard({ device }: { device: DeviceHealth }) {
+export function DeviceHealthCard({ device, openAlerts }: { device: DeviceHealth; openAlerts?: string[] }) {
   const lines: string[] = [];
   if (device.flags.avOff) lines.push("Antivirus is not running.");
   if (device.flags.diskFull) lines.push(`Disk is nearly full (${Math.round(device.maxDiskPct ?? 0)}% used).`);
   if (device.flags.patchIssue) lines.push(`Updates need attention (${device.patchStatus}).`);
-  if (device.flags.openAlerts) lines.push(`${device.openAlerts} open alert${device.openAlerts === 1 ? "" : "s"}.`);
+  if (device.flags.openAlerts) {
+    const msgs = (openAlerts ?? []).slice(0, 4);
+    if (msgs.length > 0) {
+      lines.push(...msgs);
+      const more = device.openAlerts - msgs.length;
+      if (more > 0) lines.push(`+ ${more} more open alert${more === 1 ? "" : "s"}.`);
+    } else {
+      lines.push(`${device.openAlerts} open alert${device.openAlerts === 1 ? "" : "s"}.`);
+    }
+  }
 
   return (
     <Card className="p-6">
@@ -16,11 +25,15 @@ export function DeviceHealthCard({ device }: { device: DeviceHealth }) {
         <StatusBadge tone={device.needsAttention ? "bad" : "good"} label={device.needsAttention ? "Needs attention" : "Healthy"} />
       </div>
       <p className="mt-1 text-sm text-muted">{device.os ?? ""}</p>
-      <p className="mt-4 text-sm text-ink-2">
-        {device.needsAttention
-          ? lines.join(" ")
-          : "Your machine is healthy — up to date, antivirus on, plenty of disk space."}
-      </p>
+      {device.needsAttention ? (
+        <div className="mt-4 space-y-1 text-sm text-ink-2">
+          {lines.map((l, i) => (
+            <p key={i}>{l}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-ink-2">Your machine is healthy — up to date, antivirus on, plenty of disk space.</p>
+      )}
     </Card>
   );
 }
