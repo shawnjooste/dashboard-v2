@@ -185,6 +185,48 @@ export type Database = {
           },
         ]
       }
+      device_changes: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_profile_id: string | null
+          device_id: string
+          id: string
+          note: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          device_id: string
+          id?: string
+          note: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          device_id?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_changes_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_changes_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_health_snapshots: {
         Row: {
           av_ok: boolean | null

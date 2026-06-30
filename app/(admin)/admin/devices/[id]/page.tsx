@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDeviceDetail, getDeviceExtras } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
 import { DeviceAdminExtras } from "@/components/DeviceAdminExtras";
+import { DeviceChangeLog } from "./DeviceChangeLog";
 import { createClient } from "@/lib/supabase/server";
 import { suggestPerson } from "@/lib/views/device-link";
 import { Card, CardHeader, PageHeader, PrimaryButton } from "@/components/ui";
@@ -94,6 +95,7 @@ export default async function AdminDevicePage({
       />
       <DevicePersonCard deviceId={id} />
       <DeviceDetailView detail={detail} />
+      <DeviceChangeLog deviceId={id} />
       <DeviceAdminExtras meta={detail.meta} extras={extras} />
     </div>
   );

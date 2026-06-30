@@ -167,6 +167,31 @@ export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail | 
   };
 }
 
+export type DeviceChange = { id: string; category: string; note: string; author: string | null; createdAt: string };
+
+/** Manual hardware/maintenance change-log entries (staff-only, newest first). */
+export async function getDeviceChanges(deviceId: string): Promise<DeviceChange[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("device_changes")
+    .select("id, category, note, created_by_profile_id, created_at")
+    .eq("device_id", deviceId)
+    .order("created_at", { ascending: false });
+  const { data: profiles } = await supabase.from("profiles").select("id, email");
+  const email = new Map((profiles ?? []).map((p) => [p.id, p.email]));
+  const label = (id: string | null) => {
+    const e = id ? email.get(id) : null;
+    return e ? e.split("@")[0].replace(/[._]/g, " ") : null;
+  };
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    category: c.category,
+    note: c.note,
+    author: label(c.created_by_profile_id),
+    createdAt: c.created_at,
+  }));
+}
+
 /** Staff-only enrichment for a device. RLS restricts these tables to rocking_staff. */
 export async function getDeviceExtras(deviceId: string): Promise<DeviceExtras> {
   const supabase = await createClient();
