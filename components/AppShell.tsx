@@ -18,15 +18,19 @@ export function AppShell({
   role,
   impersonating,
   accountName,
+  billingEnabled = false,
   children,
 }: {
   email: string;
   role: UserRole;
   impersonating?: string | null;
   accountName?: string | null;
+  billingEnabled?: boolean;
   children: ReactNode;
 }) {
-  const groups = NAV[role];
+  const groups = billingEnabled
+    ? NAV[role]
+    : NAV[role].map((g) => ({ ...g, items: g.items.filter((i) => i.href !== "/billing") }));
   const supportHref = role === "rocking_staff" ? "https://help.rocking.co.za" : "/support";
   const orgLabel = accountName ?? (role === "rocking_staff" ? "Rocking" : email.split("@")[1] ?? "");
 

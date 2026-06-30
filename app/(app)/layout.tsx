@@ -16,10 +16,11 @@ export default async function AppLayout({
   const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
 
   let accountName: string | null = null;
+  let billingEnabled = false;
   if (me.profile.client_id) {
     const supabase = await createClient();
     const [{ data: client }, { data: firstName }] = await Promise.all([
-      supabase.from("clients").select("name").eq("id", me.profile.client_id).maybeSingle(),
+      supabase.from("clients").select("name, xero_contact_id").eq("id", me.profile.client_id).maybeSingle(),
       // Read the caller's own name via SECURITY DEFINER, not the RLS people query:
       // a person row stranded under a different client would be hidden by RLS and
       // loop this gate back to /welcome forever.
@@ -28,6 +29,7 @@ export default async function AppLayout({
         : Promise.resolve({ data: null }),
     ]);
     accountName = client?.name ?? null;
+    billingEnabled = !!client?.xero_contact_id;
     // First-login gate: capture the user's name before they use the portal.
     // Skipped while a staff member is impersonating — saving is a write, which
     // the read-only impersonation guard blocks, so forcing it would dead-end.
@@ -40,6 +42,7 @@ export default async function AppLayout({
       role={me.profile.role}
       impersonating={marker?.email ?? null}
       accountName={accountName}
+      billingEnabled={billingEnabled}
     >
       {children}
     </AppShell>
