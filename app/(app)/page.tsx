@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getVisibleDeviceHealth, getFleetPatchTrend } from "@/lib/views/devices";
 import { getSampleDeviceHealth, getSampleFleetPatchTrend, getSampleM365View } from "@/lib/views/sample";
 import { getClientBillingSummary, type ClientBillingSummary } from "@/lib/views/billing";
+import { AddTeamMemberDialog } from "./team/AddTeamMemberDialog";
 import { summarize, type DeviceHealth } from "@/lib/views/health";
 import { Sparkline } from "@/components/Sparkline";
 import { SampleBanner } from "@/components/SampleBanner";
@@ -177,7 +178,12 @@ export default async function AppHome() {
       <PageHeader
         breadcrumb="Account home"
         title={client?.name ?? "Your company"}
-        action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <AddTeamMemberDialog domain={me.profile.email.split("@")[1] ?? null} />
+            <PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>
+          </div>
+        }
       />
 
       {billing.enabled && billing.outstanding > 0 && (
