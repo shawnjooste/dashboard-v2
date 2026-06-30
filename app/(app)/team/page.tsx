@@ -9,6 +9,7 @@ import {
   StatusBadge,
   type Health,
 } from "@/components/ui";
+import { AddTeamMemberDialog } from "./AddTeamMemberDialog";
 
 const ROLE_LABEL: Record<string, string> = {
   client_manager: "Manager",
@@ -45,6 +46,7 @@ export default async function TeamPage() {
       <PageHeader
         title="Your team"
         subtitle="Everyone from your company who has access to this portal."
+        action={<AddTeamMemberDialog domain={me.profile.email.split("@")[1] ?? null} />}
       />
       <Card>
         <CardHeader title="People" count={members.length} />
