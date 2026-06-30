@@ -78,6 +78,15 @@ match Xero Contact names (e.g. "GSR Law" → INV-2766, R50,361.95, due 2026-07-0
    schedule. This is the core client-facing value.
 2. **Invoice PDF download** — the on-demand `xeroInvoicePdf` action + the row button.
 
+## Rollout (one client at a time)
+The engine (Slice 1) is built **once**; the **first company doubles as the pilot** that proves
+it end-to-end. After that, onboarding each client is a repeatable 3-step loop with no rebuilding:
+1. **Map** — set the client's `xero_contact_id` (name-match, confirmed).
+2. **Verify** — run the pull and check balance + invoices against Xero *before the client sees it*.
+3. **Invite** — send the Portal invite once their Billing is confirmed correct.
+The one-time Xero OAuth sign-in happens during the first client's onboarding; every client after
+reuses the same connection.
+
 ## Out of scope (deliberate)
 - **Pay-now / online payments** — no money movement; read-only display only.
 - **Editing/creating invoices** — the Portal never writes to Xero.
