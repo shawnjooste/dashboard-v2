@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getM365View } from "@/lib/views/m365";
 import { getSampleM365View } from "@/lib/views/sample";
+import { getVisibleDeviceHealth } from "@/lib/views/devices";
 import { M365View } from "@/components/M365View";
 import { SampleBanner } from "@/components/SampleBanner";
 import { PageHeader } from "@/components/ui";
@@ -14,11 +15,16 @@ export default async function M365Page() {
 
   let view = await getM365View(me.profile.client_id);
   let sample = false;
+  // Only a genuine prospect (no real data anywhere) sees the sample M365 demo.
+  // A set-up client with real devices sees the honest "not connected yet" state.
   if (!view.connected) {
-    const s = await getSampleM365View();
-    if (s.connected) {
-      view = s;
-      sample = true;
+    const isProspect = (await getVisibleDeviceHealth()).length === 0;
+    if (isProspect) {
+      const s = await getSampleM365View();
+      if (s.connected) {
+        view = s;
+        sample = true;
+      }
     }
   }
 
