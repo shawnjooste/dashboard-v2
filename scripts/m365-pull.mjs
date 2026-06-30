@@ -34,6 +34,12 @@ if (!connections || connections.length === 0) {
 }
 
 for (const conn of connections) {
+  // Skip connections without a usable encrypted token (the JoosteCo sample
+  // tenant, or a half-finished connect) so they don't error on every run.
+  if (!conn.token_ciphertext || conn.token_ciphertext.length < 32 || (conn.token_tag ?? "").length < 16) {
+    console.log(`⊘ ${conn.client_id}: no usable token — skipped (run m365-connect to (re)connect)`);
+    continue;
+  }
   await pullOne(conn).catch((e) => console.error(`✗ ${conn.client_id}: ${e.message}`));
 }
 
