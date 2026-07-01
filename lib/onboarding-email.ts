@@ -56,6 +56,26 @@ export function supportOnboardingContent(company: string): {
   };
 }
 
+/** Combined welcome + billing + support copy — for clients onboarded from Xero,
+ *  whose first reason for the portal is billing but who also get support. */
+export function billingWelcomeContent(company: string): {
+  preheader: string;
+  intro: string;
+  eyebrow: string;
+  features: OnboardingFeature[];
+} {
+  return {
+    preheader: "Your account with Rocking — invoices, balance and support, all in one place.",
+    intro: `We&rsquo;ve set up a portal for ${esc(company)} with Rocking &mdash; the easiest place to see your invoices and balance, and to get IT help whenever you need it. No technical know-how needed.`,
+    eyebrow: "What you can do here",
+    features: [
+      { title: "See your invoices and balance", body: "What you owe and every invoice — paid and unpaid — in one place, kept up to date." },
+      { title: "Get IT help, fast", body: "Raise a request in plain English and follow it through — no phone tag." },
+      { title: "Your account, all together", body: "Billing, support history and your team, always to hand." },
+    ],
+  };
+}
+
 export function onboardingEmailHtml(opts: {
   firstName: string;
   companyName: string;
