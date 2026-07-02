@@ -24,6 +24,19 @@ export type QuoteSection = {
   groups: QuoteGroup[];
 };
 
+export type ComparisonRow = {
+  label: string;
+  before: string;
+  after: string;
+  isTotal?: boolean;
+};
+
+export type ComparisonTable = {
+  beforeLabel: string;
+  afterLabel: string;
+  rows: ComparisonRow[];
+};
+
 export type QuoteDoc = {
   company: {
     name: string;
@@ -36,6 +49,7 @@ export type QuoteDoc = {
   meta: { quoteNumber: string; date: string; validUntil: string; preparedBy: string };
   projectTitle: string;
   projectIntro: string;
+  comparisonTable?: ComparisonTable;
   sections: QuoteSection[];
   summaryNote?: string;
   terms: string[];

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import logo from "@/public/rocking-logo.png";
-import { computeTotals, fmtMoney, type QuoteDoc } from "@/lib/quotes/doc";
+import { computeTotals, fmtMoney, type QuoteDoc, type ComparisonTable } from "@/lib/quotes/doc";
 import s from "./QuoteDocument.module.css";
 
 /** Read-only A4 render of a quote document — the portal twin of the print
@@ -52,6 +52,8 @@ export function QuoteDocument({ doc }: { doc: QuoteDoc }) {
         <h1 className={s.projectTitle}>{doc.projectTitle}</h1>
         <p className={s.projectIntro}>{doc.projectIntro}</p>
       </section>
+
+      {doc.comparisonTable && <ComparisonBlock table={doc.comparisonTable} />}
 
       {doc.sections.map((sec, sIdx) => {
         const st = totals.sections[sIdx];
@@ -151,6 +153,39 @@ export function QuoteDocument({ doc }: { doc: QuoteDoc }) {
         Registered Office: {doc.company.registeredOffice}
       </footer>
     </div>
+  );
+}
+
+function ComparisonBlock({ table }: { table: ComparisonTable }) {
+  return (
+    <section className={s.comparison}>
+      <div className={s.sectionHead}>
+        <h2 className={s.sectionTitle}>Cost Comparison</h2>
+      </div>
+      <table className={s.compTable}>
+        <colgroup>
+          <col className={s.compColLabel} />
+          <col className={s.compColVal} />
+          <col className={s.compColVal} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th></th>
+            <th className={s.compTh}>{table.beforeLabel}</th>
+            <th className={s.compTh}>{table.afterLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, i) => (
+            <tr key={i} className={row.isTotal ? s.compTotRow : undefined}>
+              <td className={row.isTotal ? s.compTotLabel : s.compLabel}>{row.label}</td>
+              <td className={`${s.compCell} ${row.isTotal ? s.compTotCell : ""}`}>{row.before}</td>
+              <td className={`${s.compCell} ${s.compAfter} ${row.isTotal ? s.compTotCell : ""}`}>{row.after}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 

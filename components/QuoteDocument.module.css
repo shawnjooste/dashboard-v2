@@ -95,6 +95,27 @@
 .grandRow .totLabel { color: #fff; letter-spacing: 0.02em; }
 .grandRow .cellNum { font-size: 11.5pt; padding-right: 14px !important; }
 
+/* ---------- comparison ---------- */
+.comparison { margin-top: 22px; break-inside: avoid; }
+.compTable { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+.compColLabel { width: auto; }
+.compColVal { width: 130px; }
+.compTh {
+  text-align: right; font-weight: 600; font-size: 8.5pt; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--q-muted);
+  padding: 10px 0 8px; border-bottom: 1px solid var(--q-rule2);
+}
+.compLabel { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--q-rule2); color: var(--q-ink2); font-size: 9.5pt; }
+.compCell {
+  padding: 8px 0; border-bottom: 1px solid var(--q-rule2);
+  text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--q-ink2);
+}
+.compAfter { color: var(--accent); font-weight: 600; }
+.compTotRow td { border-top: 1px solid var(--q-rule); border-bottom: 0; background: #f7f6f4; }
+.compTotLabel { padding: 10px 10px 10px 0; font-weight: 700; color: var(--q-ink); font-size: 9.5pt; }
+.compTotCell { font-weight: 700; color: var(--q-ink); }
+.compTotRow .compAfter { color: var(--accent); }
+
 /* ---------- summary ---------- */
 .summary { margin-top: 26px; padding: 16px 18px; background: #f7f6f4; border-left: 3px solid var(--accent); }
 .blockTitle { font-size: 10pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 10px; }
