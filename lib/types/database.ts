@@ -419,6 +419,54 @@ export type Database = {
           },
         ]
       }
+      device_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          device_id: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by_profile_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          device_id: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by_profile_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          device_id?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_photos_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_photos_uploaded_by_profile_id_fkey"
+            columns: ["uploaded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_software: {
         Row: {
           device_id: string
