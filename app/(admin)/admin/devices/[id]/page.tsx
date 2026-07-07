@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDeviceDetail, getDeviceExtras } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
 import { DeviceAdminExtras } from "@/components/DeviceAdminExtras";
+import { DevicePhotos } from "@/components/DevicePhotos";
 import { DeviceChangeLog } from "./DeviceChangeLog";
 import { createClient } from "@/lib/supabase/server";
 import { suggestPerson } from "@/lib/views/device-link";
@@ -96,6 +97,7 @@ export default async function AdminDevicePage({
       <DevicePersonCard deviceId={id} />
       <DeviceDetailView detail={detail} />
       <DeviceChangeLog deviceId={id} />
+      <DevicePhotos deviceId={id} isStaff />
       <DeviceAdminExtras meta={detail.meta} extras={extras} />
     </div>
   );

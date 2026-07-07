@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDeviceDetail } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
+import { DevicePhotos } from "@/components/DevicePhotos";
 import { PageHeader } from "@/components/ui";
 
 /**
@@ -38,6 +39,7 @@ export default async function DevicePage({
         ← Back
       </Link>
       <DeviceDetailView detail={detail} />
+      <DevicePhotos deviceId={id} isStaff={false} />
     </div>
   );
 }
