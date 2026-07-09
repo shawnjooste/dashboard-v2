@@ -4,13 +4,15 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getQuoteDetail } from "@/lib/views/quotes";
 import { fmtMoney, STATUS_LABEL } from "@/lib/quotes/doc";
+import { notifyQuoteViewed } from "@/lib/quote-emails";
 import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { PageHeader } from "@/components/ui";
 import { QuoteActions } from "./QuoteActions";
 
-/** Logs the first time each manager opens the quote (audit: "has it been seen?"). */
-async function logViewed(quoteId: string, version: number, profileId: string) {
+/** Logs the first time each manager opens the quote (audit: "has it been seen?").
+ *  Returns true if this call recorded a new (first) view. */
+async function logViewed(quoteId: string, version: number, profileId: string): Promise<boolean> {
   const service = createServiceClient();
   const { data: prior } = await service
     .from("quote_events")
@@ -20,14 +22,14 @@ async function logViewed(quoteId: string, version: number, profileId: string) {
     .eq("actor_profile_id", profileId)
     .limit(1)
     .maybeSingle();
-  if (!prior) {
-    await service.from("quote_events").insert({
-      quote_id: quoteId,
-      version,
-      event: "viewed",
-      actor_profile_id: profileId,
-    });
-  }
+  if (prior) return false;
+  await service.from("quote_events").insert({
+    quote_id: quoteId,
+    version,
+    event: "viewed",
+    actor_profile_id: profileId,
+  });
+  return true;
 }
 
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,7 +50,20 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  await logViewed(quote.id, quote.version, me.profile.id);
+  const isFirstView = await logViewed(quote.id, quote.version, me.profile.id);
+  if (isFirstView) {
+    try {
+      await notifyQuoteViewed({
+        quoteId: quote.id,
+        quoteNumber: quote.quoteNumber,
+        title: quote.title,
+        clientName: quote.doc.client.name,
+        viewerEmail: me.profile.email,
+      });
+    } catch (e) {
+      console.error("quote viewed email failed:", e);
+    }
+  }
 
   const decidedBanner =
     quote.decision &&

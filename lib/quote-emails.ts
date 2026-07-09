@@ -75,6 +75,28 @@ export async function notifyQuoteSent(opts: {
   );
 }
 
+/** First time a manager opens a quote → Shawn. */
+export async function notifyQuoteViewed(opts: {
+  quoteId: string;
+  quoteNumber: string;
+  title: string;
+  clientName: string;
+  viewerEmail: string;
+}): Promise<void> {
+  await sendEmail(
+    [ADMIN_EMAIL],
+    `Quote ${opts.quoteNumber} viewed by ${opts.clientName}`,
+    wrap(`
+      <h2 style="margin:0 0 8px;">Quote viewed</h2>
+      <p style="color:#444; margin:0 0 16px;">
+        <strong>${opts.viewerEmail}</strong> opened quote
+        <strong>${opts.quoteNumber}</strong> (${opts.title}) for <strong>${opts.clientName}</strong>.
+      </p>
+      ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "View in admin")}
+    `),
+  );
+}
+
 /** Decision (accept / decline / changes requested) → Shawn + all managers. */
 export async function notifyQuoteDecision(opts: {
   clientId: string;
