@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { DeviceHealth } from "@/lib/views/health";
 import { StatusPill } from "./ui/status";
+import { DispositionTag } from "./DispositionTag";
 
 export function DeviceTable({
   devices,
@@ -39,13 +40,16 @@ export function DeviceTable({
             <tr key={d.id} className="border-b border-line-soft last:border-0 hover:bg-canvas">
               {clientName && <td className="px-4 py-2.5 text-ink-2">{clientName(d.clientId) ?? "—"}</td>}
               <td className="px-4 py-2.5 font-medium">
-                {rowHref ? (
-                  <Link href={rowHref(d.id)} className="text-ink hover:text-brand">
-                    {d.hostname}
-                  </Link>
-                ) : (
-                  d.hostname
-                )}
+                <span className="inline-flex items-center gap-1.5">
+                  {rowHref ? (
+                    <Link href={rowHref(d.id)} className="text-ink hover:text-brand">
+                      {d.hostname}
+                    </Link>
+                  ) : (
+                    d.hostname
+                  )}
+                  <DispositionTag disposition={d.disposition} />
+                </span>
               </td>
               <td className="px-4 py-2.5 text-ink-2">{d.user ?? "—"}</td>
               <td className="px-4 py-2.5 text-muted">{d.os ?? "—"}</td>

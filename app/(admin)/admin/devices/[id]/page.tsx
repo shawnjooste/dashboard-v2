@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDeviceDetail, getDeviceExtras } from "@/lib/views/devices";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
+import { DeviceDisposition } from "@/components/DeviceDisposition";
 import { DeviceAdminExtras } from "@/components/DeviceAdminExtras";
 import { DevicePhotos } from "@/components/DevicePhotos";
 import { DeviceChangeLog } from "./DeviceChangeLog";
@@ -95,6 +96,7 @@ export default async function AdminDevicePage({
         title={detail.health.hostname ?? "Device"}
       />
       <DevicePersonCard deviceId={id} />
+      <DeviceDisposition deviceId={id} canEdit />
       <DeviceDetailView detail={detail} />
       <DeviceChangeLog deviceId={id} />
       <DevicePhotos deviceId={id} isStaff />

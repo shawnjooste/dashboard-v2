@@ -13,6 +13,7 @@ const mk = (o: Partial<DeviceInputs> = {}): DeviceInputs => ({
   patchesPending: o.patchesPending ?? 0,
   usedPcts: o.usedPcts ?? [40],
   openAlerts: o.openAlerts ?? 0,
+  disposition: o.disposition ?? "in_use",
 });
 
 describe("deviceHealth", () => {

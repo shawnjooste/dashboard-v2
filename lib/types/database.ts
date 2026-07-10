@@ -610,6 +610,10 @@ export type Database = {
           cpu: string | null
           created_at: string
           datto_uid: string
+          disposition: string
+          disposition_note: string | null
+          disposition_updated_at: string | null
+          disposition_updated_by: string | null
           domain: string | null
           enrollment_date: string | null
           external_ip: string | null
@@ -642,6 +646,10 @@ export type Database = {
           cpu?: string | null
           created_at?: string
           datto_uid: string
+          disposition?: string
+          disposition_note?: string | null
+          disposition_updated_at?: string | null
+          disposition_updated_by?: string | null
           domain?: string | null
           enrollment_date?: string | null
           external_ip?: string | null
@@ -674,6 +682,10 @@ export type Database = {
           cpu?: string | null
           created_at?: string
           datto_uid?: string
+          disposition?: string
+          disposition_note?: string | null
+          disposition_updated_at?: string | null
+          disposition_updated_by?: string | null
           domain?: string | null
           enrollment_date?: string | null
           external_ip?: string | null
@@ -702,6 +714,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_disposition_updated_by_fkey"
+            columns: ["disposition_updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2145,6 +2164,10 @@ export type Database = {
       next_quote_number: { Args: never; Returns: string }
       reject_pending_user: {
         Args: { p_profile_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      set_device_disposition: {
+        Args: { p_device_id: string; p_disposition: string; p_note?: string }
         Returns: undefined
       }
       set_my_name: {

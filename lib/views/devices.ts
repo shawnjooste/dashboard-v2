@@ -8,7 +8,7 @@ import { deviceHealth, type DeviceHealth, type DeviceInputs } from "./health";
 export async function getVisibleDeviceHealth(): Promise<DeviceHealth[]> {
   const supabase = await createClient();
   const [devices, patch, storage, alerts] = await Promise.all([
-    supabase.from("devices").select("id, client_id, hostname, assigned_user_label, operating_system, av_ok"),
+    supabase.from("devices").select("id, client_id, hostname, assigned_user_label, operating_system, av_ok, disposition"),
     supabase.from("device_patch_status").select("device_id, patch_status, patches_installed, patches_approved_pending"),
     supabase.from("device_storage").select("device_id, used_pct, drive_type"),
     supabase.from("device_alerts").select("device_id, resolved"),
@@ -16,7 +16,7 @@ export async function getVisibleDeviceHealth(): Promise<DeviceHealth[]> {
   return assembleDeviceHealth(devices.data ?? [], patch.data ?? [], storage.data ?? [], alerts.data ?? []);
 }
 
-type DeviceRow = { id: string; client_id: string; hostname: string; assigned_user_label: string | null; operating_system: string | null; av_ok: boolean | null };
+type DeviceRow = { id: string; client_id: string; hostname: string; assigned_user_label: string | null; operating_system: string | null; av_ok: boolean | null; disposition: string };
 type PatchRow = { device_id: string; patch_status: string | null; patches_installed: number | null; patches_approved_pending: number | null };
 type StorageRow = { device_id: string; used_pct: number | null; drive_type: string | null };
 type AlertRow = { device_id: string; resolved: boolean };
@@ -55,6 +55,7 @@ export function assembleDeviceHealth(
       patchesPending: p?.patches_approved_pending ?? null,
       usedPcts: disksBy.get(d.id) ?? [],
       openAlerts: openBy.get(d.id) ?? 0,
+      disposition: d.disposition,
     };
     return deviceHealth(inputs);
   });

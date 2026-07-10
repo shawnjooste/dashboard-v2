@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getDeviceDetail } from "@/lib/views/devices";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { DeviceDetailView } from "@/components/DeviceDetailView";
+import { DeviceDisposition } from "@/components/DeviceDisposition";
 import { DevicePhotos } from "@/components/DevicePhotos";
 import { PageHeader } from "@/components/ui";
 
@@ -15,7 +17,8 @@ export default async function DevicePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getDeviceDetail(id);
+  const [detail, me] = await Promise.all([getDeviceDetail(id), getCurrentProfile()]);
+  const canEdit = me.authenticated && me.profile.role === "client_manager";
 
   if (!detail) {
     return (
@@ -39,6 +42,7 @@ export default async function DevicePage({
         ← Back
       </Link>
       <DeviceDetailView detail={detail} />
+      <DeviceDisposition deviceId={id} canEdit={canEdit} />
       <DevicePhotos deviceId={id} isStaff={false} />
     </div>
   );

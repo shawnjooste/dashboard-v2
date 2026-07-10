@@ -10,6 +10,8 @@ export type DeviceInputs = {
   patchesPending: number | null;
   usedPcts: number[];
   openAlerts: number;
+  /** Portal-owned lifecycle status (not from Datto); display-only here. */
+  disposition: string;
 };
 
 export type DeviceHealth = DeviceInputs & {

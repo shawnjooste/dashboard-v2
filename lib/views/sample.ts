@@ -26,7 +26,7 @@ export async function getSampleDeviceHealth(): Promise<DeviceHealth[]> {
     const sb = createServiceClient();
     const { data: devices } = await sb
       .from("devices")
-      .select("id, client_id, hostname, assigned_user_label, operating_system, av_ok")
+      .select("id, client_id, hostname, assigned_user_label, operating_system, av_ok, disposition")
       .eq("client_id", SAMPLE_CLIENT_ID);
     const ids = (devices ?? []).map((d) => d.id);
     if (ids.length === 0) return [];
