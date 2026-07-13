@@ -22,13 +22,13 @@ export function fmtMinutes(mins: number): string {
 }
 
 /** The client's assigned package, else the default package, else null. */
-export function resolvePackage<T extends { id: string; is_default: boolean }>(
+export function resolvePackage<T extends { id: string; isDefault: boolean }>(
   packages: T[],
   clientPackageId: string | null,
 ): T | null {
   return (
     (clientPackageId && packages.find((p) => p.id === clientPackageId)) ||
-    packages.find((p) => p.is_default) ||
+    packages.find((p) => p.isDefault) ||
     null
   );
 }

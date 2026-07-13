@@ -41,8 +41,8 @@ describe("fmtMinutes", () => {
 
 describe("resolvePackage", () => {
   const pkgs = [
-    { id: "a", is_default: true },
-    { id: "b", is_default: false },
+    { id: "a", isDefault: true },
+    { id: "b", isDefault: false },
   ];
   it("returns the assigned package", () => {
     expect(resolvePackage(pkgs, "b")?.id).toBe("b");
