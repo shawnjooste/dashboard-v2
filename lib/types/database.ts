@@ -109,6 +109,8 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["client_status"]
+          support_package_id: string | null
+          support_plan_label: string | null
           xero_contact_id: string | null
         }
         Insert: {
@@ -116,6 +118,8 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["client_status"]
+          support_package_id?: string | null
+          support_plan_label?: string | null
           xero_contact_id?: string | null
         }
         Update: {
@@ -123,9 +127,19 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["client_status"]
+          support_package_id?: string | null
+          support_plan_label?: string | null
           xero_contact_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_support_package_id_fkey"
+            columns: ["support_package_id"]
+            isOneToOne: false
+            referencedRelation: "support_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       device_alerts: {
         Row: {
@@ -2011,6 +2025,93 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      support_packages: {
+        Row: {
+          has_chat: boolean
+          id: string
+          included_minutes: number
+          is_default: boolean
+          key: string
+          name: string
+          rank: number
+          remote_included: boolean
+          sla_hours: number | null
+        }
+        Insert: {
+          has_chat?: boolean
+          id?: string
+          included_minutes?: number
+          is_default?: boolean
+          key: string
+          name: string
+          rank?: number
+          remote_included?: boolean
+          sla_hours?: number | null
+        }
+        Update: {
+          has_chat?: boolean
+          id?: string
+          included_minutes?: number
+          is_default?: boolean
+          key?: string
+          name?: string
+          rank?: number
+          remote_included?: boolean
+          sla_hours?: number | null
+        }
+        Relationships: []
+      }
+      support_time_entries: {
+        Row: {
+          client_id: string
+          created_at: string
+          entered_by: string | null
+          freescout_number: number | null
+          id: string
+          minutes: number
+          note: string | null
+          occurred_on: string
+          work_type: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          entered_by?: string | null
+          freescout_number?: number | null
+          id?: string
+          minutes: number
+          note?: string | null
+          occurred_on?: string
+          work_type?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          entered_by?: string | null
+          freescout_number?: number | null
+          id?: string
+          minutes?: number
+          note?: string | null
+          occurred_on?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_time_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_time_entries_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       xero_connection: {
         Row: {
