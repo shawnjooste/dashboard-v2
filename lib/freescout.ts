@@ -142,6 +142,8 @@ export async function createTicket(opts: {
   email: string;
   subject: string;
   message: string;
+  /** e.g. ["tier:business_care"] — priority visible where the team works. */
+  tags?: string[];
 }): Promise<number> {
   const res = await fsFetch(`/conversations`, {
     method: "POST",
@@ -152,6 +154,7 @@ export async function createTicket(opts: {
       customer: { email: opts.email },
       threads: [{ type: "customer", text: opts.message, customer: { email: opts.email } }],
       status: "active",
+      ...(opts.tags?.length ? { tags: opts.tags } : {}),
     }),
   });
   if (!res.ok) throw new Error(`FreeScout create failed (${res.status})`);

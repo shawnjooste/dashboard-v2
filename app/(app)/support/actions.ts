@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createTicket, replyToTicket, getConversation, getSupportScope } from "@/lib/freescout";
 import { canAccessConversation } from "@/lib/freescout-scope";
+import { getCurrentProfile } from "@/lib/auth/profile";
+import { getSupportStatus } from "@/lib/views/support-packages";
 
 export type SupportActionState = { error?: string };
 
@@ -18,9 +20,17 @@ export async function createTicketAction(
   const scope = await getSupportScope();
   if (!scope) redirect("/login");
 
+  // Stamp the client's tier on the ticket so priority is visible in FreeScout.
+  let tags: string[] | undefined;
+  const me = await getCurrentProfile();
+  if (me.authenticated && me.profile.client_id) {
+    const status = await getSupportStatus(me.profile.client_id);
+    if (status.pkg) tags = [`tier:${status.pkg.key}`];
+  }
+
   let id: number;
   try {
-    id = await createTicket({ email: scope.email, subject, message });
+    id = await createTicket({ email: scope.email, subject, message, tags });
   } catch {
     return { error: "Couldn't create the ticket right now. Please try again shortly." };
   }

@@ -15,6 +15,7 @@ import {
   StatusPill,
   type Health,
 } from "@/components/ui";
+import { SupportTierBanner } from "@/components/SupportTierBanner";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Open",
@@ -55,6 +56,8 @@ export default async function SupportPage() {
         subtitle="Need a hand? Raise a ticket and a real person from our team will help you out."
         action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>}
       />
+
+      <SupportTierBanner />
 
       {unavailable ? (
         <Card>
