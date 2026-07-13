@@ -8,14 +8,13 @@ import {
 } from "@/lib/freescout";
 import { filterConversations } from "@/lib/freescout-scope";
 import {
-  PageHeader,
   PrimaryLink,
   Card,
   CardHeader,
   StatusPill,
   type Health,
 } from "@/components/ui";
-import { SupportTierBanner } from "@/components/SupportTierBanner";
+import { SupportPageHeader } from "@/components/SupportPageHeader";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Open",
@@ -51,13 +50,7 @@ export default async function SupportPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Support"
-        subtitle="Need a hand? Raise a ticket and a real person from our team will help you out."
-        action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>}
-      />
-
-      <SupportTierBanner />
+      <SupportPageHeader action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>} />
 
       {unavailable ? (
         <Card>
