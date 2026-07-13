@@ -154,12 +154,25 @@ export async function createTicket(opts: {
       customer: { email: opts.email },
       threads: [{ type: "customer", text: opts.message, customer: { email: opts.email } }],
       status: "active",
-      ...(opts.tags?.length ? { tags: opts.tags } : {}),
     }),
   });
   if (!res.ok) throw new Error(`FreeScout create failed (${res.status})`);
   const data = await res.json();
-  return data.id as number;
+  const id = data.id as number;
+  // FreeScout ignores tags on create — they go via a follow-up PUT, which
+  // requires the (official) Tags module to be active. Tagging is best-effort:
+  // a failure must never lose the ticket itself.
+  if (opts.tags?.length) {
+    try {
+      await fsFetch(`/conversations/${id}/tags`, {
+        method: "PUT",
+        body: JSON.stringify({ tags: opts.tags }),
+      });
+    } catch {
+      // ticket exists untagged; the team just won't see a tier chip on it
+    }
+  }
+  return id;
 }
 
 export async function replyToTicket(id: number, email: string, message: string): Promise<void> {
