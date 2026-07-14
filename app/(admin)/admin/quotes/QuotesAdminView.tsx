@@ -28,10 +28,21 @@ function sentDate(iso: string): string {
   return `${d} ${MONTHS[Number(m) - 1]} ${y}`;
 }
 
+type SortKey = "quote" | "sent";
+
 export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Bucket>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("quote");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
 
   const counts = useMemo(() => {
     const c = { all: quotes.length, awaiting: 0, changes: 0, toinvoice: 0, invoiced: 0, closed: 0 };
@@ -53,11 +64,14 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
     const needle = q.trim().toLowerCase();
     if (needle) r = r.filter((x) => `${x.quoteNumber} ${x.clientName} ${x.title}`.toLowerCase().includes(needle));
     r.sort((a, b) => {
-      const cmp = a.quoteNumber.localeCompare(b.quoteNumber);
+      const cmp =
+        sortKey === "sent"
+          ? (a.sentAt ?? a.createdAt).localeCompare(b.sentAt ?? b.createdAt)
+          : a.quoteNumber.localeCompare(b.quoteNumber);
       return sortDir === "asc" ? cmp : -cmp;
     });
     return r;
-  }, [quotes, filter, q, sortDir]);
+  }, [quotes, filter, q, sortKey, sortDir]);
 
   const tiles: { key: Bucket; label: string; value: number; dot: string; hot: boolean }[] = [
     { key: "all", label: "ALL", value: counts.all, dot: "#18181B", hot: false },
@@ -134,15 +148,22 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
         <div className={`grid ${cols} items-center gap-3.5 border-b border-line-soft bg-[#FCFCFD] px-5 py-[11px]`}>
           <button
             type="button"
-            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            onClick={() => toggleSort("quote")}
             className="flex items-center gap-1.5 text-left text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint"
           >
             <span>Quote</span>
-            <span className="text-brand">{sortDir === "asc" ? "↑" : "↓"}</span>
+            {sortKey === "quote" && <span className="text-brand">{sortDir === "asc" ? "↑" : "↓"}</span>}
           </button>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Client</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Title</div>
-          <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Sent</div>
+          <button
+            type="button"
+            onClick={() => toggleSort("sent")}
+            className="flex items-center gap-1.5 text-left text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint"
+          >
+            <span>Sent</span>
+            {sortKey === "sent" && <span className="text-brand">{sortDir === "asc" ? "↑" : "↓"}</span>}
+          </button>
           <div className="text-right text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Amount</div>
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.6px] text-faint">Status</div>
           <div />
@@ -158,7 +179,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
             </Link>
             <div className="truncate text-[13px] text-ink-2">{x.clientName}</div>
             <div className="truncate text-[13px] text-ink-3">{x.title}</div>
-            <div className="whitespace-nowrap text-[13px] text-ink-3">{sentDate(x.createdAt)}</div>
+            <div className="whitespace-nowrap text-[13px] text-ink-3">{x.sentAt ? sentDate(x.sentAt) : "—"}</div>
             <div className="whitespace-nowrap text-right text-[13px] font-semibold text-ink">
               {formatQuoteAmount(x.grandTotal, x.monthlyTotal)}
             </div>

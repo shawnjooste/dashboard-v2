@@ -29,6 +29,8 @@ export type AdminQuoteRow = {
   grandTotal: number | null;
   monthlyTotal: number | null;
   createdAt: string;
+  /** Most recent 'sent' quote_event timestamp, null if never sent (still draft). */
+  sentAt: string | null;
   invoicedAt: string | null;
 };
 
@@ -42,12 +44,18 @@ export async function getAllQuotesAdmin(): Promise<AdminQuoteRow[]> {
   if (!quotes?.length) return [];
 
   const ids = quotes.map((q) => q.id);
-  const [{ data: versions }, { data: clients }] = await Promise.all([
+  const [{ data: versions }, { data: clients }, { data: sentEvents }] = await Promise.all([
     supabase.from("quote_versions").select("quote_id, version, grand_total, monthly_total, valid_until").in("quote_id", ids),
     supabase.from("clients").select("id, name"),
+    supabase.from("quote_events").select("quote_id, created_at").eq("event", "sent").in("quote_id", ids),
   ]);
   const byKey = new Map((versions ?? []).map((v) => [`${v.quote_id}|${v.version}`, v]));
   const nameById = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const sentAtById = new Map<string, string>();
+  for (const e of sentEvents ?? []) {
+    const prior = sentAtById.get(e.quote_id);
+    if (!prior || e.created_at > prior) sentAtById.set(e.quote_id, e.created_at);
+  }
 
   return quotes.map((q) => {
     const v = byKey.get(`${q.id}|${q.current_version}`);
@@ -60,6 +68,7 @@ export async function getAllQuotesAdmin(): Promise<AdminQuoteRow[]> {
       grandTotal: v?.grand_total ?? null,
       monthlyTotal: v?.monthly_total ?? null,
       createdAt: q.created_at,
+      sentAt: sentAtById.get(q.id) ?? null,
       invoicedAt: q.invoiced_at ?? null,
     };
   });
