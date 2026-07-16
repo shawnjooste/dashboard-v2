@@ -72,6 +72,7 @@ export async function inviteTeamMember(
       firstName: first,
       companyName: company,
       portalUrl,
+      clientId: me.profile.client_id,
       ...supportOnboardingContent(company),
     });
   } catch (e) {

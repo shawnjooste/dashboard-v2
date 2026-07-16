@@ -8,7 +8,16 @@ const ADMIN_EMAIL = "shawn@rocking.one";
 const SUPPORT_EMAIL = "support@rocking.co.za"; // FreeScout helpdesk inbox — replies land as tickets
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string }): Promise<void> {
+async function sendEmail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+  /** Activity-feed category, e.g. "onboarding" | "admin_alert". */
+  category?: string;
+  /** Client the email relates to, when known — shown in the activity feed. */
+  clientId?: string | null;
+}): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", opts.subject);
@@ -26,6 +35,17 @@ async function sendEmail(opts: { to: string; subject: string; html: string; repl
     }),
   });
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
+  // Log the send to the activity feed. Best-effort: never fail the email.
+  try {
+    await createServiceClient().from("portal_activity").insert({
+      kind: "email",
+      section: opts.category ?? "general",
+      detail: `“${opts.subject}” → ${opts.to}`.slice(0, 200),
+      client_id: opts.clientId ?? null,
+    });
+  } catch (e) {
+    console.error("email activity log failed:", e);
+  }
 }
 
 /**
@@ -51,6 +71,7 @@ export async function notifyPendingSignup(userId: string): Promise<void> {
 
   const domain = data.email.split("@")[1] ?? "";
   await sendEmail({
+    category: "admin_alert",
     to: ADMIN_EMAIL,
     subject: `New signup pending approval — ${data.email}`,
     html: `
@@ -83,6 +104,7 @@ export async function sendOnboardingEmail(opts: {
   firstName: string;
   companyName: string;
   portalUrl: string;
+  clientId?: string | null;
   intro?: string;
   eyebrow?: string;
   features?: OnboardingFeature[];
@@ -90,6 +112,8 @@ export async function sendOnboardingEmail(opts: {
   supportNote?: string | null;
 }): Promise<void> {
   await sendEmail({
+    category: "onboarding",
+    clientId: opts.clientId,
     to: opts.to,
     subject: `Welcome to The Portal — ${opts.companyName}`,
     html: onboardingEmailHtml(opts),
@@ -147,6 +171,8 @@ export async function notifyFirstSignIn(userId: string): Promise<void> {
     : `${APP_URL}/admin/users`;
 
   await sendEmail({
+    category: "admin_alert",
+    clientId: data.client_id,
     to: ADMIN_EMAIL,
     subject: `First sign-in — ${name}${clientName ? ` (${clientName})` : ""}`,
     html: `

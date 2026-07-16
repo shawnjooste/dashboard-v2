@@ -12,6 +12,7 @@ const GROUPS: { key: ActivityGroup | "all"; label: string }[] = [
   { key: "actions", label: "Actions" },
   { key: "changes", label: "Changes" },
   { key: "quotes", label: "Quotes" },
+  { key: "emails", label: "Emails" },
   { key: "syncs", label: "Syncs" },
 ];
 const DAY_OPTIONS = [1, 7, 30];

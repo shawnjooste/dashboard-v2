@@ -166,6 +166,15 @@ if (noEmail) {
     }),
   });
   console.log(res.ok ? `Emailed ${to.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created`);
+  if (res.ok) {
+    // Log the send to the admin activity feed (best-effort).
+    await sb.from("portal_activity").insert({
+      kind: "email",
+      section: "quote",
+      client_id: clientId,
+      detail: `“${heading}: ${title}” → ${to.join(", ")}`.slice(0, 200),
+    }).then(({ error }) => { if (error) console.error("activity log failed:", error.message); });
+  }
 } else {
   console.log("No manager emails sent", to.length ? "(no RESEND_API_KEY)" : "(client has no active managers)");
 }

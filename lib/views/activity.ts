@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { SECTION_LABELS } from "@/lib/activity-helpers";
 
-export type ActivityGroup = "logins" | "views" | "actions" | "changes" | "quotes" | "syncs";
+export type ActivityGroup = "logins" | "views" | "actions" | "changes" | "quotes" | "syncs" | "emails";
 
 export type ActivityItem = {
   at: string;
@@ -56,6 +56,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
     const base = { at: a.occurred_at, actor: person(a.profile_id), clientId: a.client_id, clientName: named(a.client_id) };
     if (a.kind === "login") push({ ...base, group: "logins", text: "signed in" });
     else if (a.kind === "visit") push({ ...base, group: "views", text: `viewed ${SECTION_LABELS[a.section] ?? a.section}` });
+    else if (a.kind === "email") push({ ...base, group: "emails", text: `${a.section.replace("_", " ")} email sent${a.detail ? `: ${a.detail}` : ""}` });
     else if (a.section === "ticket_created") push({ ...base, group: "actions", text: `raised a ticket${a.detail ? `: “${a.detail}”` : ""}` });
     else push({ ...base, group: "actions", text: `${a.section}${a.detail ? ` — ${a.detail}` : ""}` });
   }

@@ -110,6 +110,7 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
       firstName,
       companyName: client?.name ?? "your company",
       portalUrl,
+      clientId,
       ...supportOnboardingContent(client?.name ?? "your company"),
     });
   } catch (e) {
