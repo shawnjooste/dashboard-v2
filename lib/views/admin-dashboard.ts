@@ -5,6 +5,7 @@ import { getVisibleQuotes } from "./quotes";
 import { getM365Overview } from "./m365";
 import { listRecentConversations } from "@/lib/freescout";
 import { fmtMoney } from "@/lib/quotes/doc";
+import { jobNudge } from "@/lib/job-nudge";
 import { type DeviceHealth } from "./health";
 
 /** One actionable line in a panel. `href` makes the primary text a link. */
@@ -29,6 +30,8 @@ export type AdminDashboard = {
   mfaGaps: DashPanel;
   quotes: DashPanel;
   tickets: DashPanel & { ok: boolean };
+  /** Jobs that are sitting (waiting or stale); `open` = all open jobs. */
+  jobs: DashPanel & { open: number };
 };
 
 const TOP = 3;
@@ -74,7 +77,7 @@ async function getOpenTickets(): Promise<AdminDashboard["tickets"]> {
 /** Everything the admin overview needs, gathered across all clients in one pass. */
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const supabase = await createClient();
-  const [clientsRes, pendingRes, devices, people, quotes, m365, tickets] = await Promise.all([
+  const [clientsRes, pendingRes, devices, people, quotes, m365, tickets, jobsRes] = await Promise.all([
     supabase.from("clients").select("id, name, status").order("name"),
     supabase.from("profiles").select("id, email, client_id, created_at").eq("status", "pending"),
     getVisibleDeviceHealth(),
@@ -82,6 +85,10 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     getVisibleQuotes(),
     getM365Overview(),
     getOpenTickets(),
+    supabase
+      .from("jobs")
+      .select("id, title, client_id, status, waiting_note, updated_at")
+      .in("status", ["todo", "in_progress", "waiting"]),
   ]);
 
   const clientName = new Map((clientsRes.data ?? []).map((c) => [c.id, c.name]));
@@ -121,6 +128,24 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     })),
   };
 
+  // Jobs that are sitting: all waiting jobs + open jobs untouched for 7+ days.
+  const now = new Date();
+  const openJobs = jobsRes.data ?? [];
+  const nudges = openJobs
+    .map((j) => ({ job: j, nudge: jobNudge(j.status, j.waiting_note, j.updated_at, now) }))
+    .filter((x): x is typeof x & { nudge: NonNullable<typeof x.nudge> } => x.nudge !== null)
+    .sort((a, b) => a.nudge.rank - b.nudge.rank || a.job.updated_at.localeCompare(b.job.updated_at));
+  const jobsPanel: AdminDashboard["jobs"] = {
+    open: openJobs.length,
+    count: nudges.length,
+    items: nudges.slice(0, TOP).map(({ job, nudge }) => ({
+      id: job.id,
+      primary: job.title,
+      secondary: `${clientName.get(job.client_id) ?? "—"} · ${nudge.tag}`,
+      href: "/admin/jobs",
+    })),
+  };
+
   // Quotes the client hasn't acted on yet (derived 'sent' excludes expired/decided).
   const awaiting = quotes.filter((q) => q.status === "sent");
   const pipeline = awaiting.reduce((n, q) => n + (q.grandTotal ?? 0), 0);
@@ -146,5 +171,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     mfaGaps,
     quotes: quotesPanel,
     tickets,
+    jobs: jobsPanel,
   };
 }

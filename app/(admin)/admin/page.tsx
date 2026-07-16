@@ -14,6 +14,11 @@ export default async function AdminHome() {
       value: d.kpis.mfaCoverage == null ? "—" : `${d.kpis.mfaCoverage}%`,
       dot: d.kpis.mfaCoverage != null && d.kpis.mfaCoverage < 100 ? "#B45309" : "#15803D",
     },
+    {
+      label: "OPEN JOBS",
+      value: String(d.jobs.open),
+      dot: d.jobs.count > 0 ? "#B45309" : "#18181B",
+    },
   ];
 
   return (
@@ -27,7 +32,7 @@ export default async function AdminHome() {
       <p className="mt-1.5 text-sm text-muted">Everything that needs you, across all clients.</p>
 
       {/* Business glance */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {kpis.map((k) => (
           <div key={k.label} className="rounded-[10px] border border-line bg-card px-4 py-3.5">
             <span className="flex items-center gap-[7px]">
@@ -71,6 +76,14 @@ export default async function AdminHome() {
           items={d.quotes.items}
           viewAll={{ label: "All quotes", href: "/admin/quotes" }}
           empty="No quotes waiting on a client."
+        />
+        <DashboardPanel
+          title="Jobs needing a nudge"
+          count={d.jobs.count}
+          hot
+          items={d.jobs.items}
+          viewAll={{ label: "Open the board", href: "/admin/jobs" }}
+          empty="Nothing stuck — the board is flowing."
         />
         <DashboardPanel
           title="Open tickets"
