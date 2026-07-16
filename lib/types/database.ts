@@ -1557,6 +1557,54 @@ export type Database = {
           },
         ]
       }
+      portal_activity: {
+        Row: {
+          client_id: string | null
+          detail: string | null
+          hour_bucket: string
+          id: string
+          kind: string
+          occurred_at: string
+          profile_id: string | null
+          section: string
+        }
+        Insert: {
+          client_id?: string | null
+          detail?: string | null
+          hour_bucket?: string
+          id?: string
+          kind: string
+          occurred_at?: string
+          profile_id?: string | null
+          section: string
+        }
+        Update: {
+          client_id?: string | null
+          detail?: string | null
+          hour_bucket?: string
+          id?: string
+          kind?: string
+          occurred_at?: string
+          profile_id?: string | null
+          section?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_activity_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_activity_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string

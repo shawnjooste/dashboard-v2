@@ -10,7 +10,10 @@ create table public.portal_activity (
   kind        text not null check (kind in ('visit','login','action')),
   section     text not null,
   detail      text,
-  hour_bucket timestamptz not null generated always as (date_trunc('hour', occurred_at)) stored
+  -- UTC hour bucket. The "at time zone 'utc'" cast makes the expression
+  -- immutable (plain date_trunc on timestamptz is only stable), which
+  -- generated columns require.
+  hour_bucket timestamp not null generated always as (date_trunc('hour', occurred_at at time zone 'utc')) stored
 );
 
 -- The dedupe: repeat visits inside an hour become ON CONFLICT DO NOTHING.
