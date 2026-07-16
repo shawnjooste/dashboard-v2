@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { trackVisit } from "@/lib/track";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { MARKER_COOKIE, decodeMarker } from "@/lib/impersonation";
@@ -14,6 +16,11 @@ export default async function AppLayout({
   if (!me.authenticated) redirect("/login");
   if (me.profile.role === "rocking_staff") redirect("/admin");
   const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
+
+  const pathname = (await headers()).get("x-pathname") ?? "/";
+  const trackable = { id: me.profile.id, role: me.profile.role, client_id: me.profile.client_id };
+  // Post-response so tracking adds zero latency to the page.
+  after(() => trackVisit(trackable, pathname));
 
   let accountName: string | null = null;
   let billingEnabled = false;

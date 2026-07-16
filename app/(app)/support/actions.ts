@@ -6,6 +6,7 @@ import { createTicket, replyToTicket, getConversation, getSupportScope } from "@
 import { canAccessConversation } from "@/lib/freescout-scope";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getSupportStatus } from "@/lib/views/support-packages";
+import { trackAction } from "@/lib/track";
 
 export type SupportActionState = { error?: string };
 
@@ -33,6 +34,13 @@ export async function createTicketAction(
     id = await createTicket({ email: scope.email, subject, message, tags });
   } catch {
     return { error: "Couldn't create the ticket right now. Please try again shortly." };
+  }
+  if (me.authenticated) {
+    await trackAction(
+      { id: me.profile.id, role: me.profile.role, client_id: me.profile.client_id },
+      "ticket_created",
+      subject,
+    );
   }
   redirect(`/support/${id}`);
 }
