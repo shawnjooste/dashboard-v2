@@ -4,12 +4,10 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolveLandingPath } from "@/lib/auth/routing";
 import { createClient } from "@/lib/supabase/server";
 import { getVisibleDeviceHealth, getFleetPatchTrend } from "@/lib/views/devices";
-import { getSampleDeviceHealth, getSampleFleetPatchTrend, getSampleM365View } from "@/lib/views/sample";
 import { getClientBillingSummary, type ClientBillingSummary } from "@/lib/views/billing";
 import { AddTeamMemberDialog } from "./team/AddTeamMemberDialog";
 import { summarize, type DeviceHealth } from "@/lib/views/health";
 import { Sparkline } from "@/components/Sparkline";
-import { SampleBanner } from "@/components/SampleBanner";
 import { getM365View, type M365View } from "@/lib/views/m365";
 import {
   getSupportScope,
@@ -62,7 +60,7 @@ export default async function AppHome() {
   });
   if (path !== "/app") redirect(path);
 
-  let devices = await getVisibleDeviceHealth();
+  const devices = await getVisibleDeviceHealth();
 
   // ---------- client_member: their claimed machine ----------
   if (me.profile.role !== "client_manager") {
@@ -106,33 +104,9 @@ export default async function AppHome() {
       : Promise.resolve<ClientBillingSummary>({ enabled: false, outstanding: 0, overdue: 0, currency: null, asOf: null }),
   ]);
   const client = clientRes.data;
-  let m365 = m365Res;
-  let patchTrend = patchTrendRes;
+  const m365 = m365Res;
+  const patchTrend = patchTrendRes;
 
-  // Prospect preview: only a client with NO real data sees the sample (JoosteCo)
-  // set behind a banner — Devices and M365 as a live sales demo. A real, set-up
-  // client (one that has devices) never sees sample data; an unconnected M365 for
-  // them just shows its honest "not connected yet" state, so the page is never
-  // mislabelled as a preview.
-  const isProspect = devices.length === 0;
-  let devicesSample = false;
-  let m365Sample = false;
-  if (isProspect) {
-    const s = await getSampleDeviceHealth();
-    if (s.length > 0) {
-      devices = s;
-      patchTrend = await getSampleFleetPatchTrend();
-      devicesSample = true;
-    }
-    if (!m365?.connected) {
-      const sm = await getSampleM365View();
-      if (sm.connected) {
-        m365 = sm;
-        m365Sample = true;
-      }
-    }
-  }
-  const sample = devicesSample || m365Sample;
 
   const summary = summarize(devices);
   const healthy = summary.total - summary.needsAttention;
@@ -160,10 +134,8 @@ export default async function AppHome() {
       href: `/support/${pendingTickets[0].id}`,
     });
   }
-  if (!devicesSample) {
-    for (const d of attention.slice(0, 2)) {
-      nextSteps.push({ label: `Check ${d.hostname} — ${deviceReason(d)}`, href: `/devices/${d.id}` });
-    }
+  for (const d of attention.slice(0, 2)) {
+    nextSteps.push({ label: `Check ${d.hostname} — ${deviceReason(d)}`, href: `/devices/${d.id}` });
   }
   if (pwOnly > 0) {
     nextSteps.push({
@@ -174,7 +146,6 @@ export default async function AppHome() {
 
   return (
     <div className="space-y-6">
-      {sample && <SampleBanner />}
       <PageHeader
         breadcrumb="Account home"
         title={client?.name ?? "Your company"}
@@ -361,7 +332,7 @@ export default async function AppHome() {
               {deviceList.map((d) => (
                 <Link
                   key={d.id}
-                  href={devicesSample ? "/devices" : `/devices/${d.id}`}
+                  href={`/devices/${d.id}`}
                   className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3 hover:bg-canvas"
                 >
                   <span
