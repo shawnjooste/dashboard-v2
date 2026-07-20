@@ -2196,6 +2196,79 @@ export type Database = {
         }
         Relationships: []
       }
+      support_bookings: {
+        Row: {
+          amount_cents: number
+          booked_by: string | null
+          client_id: string
+          created_at: string
+          freescout_number: number | null
+          id: string
+          note: string | null
+          paid_at: string | null
+          paystack_reference: string
+          service_id: string
+          slot_end: string
+          slot_start: string
+          status: string
+          vat_cents: number
+        }
+        Insert: {
+          amount_cents: number
+          booked_by?: string | null
+          client_id: string
+          created_at?: string
+          freescout_number?: number | null
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          paystack_reference: string
+          service_id: string
+          slot_end: string
+          slot_start: string
+          status?: string
+          vat_cents: number
+        }
+        Update: {
+          amount_cents?: number
+          booked_by?: string | null
+          client_id?: string
+          created_at?: string
+          freescout_number?: number | null
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          paystack_reference?: string
+          service_id?: string
+          slot_end?: string
+          slot_start?: string
+          status?: string
+          vat_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_bookings_booked_by_fkey"
+            columns: ["booked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "support_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_packages: {
         Row: {
           has_chat: boolean
@@ -2229,6 +2302,30 @@ export type Database = {
           rank?: number
           remote_included?: boolean
           sla_hours?: number | null
+        }
+        Relationships: []
+      }
+      support_services: {
+        Row: {
+          active: boolean
+          id: string
+          key: string
+          name: string
+          price_cents: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          key: string
+          name: string
+          price_cents: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          key?: string
+          name?: string
+          price_cents?: number
         }
         Relationships: []
       }
