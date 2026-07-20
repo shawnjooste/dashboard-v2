@@ -6,6 +6,7 @@ import type { GlobalPersonRow } from "@/lib/views/people";
 import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
 import { setPortalRole } from "./actions";
 import { InviteDialog } from "./InviteDialog";
+import { AccessEditor } from "./AccessEditor";
 import { clientColor, clientInitials, hashString } from "@/lib/ui/client-avatar";
 
 type ClientRef = { id: string; name: string };
@@ -334,8 +335,9 @@ export function UsersView({
                 )}
               </div>
               {/* Portal */}
-              <div>
+              <div className="flex items-center gap-1.5">
                 <PortalRoleCell person={p} />
+                <AccessEditor person={p} />
               </div>
               {/* View as */}
               <div className="text-right">

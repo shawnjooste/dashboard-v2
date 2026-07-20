@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { sendOnboardingEmail } from "@/lib/notify";
 import { supportOnboardingContent } from "@/lib/onboarding-email";
+import { FEATURES, overridesFromSelection } from "@/lib/feature-access";
 import { revalidatePath } from "next/cache";
 
 const ROLES = new Set(["client_manager", "client_member"]);
@@ -120,4 +121,25 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
 
   revalidatePath("/admin/users");
   return { ok: true, email };
+}
+
+/**
+ * Staff-only: save a client user's per-feature access. Stores only the
+ * defaults the admin unticked (subtractive v1); all-default saves null.
+ */
+export async function saveFeatureOverrides(formData: FormData) {
+  const me = await getCurrentProfile();
+  if (!me.authenticated || me.profile.role !== "rocking_staff") throw new Error("staff only");
+  const profileId = String(formData.get("profile_id") ?? "");
+  const role = String(formData.get("role") ?? "");
+  if (!profileId || !["client_manager", "client_member"].includes(role)) throw new Error("invalid request");
+  const selected = new Set<string>(FEATURES.filter((f) => formData.get(`f_${f}`) === "on"));
+  const overrides = overridesFromSelection(role, selected);
+  const { error } = await createServiceClient()
+    .from("profiles")
+    .update({ feature_overrides: overrides })
+    .eq("id", profileId)
+    .in("role", ["client_manager", "client_member"]);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/users");
 }
