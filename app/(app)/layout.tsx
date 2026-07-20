@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { trackVisit } from "@/lib/track";
 import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-access";
+import { hasConnectivity } from "@/lib/views/connectivity";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { MARKER_COOKIE, decodeMarker } from "@/lib/impersonation";
@@ -25,9 +26,10 @@ export default async function AppLayout({
 
   let accountName: string | null = null;
   let billingEnabled = false;
+  let connectivityEnabled = false;
   if (me.profile.client_id) {
     const supabase = await createClient();
-    const [{ data: client }, { data: firstName }] = await Promise.all([
+    const [{ data: client }, { data: firstName }, hasLines] = await Promise.all([
       supabase.from("clients").select("name, xero_contact_id").eq("id", me.profile.client_id).maybeSingle(),
       // Read the caller's own name via SECURITY DEFINER, not the RLS people query:
       // a person row stranded under a different client would be hidden by RLS and
@@ -35,9 +37,11 @@ export default async function AppLayout({
       me.profile.person_id
         ? supabase.rpc("my_first_name")
         : Promise.resolve({ data: null }),
+      hasConnectivity(me.profile.client_id),
     ]);
     accountName = client?.name ?? null;
     billingEnabled = !!client?.xero_contact_id;
+    connectivityEnabled = hasLines;
     // First-login gate: capture the user's name before they use the portal.
     // Skipped while a staff member is impersonating — saving is a write, which
     // the read-only impersonation guard blocks, so forcing it would dead-end.
@@ -45,6 +49,8 @@ export default async function AppLayout({
   }
 
   const allowed = allowedFeatures(me.profile.role, toOverrides(me.profile.feature_overrides));
+  // Connectivity shows only for clients who actually have lines (billing pattern).
+  if (!connectivityEnabled) allowed.delete("connectivity");
 
   return (
     <AppShell

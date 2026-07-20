@@ -2,6 +2,7 @@
 
 export const SECTION_LABELS: Record<string, string> = {
   home: "Account home",
+  connectivity: "Connectivity",
   devices: "Devices",
   device: "a device",
   billing: "Billing",
@@ -14,7 +15,7 @@ export const SECTION_LABELS: Record<string, string> = {
   other: "the portal",
 };
 
-const SECTIONS = new Set(["devices", "billing", "quotes", "support", "m365", "network", "team", "work"]);
+const SECTIONS = new Set(["connectivity", "devices", "billing", "quotes", "support", "m365", "network", "team", "work"]);
 
 /** Client-surface pathname → section key for visit tracking. */
 export function sectionFromPath(pathname: string): string {

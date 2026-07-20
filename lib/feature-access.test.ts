@@ -27,6 +27,11 @@ describe("canAccess", () => {
   it("unknown features are denied for clients", () => {
     expect(canAccess("client_manager", null, "nonsense")).toBe(false);
   });
+  it("connectivity is a gateable manager default", () => {
+    expect(canAccess("client_manager", null, "connectivity")).toBe(true);
+    expect(canAccess("client_manager", { connectivity: false }, "connectivity")).toBe(false);
+    expect(canAccess("client_member", null, "connectivity")).toBe(false);
+  });
 });
 
 describe("allowedFeatures", () => {

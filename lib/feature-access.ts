@@ -2,9 +2,10 @@
  *  Role gives the defaults; profiles.feature_overrides subtracts (v1 is
  *  subtractive only). Mirrored in SQL by public.has_feature() — keep in sync. */
 
-export const FEATURES = ["billing", "quotes", "team", "devices", "m365", "network"] as const;
+export const FEATURES = ["connectivity", "billing", "quotes", "team", "devices", "m365", "network"] as const;
 
 export const FEATURE_LABELS: Record<string, string> = {
+  connectivity: "Connectivity",
   billing: "Billing",
   quotes: "Quotes",
   team: "Team",
@@ -15,6 +16,7 @@ export const FEATURE_LABELS: Record<string, string> = {
 
 /** Nav href each feature gates (Home and Support are never gated). */
 export const FEATURE_HREFS: Record<string, string> = {
+  connectivity: "/connectivity",
   billing: "/billing",
   quotes: "/quotes",
   team: "/team",

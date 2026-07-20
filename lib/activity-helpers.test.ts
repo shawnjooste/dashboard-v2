@@ -19,6 +19,9 @@ describe("sectionFromPath", () => {
   it("maps unknown paths to 'other'", () => {
     expect(sectionFromPath("/welcome")).toBe("other");
   });
+  it("maps connectivity", () => {
+    expect(sectionFromPath("/connectivity")).toBe("connectivity");
+  });
 });
 
 describe("isLoginGap", () => {

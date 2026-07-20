@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { createTicketAction, type SupportActionState } from "../actions";
 import { PageHeader, SecondaryLink, Card } from "@/components/ui";
@@ -20,8 +21,10 @@ function SubmitButton() {
   );
 }
 
-export default function NewTicketPage() {
+function NewTicketForm() {
   const [state, action] = useActionState(createTicketAction, initial);
+  // Prefill from links like /support/new?subject=Line%20problem:%20Main%20fibre
+  const subjectDefault = useSearchParams().get("subject") ?? "";
 
   return (
     <div className="space-y-6">
@@ -42,6 +45,7 @@ export default function NewTicketPage() {
               name="subject"
               required
               maxLength={150}
+              defaultValue={subjectDefault}
               className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-[13.5px] text-ink outline-none"
               placeholder="What do you need help with?"
             />
@@ -64,5 +68,13 @@ export default function NewTicketPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function NewTicketPage() {
+  return (
+    <Suspense>
+      <NewTicketForm />
+    </Suspense>
   );
 }
