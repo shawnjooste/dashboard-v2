@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getClientNetwork, deviceLabel, type Overall } from "@/lib/views/network";
 import { PageHeader } from "@/components/ui";
 
@@ -23,6 +24,7 @@ function stamp(iso: string | null): string {
 export default async function NetworkPage() {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "network")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
 
   const net = await getClientNetwork();

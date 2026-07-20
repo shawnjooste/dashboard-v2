@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getVisibleDeviceHealth } from "@/lib/views/devices";
 import { getSampleDeviceHealth } from "@/lib/views/sample";
 import { summarize } from "@/lib/views/health";
@@ -12,6 +13,7 @@ import { PageHeader } from "@/components/ui";
 export default async function DevicesPage() {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "devices")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
 
   let devices = await getVisibleDeviceHealth();

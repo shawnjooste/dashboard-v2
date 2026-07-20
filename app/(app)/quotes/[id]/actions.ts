@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { isExpired } from "@/lib/quotes/doc";
 import { notifyQuoteDecision } from "@/lib/quote-emails";
 
@@ -17,6 +18,9 @@ async function decide(quoteId: string, decision: Decision, comment: string | nul
   const me = await getCurrentProfile();
   if (!me.authenticated || me.profile.role !== "client_manager" || !me.profile.client_id) {
     throw new Error("only client managers can act on quotes");
+  }
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "quotes")) {
+    throw new Error("quotes are not enabled for your account");
   }
 
   const service = createServiceClient();

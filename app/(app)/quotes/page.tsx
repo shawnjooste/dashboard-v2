@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getVisibleQuotes } from "@/lib/views/quotes";
 import { formatQuoteAmount } from "@/lib/quotes/doc";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
@@ -9,6 +10,7 @@ import { Card, CardHeader, PageHeader } from "@/components/ui";
 export default async function QuotesPage() {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "quotes")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
 
   const quotes = await getVisibleQuotes();

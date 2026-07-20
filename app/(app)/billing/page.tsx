@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getClientBilling } from "@/lib/views/billing";
 import { BillingView } from "@/components/BillingView";
 import { PageHeader } from "@/components/ui";
@@ -7,6 +8,7 @@ import { PageHeader } from "@/components/ui";
 export default async function BillingPage() {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "billing")) redirect("/");
   if (me.profile.role !== "client_manager" || !me.profile.client_id) redirect("/");
 
   const billing = await getClientBilling(me.profile.client_id);

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { sendOnboardingEmail } from "@/lib/notify";
 import { supportOnboardingContent } from "@/lib/onboarding-email";
 
@@ -23,6 +24,9 @@ export async function inviteTeamMember(
   const me = await getCurrentProfile();
   if (!me.authenticated || me.profile.role !== "client_manager" || !me.profile.client_id) {
     return { ok: false, error: "Only an account manager can add team members." };
+  }
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "team")) {
+    return { ok: false, error: "Team management is not enabled for your account." };
   }
 
   const first = String(formData.get("first_name") ?? "").trim();

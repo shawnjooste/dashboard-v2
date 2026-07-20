@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getQuoteDetail } from "@/lib/views/quotes";
 import { fmtMoney, STATUS_LABEL } from "@/lib/quotes/doc";
@@ -36,6 +37,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "quotes")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
 
   const quote = await getQuoteDetail(id);

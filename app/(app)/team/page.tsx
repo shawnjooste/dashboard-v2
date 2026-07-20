@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import {
   PageHeader,
   Card,
@@ -31,6 +32,7 @@ function statusTone(status: string): Health {
 export default async function TeamPage() {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "team")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
 
   const supabase = await createClient();
