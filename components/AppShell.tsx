@@ -4,6 +4,7 @@ import Link from "next/link";
 import logo from "@/public/rocking-logo.png";
 import type { UserRole } from "@/lib/types/domain";
 import { NAV } from "@/lib/nav";
+import { FEATURE_HREFS } from "@/lib/feature-access";
 import { Sidebar } from "./Sidebar";
 
 function initials(name: string): string {
@@ -19,6 +20,7 @@ export function AppShell({
   impersonating,
   accountName,
   billingEnabled = false,
+  allowedHrefs,
   children,
 }: {
   email: string;
@@ -26,11 +28,17 @@ export function AppShell({
   impersonating?: string | null;
   accountName?: string | null;
   billingEnabled?: boolean;
+  /** Hrefs of the gateable sections this user may see (from feature access).
+   *  Omitted (staff/admin shell) = no feature filtering. */
+  allowedHrefs?: string[];
   children: ReactNode;
 }) {
-  const groups = billingEnabled
-    ? NAV[role]
-    : NAV[role].map((g) => ({ ...g, items: g.items.filter((i) => i.href !== "/billing") }));
+  const gated = new Set(Object.values(FEATURE_HREFS));
+  const allowed = new Set(allowedHrefs ?? [...gated]);
+  if (!billingEnabled) allowed.delete("/billing"); // needs a Xero link too
+  const groups = NAV[role]
+    .map((g) => ({ ...g, items: g.items.filter((i) => !gated.has(i.href) || allowed.has(i.href)) }))
+    .filter((g) => g.items.length > 0);
   const supportHref = role === "rocking_staff" ? "https://help.rocking.co.za" : "/support";
   const orgLabel = accountName ?? (role === "rocking_staff" ? "Rocking" : email.split("@")[1] ?? "");
 
