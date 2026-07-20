@@ -5,6 +5,7 @@ import { SummaryStrip } from "@/components/SummaryStrip";
 import { DeviceTable } from "@/components/DeviceTable";
 import { UsersSection } from "./UsersSection";
 import { SupportSection } from "./SupportSection";
+import { ConnectivitySection } from "./ConnectivitySection";
 import { ProductsSection } from "./ProductsSection";
 import { PageHeader, SecondaryLink } from "@/components/ui";
 
@@ -34,6 +35,7 @@ export default async function AdminClientPage({
       />
       <SummaryStrip summary={summarize(devices)} />
       <SupportSection clientId={id} />
+      <ConnectivitySection clientId={id} />
       <ProductsSection clientId={id} />
       <DeviceTable devices={devices} rowHref={(id) => `/admin/devices/${id}`} />
       <UsersSection clientId={id} />
