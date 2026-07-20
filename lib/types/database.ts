@@ -183,6 +183,59 @@ export type Database = {
           },
         ]
       }
+      connectivity_services: {
+        Row: {
+          client_id: string
+          created_at: string
+          download_mbps: number | null
+          id: string
+          is_active: boolean
+          kind: string
+          label: string
+          librenms_device_id: number | null
+          notes: string | null
+          provider: string | null
+          updated_at: string
+          upload_mbps: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          download_mbps?: number | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label: string
+          librenms_device_id?: number | null
+          notes?: string | null
+          provider?: string | null
+          updated_at?: string
+          upload_mbps?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          download_mbps?: number | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label?: string
+          librenms_device_id?: number | null
+          notes?: string | null
+          provider?: string | null
+          updated_at?: string
+          upload_mbps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connectivity_services_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_alerts: {
         Row: {
           alert_policy: string | null
