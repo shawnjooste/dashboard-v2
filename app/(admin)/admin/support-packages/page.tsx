@@ -4,6 +4,9 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getSupportPackages } from "@/lib/views/support-packages";
 import { savePackage } from "@/lib/actions/support-packages";
 import { fmtMinutes, monthKey, usedMinutesInMonth } from "@/lib/support-package-helpers";
+import { getActiveServices, getAllBookings } from "@/lib/views/bookings";
+import { saveServicePrice, markBookingCompleted, cancelBooking } from "@/lib/actions/bookings";
+import { fmtRands, totalCents } from "@/lib/booking-helpers";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
@@ -14,10 +17,12 @@ export default async function SupportPackagesPage() {
 
   const supabase = await createClient();
   const key = monthKey(new Date());
-  const [packages, clientsRes, entriesRes] = await Promise.all([
+  const [packages, clientsRes, entriesRes, services, bookings] = await Promise.all([
     getSupportPackages(),
     supabase.from("clients").select("id, name, support_package_id, support_plan_label").order("name"),
     supabase.from("support_time_entries").select("client_id, occurred_on, minutes").gte("occurred_on", `${key}-01`),
+    getActiveServices(),
+    getAllBookings(),
   ]);
   const clients = clientsRes.data ?? [];
   const entries = entriesRes.data ?? [];
@@ -98,6 +103,82 @@ export default async function SupportPackagesPage() {
               })}
             </tbody>
           </table>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader title="Paid session prices" count={services.length} />
+        {services.map((s) => (
+          <form
+            key={s.id}
+            action={saveServicePrice}
+            className="flex flex-wrap items-center gap-2 border-b border-line-soft px-4 py-3.5 last:border-0"
+          >
+            <input type="hidden" name="id" value={s.id} />
+            <span className="w-48 text-sm font-medium text-ink">{s.name}</span>
+            <label className="flex items-center gap-1.5 text-[13px] text-ink-2">
+              R
+              <input
+                name="price_rands"
+                type="number"
+                min="1"
+                step="50"
+                defaultValue={s.priceCents / 100}
+                className={`${FIELD} w-28`}
+              />
+              ex VAT / hour
+            </label>
+            <span className="text-xs text-muted">({fmtRands(totalCents(s.priceCents))} incl)</span>
+            <button className="ml-auto rounded-lg bg-ink px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-black">
+              Save
+            </button>
+          </form>
+        ))}
+      </Card>
+
+      <Card>
+        <CardHeader title="Bookings" count={bookings.length} />
+        {bookings.length === 0 ? (
+          <p className="px-4 py-3.5 text-sm text-muted">No bookings yet.</p>
+        ) : (
+          <ul>
+            {bookings.map((b) => {
+              const complete = markBookingCompleted.bind(null, b.id);
+              const cancel = cancelBooking.bind(null, b.id);
+              return (
+                <li key={b.id} className="flex flex-wrap items-center gap-2.5 border-b border-line-soft px-4 py-3 last:border-0">
+                  <span className="shrink-0 rounded bg-line-soft px-1.5 py-0.5 text-[11px] font-medium capitalize text-ink-3">
+                    {b.status === "pending_payment" ? "pending" : b.status}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink">
+                      {b.clientName ?? "—"} · {b.serviceName} · {b.slotLabel}
+                    </p>
+                    <p className="truncate text-xs text-faint">
+                      {fmtRands(b.amountCents + b.vatCents)} incl
+                      {b.freescoutNumber ? ` · ticket #${b.freescoutNumber}` : ""}
+                      {b.note ? ` · ${b.note}` : ""}
+                    </p>
+                  </div>
+                  {b.status === "paid" && (
+                    <form action={complete}>
+                      <button className="text-xs font-semibold text-good">Mark completed</button>
+                    </form>
+                  )}
+                  {(b.status === "paid" || b.status === "pending_payment") && (
+                    <form action={cancel}>
+                      <button
+                        className="text-xs text-faint hover:text-brand"
+                        title="Cancel (refunds are manual — Paystack dashboard)"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </Card>
     </div>
