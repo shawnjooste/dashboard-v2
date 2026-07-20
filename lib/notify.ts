@@ -121,6 +121,39 @@ export async function sendOnboardingEmail(opts: {
   });
 }
 
+/** Booking-paid confirmation. Reply-to is the helpdesk, so "need to
+ *  reschedule? just reply" lands as a FreeScout ticket. */
+export async function sendBookingConfirmation(opts: {
+  to: string;
+  serviceName: string;
+  slotLabel: string;
+  totalCents: number;
+  reference: string;
+  clientId: string | null;
+}): Promise<void> {
+  const rands = `R ${(opts.totalCents / 100).toFixed(2).replace(".", ",")}`;
+  await sendEmail({
+    to: opts.to,
+    subject: `Booking confirmed — ${opts.serviceName}, ${opts.slotLabel}`,
+    replyTo: SUPPORT_EMAIL,
+    category: "booking",
+    clientId: opts.clientId,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1a1a;">
+        <h2 style="margin:0 0 8px;">You're booked in</h2>
+        <p style="color:#444;margin:0 0 16px;">
+          Your <strong>${opts.serviceName}</strong> is confirmed for <strong>${opts.slotLabel}</strong>.
+          Paid: <strong>${rands}</strong> (ref ${opts.reference}).
+        </p>
+        <p style="color:#444;margin:0 0 16px;">
+          One of our engineers will be in touch at the booked time. Need to reschedule?
+          Just reply to this email and we'll sort it out.
+        </p>
+        <p style="color:#888;margin:16px 0 0;font-size:13px;">&mdash; The Rocking team</p>
+      </div>`,
+  });
+}
+
 const ROLE_LABEL: Record<string, string> = {
   client_manager: "Manager",
   client_member: "Member",
