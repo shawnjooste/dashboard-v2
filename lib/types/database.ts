@@ -1635,6 +1635,7 @@ export type Database = {
           created_at: string
           decline_reason: string | null
           email: string
+          feature_overrides: Json | null
           first_signin_notified_at: string | null
           id: string
           pending_notified_at: string | null
@@ -1648,6 +1649,7 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           email: string
+          feature_overrides?: Json | null
           first_signin_notified_at?: string | null
           id: string
           pending_notified_at?: string | null
@@ -1661,6 +1663,7 @@ export type Database = {
           created_at?: string
           decline_reason?: string | null
           email?: string
+          feature_overrides?: Json | null
           first_signin_notified_at?: string | null
           id?: string
           pending_notified_at?: string | null
@@ -2364,6 +2367,7 @@ export type Database = {
         Args: { p_device_id: string }
         Returns: boolean
       }
+      has_feature: { Args: { p_feature: string }; Returns: boolean }
       ingest_network_report: { Args: { payload: Json }; Returns: Json }
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }

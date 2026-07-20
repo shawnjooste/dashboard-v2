@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { FEATURES, allowedFeatures, canAccess, overridesFromSelection } from "./feature-access";
+import { FEATURES, allowedFeatures, canAccess, overridesFromSelection, toOverrides } from "./feature-access";
+
+describe("toOverrides", () => {
+  it("passes objects through and rejects non-objects", () => {
+    expect(toOverrides({ billing: false })).toEqual({ billing: false });
+    expect(toOverrides(null)).toBeNull();
+    expect(toOverrides("x")).toBeNull();
+    expect(toOverrides([1])).toBeNull();
+  });
+});
 
 describe("canAccess", () => {
   it("staff always passes", () => {

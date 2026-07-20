@@ -25,6 +25,11 @@ export const FEATURE_HREFS: Record<string, string> = {
 
 export type Overrides = Record<string, boolean> | null;
 
+/** Narrow a stored jsonb value (unknown shape) to Overrides. */
+export function toOverrides(v: unknown): Overrides {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, boolean>) : null;
+}
+
 const MANAGER_DEFAULTS = new Set<string>(FEATURES);
 const MEMBER_DEFAULTS = new Set<string>();
 

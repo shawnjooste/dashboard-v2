@@ -31,6 +31,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile> {
         first_signin_notified_at: null,
         decline_reason: null,
         person_id: null,
+        feature_overrides: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
