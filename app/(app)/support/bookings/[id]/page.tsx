@@ -4,6 +4,7 @@ import { verifyTransaction } from "@/lib/paystack";
 import { confirmBooking } from "@/lib/booking-confirm";
 import { fmtRands } from "@/lib/booking-helpers";
 import { Card, PageHeader, StatusPill } from "@/components/ui";
+import { PendingBookingRefresh } from "@/components/PendingBookingRefresh";
 
 /** Booking status. If the client lands here from Paystack before the webhook
  *  arrives, the server-side verify fallback confirms the payment — the page
@@ -70,10 +71,13 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
               Reply to your confirmation email or raise a ticket and we&apos;ll sort it out.
             </p>
           ) : booking.status === "pending_payment" ? (
-            <p className="text-sm text-muted">
-              This slot is held for 30 minutes while payment completes. If you closed the payment page, head back to
-              Support and book again.
-            </p>
+            <>
+              <PendingBookingRefresh />
+              <p className="text-sm text-muted">
+                Checking your payment — this page updates itself, no need to refresh. The slot is held for 30 minutes
+                while payment completes; if you closed the payment page, head back to Support and book again.
+              </p>
+            </>
           ) : (
             <p className="text-sm text-muted">This booking was cancelled. If that&apos;s unexpected, raise a ticket.</p>
           )}
