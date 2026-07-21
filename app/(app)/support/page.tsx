@@ -61,6 +61,38 @@ export default async function SupportPage() {
     <div className="space-y-6">
       <SupportPageHeader action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>} />
 
+      <Card>
+        <CardHeader title="Book a session" />
+        <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
+          Need hands-on help — remote or at your office? Book a one-hour slot and pay online; weekdays 08:00–17:00.
+        </p>
+        <BookSession services={services} slots={slots} />
+      </Card>
+
+      {bookings.length > 0 && (
+        <Card>
+          <CardHeader title="Your bookings" count={bookings.length} />
+          {bookings.map((b) => (
+            <Link
+              key={b.id}
+              href={`/support/bookings/${b.id}`}
+              className="flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-0 hover:bg-canvas"
+            >
+              <StatusPill
+                tone={b.status === "paid" || b.status === "completed" ? "good" : b.status === "cancelled" ? "bad" : "warn"}
+                label={b.status === "pending_payment" ? "Awaiting payment" : b.status[0].toUpperCase() + b.status.slice(1)}
+              />
+              <div className="min-w-0">
+                <div className="truncate font-medium text-ink">
+                  {b.serviceName} — {b.slotLabel}
+                </div>
+                <div className="truncate text-xs text-muted">{fmtRands(b.amountCents + b.vatCents)} incl VAT</div>
+              </div>
+            </Link>
+          ))}
+        </Card>
+      )}
+
       {unavailable ? (
         <Card>
           <p className="px-4 py-6 text-sm text-muted">
@@ -92,38 +124,6 @@ export default async function SupportPage() {
                 </div>
               </div>
               <span className="ml-auto shrink-0 text-xs text-faint">{t.updatedAt.slice(0, 10)}</span>
-            </Link>
-          ))}
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader title="Book a session" />
-        <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
-          Need hands-on help — remote or at your office? Book a one-hour slot and pay online; weekdays 08:00–17:00.
-        </p>
-        <BookSession services={services} slots={slots} />
-      </Card>
-
-      {bookings.length > 0 && (
-        <Card>
-          <CardHeader title="Your bookings" count={bookings.length} />
-          {bookings.map((b) => (
-            <Link
-              key={b.id}
-              href={`/support/bookings/${b.id}`}
-              className="flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-0 hover:bg-canvas"
-            >
-              <StatusPill
-                tone={b.status === "paid" || b.status === "completed" ? "good" : b.status === "cancelled" ? "bad" : "warn"}
-                label={b.status === "pending_payment" ? "Awaiting payment" : b.status[0].toUpperCase() + b.status.slice(1)}
-              />
-              <div className="min-w-0">
-                <div className="truncate font-medium text-ink">
-                  {b.serviceName} — {b.slotLabel}
-                </div>
-                <div className="truncate text-xs text-muted">{fmtRands(b.amountCents + b.vatCents)} incl VAT</div>
-              </div>
             </Link>
           ))}
         </Card>
