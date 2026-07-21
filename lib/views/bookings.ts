@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { openSlots, type SlotBlocker } from "@/lib/booking-helpers";
+import { PENDING_HOLD_MINUTES, openSlots, type SlotBlocker } from "@/lib/booking-helpers";
 
 export type BookingService = { id: string; key: string; name: string; priceCents: number };
 
@@ -89,10 +89,19 @@ export async function getClientBookings(): Promise<Booking[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("support_bookings")
-    .select(SELECT)
+    .select(`${SELECT}, created_at`)
     .order("slot_start", { ascending: false })
     .limit(20);
-  return (data ?? []).map((b) => toBooking(b as unknown as BookingRow));
+  // Hide lapsed unpaid holds: an abandoned checkout frees its slot after the
+  // hold window, so its dead "Awaiting payment" row shouldn't linger either.
+  const cutoff = Date.now() - PENDING_HOLD_MINUTES * 60_000;
+  return (data ?? [])
+    .filter(
+      (b) =>
+        (b as { status: string }).status !== "pending_payment" ||
+        new Date((b as unknown as { created_at: string }).created_at).getTime() > cutoff,
+    )
+    .map((b) => toBooking(b as unknown as BookingRow));
 }
 
 /** Staff: all bookings, newest slots first, with the client name. */
