@@ -2056,6 +2056,96 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          category: string
+          client_id: string
+          context: Json | null
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string
+          kind: string
+          occurred_at: string
+          resolved: boolean
+          resolved_at: string | null
+          severity: string
+          source: string
+          source_ref: string
+          title: string
+          triage_note: string | null
+          triage_state: string
+          triaged_at: string | null
+          triaged_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          client_id: string
+          context?: Json | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          kind: string
+          occurred_at: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity: string
+          source: string
+          source_ref: string
+          title: string
+          triage_note?: string | null
+          triage_state?: string
+          triaged_at?: string | null
+          triaged_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          client_id?: string
+          context?: Json | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: string
+          source?: string
+          source_ref?: string
+          title?: string
+          triage_note?: string | null
+          triage_state?: string
+          triaged_at?: string | null
+          triaged_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_events_triaged_by_fkey"
+            columns: ["triaged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_aliases: {
         Row: {
           client_id: string
