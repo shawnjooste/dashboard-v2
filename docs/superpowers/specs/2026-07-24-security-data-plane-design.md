@@ -116,7 +116,19 @@ helpers, upserts `security_events` on `(client_id, source_ref)`:
 - activity rows: insert-if-absent (ignore duplicates).
 - posture rows: present-in-source → upsert as unresolved; previously-written
   posture rows whose weakness no longer appears → `resolved = true,
-  resolved_at = now()` (triage_state untouched).
+  resolved_at = now()` (triage_state untouched). A finding is only ever
+  resolved if the run positively re-evaluated that exact entity with a
+  definite (non-null) state this pass — an entity absent from a source read
+  (outage, auth failure) or reporting an ambiguous null field is left
+  untouched, never resolved. "Unknown" must never read as "fixed".
+- **`account_enabled` flips (v1 semantics, amended 2026-07-24 after
+  adversarial review):** without a snapshot of prior state, A cannot
+  distinguish "newly disabled since last run" from "has been disabled for
+  months" — it emits one activity row the first time a licensed account is
+  seen disabled, and does not detect a later re-enable/re-disable. Accepted
+  for A; proper flip detection (a small prior-state table, or reading it
+  back from existing `security_events`) is deferred to whichever later
+  sub-project needs it.
 - Prints a per-source summary (like datto-pull) and logs an `import_runs` row
   (`source = 'security-normalize'`) so the activity feed shows the run.
 - Scheduling: launchd `com.rocking.security-normalize` at 03:00 (after datto

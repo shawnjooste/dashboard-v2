@@ -37,7 +37,8 @@ export async function getSecurityEvents(filters: {
   if (filters.clientId) q = q.eq("client_id", filters.clientId);
   if (filters.triage) q = q.eq("triage_state", filters.triage);
   if (filters.openOnly) q = q.eq("resolved", false);
-  const [{ data }, { data: clients }] = await Promise.all([q, supabase.from("clients").select("id, name")]);
+  const [{ data, error }, { data: clients }] = await Promise.all([q, supabase.from("clients").select("id, name")]);
+  if (error) throw new Error(error.message);
   const name = new Map((clients ?? []).map((c) => [c.id, c.name]));
   const events = (data ?? []).map((e) => ({
     id: e.id,

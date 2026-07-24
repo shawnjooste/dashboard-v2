@@ -5,6 +5,12 @@
 // Activity rows are insert-if-absent (immutable); posture rows keep their
 // first-observed occurred_at, get re-opened if the weakness returns, and are
 // resolved when a sync no longer sees them. triage_state is NEVER written here.
+//
+// Unknown != fixed: a posture finding is only ever resolved if THIS run
+// positively re-evaluated that exact entity with a definite (non-null)
+// state — see `evaluatedRefs` below. A source read that comes back empty
+// (outage, auth failure, table truncated) evaluates nothing for that
+// source, so nothing from it gets mass-resolved.
 import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -23,23 +29,41 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
   auth: { persistSession: false },
 });
 
+// PostgREST caps unbounded selects at its default max-rows; page through
+// everything so a table crossing that cap never silently loses rows (which
+// would otherwise read as "the weakness is gone" and wrongly resolve it).
+async function fetchAll(table, select, build) {
+  const PAGE = 1000;
+  let from = 0;
+  let all = [];
+  for (;;) {
+    let q = sb.from(table).select(select).range(from, from + PAGE - 1);
+    if (build) q = build(q);
+    const { data, error } = await q;
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 const now = new Date().toISOString();
 const counts = { activity: 0, postureOpen: 0, postureResolved: 0 };
 const activityRows = [];
 const postureRows = [];
+// Composite `${client_id}|${source_ref}` for every entity this run positively
+// evaluated with a definite state (flagged OR confirmed clear). Only refs in
+// here are eligible to have a previously-open finding resolved.
+const evaluatedRefs = new Set();
+const evaluate = (clientId, ref) => evaluatedRefs.add(`${clientId}|${ref}`);
 
 // ---------- Datto: alerts (activity) + AV/patch (posture) ----------
-const { data: devices, error: devErr } = await sb
-  .from("devices")
-  .select("id, client_id, datto_uid, hostname, av_ok");
-if (devErr) throw devErr;
+const devices = await fetchAll("devices", "id, client_id, datto_uid, hostname, av_ok");
 const devById = new Map(devices.map((d) => [d.id, d]));
 
-const { data: alerts, error: alertErr } = await sb
-  .from("device_alerts")
-  .select("device_id, triggered_at, message, priority, resolved, alert_policy");
-if (alertErr) throw alertErr;
-for (const a of alerts ?? []) {
+const alerts = await fetchAll("device_alerts", "device_id, triggered_at, message, priority, resolved, alert_policy");
+for (const a of alerts) {
   const d = devById.get(a.device_id);
   if (!d) continue;
   const m = mapDattoAlert(a.priority);
@@ -50,11 +74,17 @@ for (const a of alerts ?? []) {
     title: a.message.slice(0, 200), detail: a.alert_policy,
     context: { resolved_in_source: a.resolved },
     occurred_at: a.triggered_at,
-    source_ref: refDattoAlert(d.datto_uid, a.triggered_at, a.message),
+    source_ref: refDattoAlert(d.datto_uid, a.triggered_at, a.alert_policy),
   });
 }
 
 for (const d of devices) {
+  // av_ok is a tri-state: true (fine), false (off — flag it), null (Datto
+  // gave us no AV data this pull, e.g. an offline device) — null is NOT
+  // evidence of "fixed", so it's excluded from evaluation entirely.
+  if (d.av_ok === null) continue;
+  const ref = refDattoAv(d.datto_uid);
+  evaluate(d.client_id, ref);
   if (d.av_ok === false) {
     const m = mapDattoAvPosture();
     postureRows.push({
@@ -62,51 +92,56 @@ for (const d of devices) {
       category: m.category, severity: m.severity,
       entity_type: "device", entity_id: d.datto_uid, entity_label: d.hostname,
       title: `Antivirus not running on ${d.hostname}`,
-      occurred_at: now, source_ref: refDattoAv(d.datto_uid),
+      occurred_at: now, source_ref: ref,
     });
   }
 }
-const { data: patch, error: patchErr } = await sb
-  .from("device_patch_status")
-  .select("device_id, patch_status");
-if (patchErr) throw patchErr;
-for (const p of patch ?? []) {
+const patch = await fetchAll("device_patch_status", "device_id, patch_status");
+for (const p of patch) {
   const d = devById.get(p.device_id);
-  const m = d && mapDattoPatchPosture(p.patch_status);
-  if (!d || !m) continue;
+  if (!d || p.patch_status == null) continue; // no reported status = unknown, not evaluated
+  const ref = refDattoPatch(d.datto_uid);
+  evaluate(d.client_id, ref);
+  const m = mapDattoPatchPosture(p.patch_status);
+  if (!m) continue;
   postureRows.push({
     client_id: d.client_id, kind: "posture", source: "datto",
     category: m.category, severity: m.severity,
     entity_type: "device", entity_id: d.datto_uid, entity_label: d.hostname,
     title: `Patching problem on ${d.hostname}: ${p.patch_status}`,
-    occurred_at: now, source_ref: refDattoPatch(d.datto_uid),
+    occurred_at: now, source_ref: ref,
   });
 }
 
 // ---------- M365: identity posture + tenant config + disabled accounts ----------
-const { data: m365, error: m365Err } = await sb
-  .from("m365_users")
-  .select("client_id, m365_user_id, display_name, user_principal_name, account_enabled, is_licensed, mfa_methods, mfa_strong");
-if (m365Err) throw m365Err;
-for (const u of m365 ?? []) {
-  if (u.is_licensed && u.account_enabled && !u.mfa_strong) {
-    const m = mapM365Identity(u.mfa_methods ?? []);
-    postureRows.push({
-      client_id: u.client_id, kind: "posture", source: "m365",
-      category: m.category, severity: m.severity,
-      entity_type: "user", entity_id: u.m365_user_id,
-      entity_label: u.display_name ?? u.user_principal_name,
-      title:
-        (u.mfa_methods ?? []).length === 0
-          ? `${u.display_name ?? u.user_principal_name} signs in with password only`
-          : `${u.display_name ?? u.user_principal_name} has no strong MFA method`,
-      context: { mfa_methods: u.mfa_methods },
-      occurred_at: now, source_ref: refM365Mfa(u.m365_user_id),
-    });
+const m365 = await fetchAll(
+  "m365_users",
+  "client_id, m365_user_id, display_name, user_principal_name, account_enabled, is_licensed, mfa_methods, mfa_strong",
+);
+for (const u of m365) {
+  if (u.is_licensed && u.account_enabled) {
+    const ref = refM365Mfa(u.m365_user_id);
+    evaluate(u.client_id, ref);
+    if (!u.mfa_strong) {
+      const m = mapM365Identity(u.mfa_methods ?? []);
+      postureRows.push({
+        client_id: u.client_id, kind: "posture", source: "m365",
+        category: m.category, severity: m.severity,
+        entity_type: "user", entity_id: u.m365_user_id,
+        entity_label: u.display_name ?? u.user_principal_name,
+        title:
+          (u.mfa_methods ?? []).length === 0
+            ? `${u.display_name ?? u.user_principal_name} signs in with password only`
+            : `${u.display_name ?? u.user_principal_name} has no strong MFA method`,
+        context: { mfa_methods: u.mfa_methods },
+        occurred_at: now, source_ref: ref,
+      });
+    }
   }
-  // Disabled licensed account: one-time activity row (dedup by user). First
-  // run emits currently-disabled accounts once; re-disable after re-enable
-  // will NOT re-emit (v1 limitation — needs state history we don't keep yet).
+  // Disabled licensed account: one-time activity row (dedup by user). v1
+  // limitation, documented and accepted (spec amended 2026-07-24): this
+  // emits currently-disabled accounts once on first sight; it does not
+  // track enable/disable flips over time (no state history kept in A).
   if (u.is_licensed && u.account_enabled === false) {
     const m = mapM365AccountDisabled();
     activityRows.push({
@@ -119,29 +154,28 @@ for (const u of m365 ?? []) {
     });
   }
 }
-const { data: tenants, error: tenErr } = await sb
-  .from("m365_tenant")
-  .select("client_id, security_defaults_on, ca_policy_count");
-if (tenErr) throw tenErr;
-for (const t of tenants ?? []) {
-  if (t.security_defaults_on === false && (t.ca_policy_count ?? 0) === 0) {
+const tenants = await fetchAll("m365_tenant", "client_id, security_defaults_on, ca_policy_count");
+for (const t of tenants) {
+  // Both fields must be definite — either can be null when its Graph call
+  // failed upstream, and a null ca_policy_count must never read as "0".
+  if (t.security_defaults_on === null || t.ca_policy_count === null) continue;
+  const ref = refM365SecDefaults(t.client_id);
+  evaluate(t.client_id, ref);
+  if (t.security_defaults_on === false && t.ca_policy_count === 0) {
     const m = mapM365SecurityDefaults();
     postureRows.push({
       client_id: t.client_id, kind: "posture", source: "m365",
       category: m.category, severity: m.severity,
       entity_type: "tenant", entity_id: t.client_id, entity_label: "Microsoft 365 tenant",
       title: "Security defaults off with no conditional access policies",
-      occurred_at: now, source_ref: refM365SecDefaults(t.client_id),
+      occurred_at: now, source_ref: ref,
     });
   }
 }
 
 // ---------- Network: down/alerting devices (activity) ----------
-const { data: net, error: netErr } = await sb
-  .from("network_devices")
-  .select("client_id, source_device_id, name, kind, status, last_seen_at");
-if (netErr) throw netErr;
-for (const n of net ?? []) {
+const net = await fetchAll("network_devices", "client_id, source_device_id, name, kind, status, last_seen_at");
+for (const n of net) {
   const m = mapNetworkDown(n.status);
   if (!m) continue;
   activityRows.push({
@@ -151,7 +185,8 @@ for (const n of net ?? []) {
     entity_label: n.name ?? n.source_device_id,
     title: `${n.name ?? "Network device"} is ${n.status}`,
     context: { kind: n.kind, last_seen_at: n.last_seen_at },
-    occurred_at: n.last_seen_at ?? now, source_ref: refNetworkDown(n.source_device_id),
+    occurred_at: n.last_seen_at ?? now,
+    source_ref: refNetworkDown(n.source_device_id, n.last_seen_at),
   });
 }
 
@@ -195,22 +230,20 @@ for (const [clientId, refs] of currentByClient) {
 counts.postureOpen = postureRows.length;
 
 // ---------- Resolve posture rows whose weakness vanished from source ----------
-const { data: openPosture, error: openErr } = await sb
-  .from("security_events")
-  .select("id, client_id, source_ref")
-  .eq("kind", "posture")
-  .eq("resolved", false);
-if (openErr) throw openErr;
+// Only among refs THIS run evaluated with a definite state (see `evaluate`
+// above) — everything else stays open, fail-safe, until we can say for sure.
+const openPosture = await fetchAll("security_events", "id, client_id, source_ref", (q) =>
+  q.eq("kind", "posture").eq("resolved", false),
+);
 const currentRefs = postureRows.map((r) => `${r.client_id}|${r.source_ref}`);
+const evaluatedOpen = openPosture.filter((r) => evaluatedRefs.has(`${r.client_id}|${r.source_ref}`));
 const toResolve = new Set(
   postureToResolve(
-    (openPosture ?? []).map((r) => `${r.client_id}|${r.source_ref}`),
+    evaluatedOpen.map((r) => `${r.client_id}|${r.source_ref}`),
     currentRefs,
   ),
 );
-const resolveIds = (openPosture ?? [])
-  .filter((r) => toResolve.has(`${r.client_id}|${r.source_ref}`))
-  .map((r) => r.id);
+const resolveIds = evaluatedOpen.filter((r) => toResolve.has(`${r.client_id}|${r.source_ref}`)).map((r) => r.id);
 for (let i = 0; i < resolveIds.length; i += CHUNK) {
   const { error } = await sb
     .from("security_events")
@@ -220,9 +253,10 @@ for (let i = 0; i < resolveIds.length; i += CHUNK) {
 }
 counts.postureResolved = resolveIds.length;
 
-await sb.from("import_runs").insert({
+const { error: runErr } = await sb.from("import_runs").insert({
   source: "security-normalize",
   report_date: now.slice(0, 10),
   counts,
 });
+if (runErr) console.error("import_runs log failed (non-fatal):", runErr.message);
 console.log("Security normalize complete:", JSON.stringify(counts, null, 1));
