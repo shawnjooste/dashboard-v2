@@ -19,6 +19,7 @@ export const NAV: Record<UserRole, NavGroup[]> = {
     {
       label: "Services",
       items: [
+        { label: "Security", href: "/admin/security" },
         { label: "Microsoft 365", href: "/admin/m365" },
         { label: "Devices", href: "/admin/devices" },
         { label: "UniFi", href: "https://unifi.rocking.co.za:8443/manage/nmvgyf9h/dashboard", external: true },
