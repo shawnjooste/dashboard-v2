@@ -11,6 +11,11 @@
 // state — see `evaluatedRefs` below. A source read that comes back empty
 // (outage, auth failure, table truncated) evaluates nothing for that
 // source, so nothing from it gets mass-resolved.
+//
+// A network device in Meraki's "alerting" status (online but unhealthy) is
+// deliberately excluded from the last_seen_at-based dedup used for
+// "offline" — see refNetworkDown in severity-map.mjs — because that field
+// keeps advancing while the device is still reporting.
 import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -32,12 +37,16 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 // PostgREST caps unbounded selects at its default max-rows; page through
 // everything so a table crossing that cap never silently loses rows (which
 // would otherwise read as "the weakness is gone" and wrongly resolve it).
-async function fetchAll(table, select, build) {
+// orderBy must be an indexed, always-present column on THAT table (not every
+// table here has an `id` — m365_tenant and device_patch_status use a
+// different primary key) — range pagination only avoids gaps/dupes when
+// every page request sees identical row ordering.
+async function fetchAll(table, select, orderBy, build) {
   const PAGE = 1000;
   let from = 0;
   let all = [];
   for (;;) {
-    let q = sb.from(table).select(select).range(from, from + PAGE - 1);
+    let q = sb.from(table).select(select).order(orderBy).range(from, from + PAGE - 1);
     if (build) q = build(q);
     const { data, error } = await q;
     if (error) throw error;
@@ -59,10 +68,14 @@ const evaluatedRefs = new Set();
 const evaluate = (clientId, ref) => evaluatedRefs.add(`${clientId}|${ref}`);
 
 // ---------- Datto: alerts (activity) + AV/patch (posture) ----------
-const devices = await fetchAll("devices", "id, client_id, datto_uid, hostname, av_ok");
+const devices = await fetchAll("devices", "id, client_id, datto_uid, hostname, av_ok", "id");
 const devById = new Map(devices.map((d) => [d.id, d]));
 
-const alerts = await fetchAll("device_alerts", "device_id, triggered_at, message, priority, resolved, alert_policy");
+const alerts = await fetchAll(
+  "device_alerts",
+  "device_id, triggered_at, message, priority, resolved, alert_policy",
+  "id",
+);
 for (const a of alerts) {
   const d = devById.get(a.device_id);
   if (!d) continue;
@@ -74,7 +87,7 @@ for (const a of alerts) {
     title: a.message.slice(0, 200), detail: a.alert_policy,
     context: { resolved_in_source: a.resolved },
     occurred_at: a.triggered_at,
-    source_ref: refDattoAlert(d.datto_uid, a.triggered_at, a.alert_policy),
+    source_ref: refDattoAlert(d.datto_uid, a.triggered_at, a.alert_policy, a.message),
   });
 }
 
@@ -96,7 +109,7 @@ for (const d of devices) {
     });
   }
 }
-const patch = await fetchAll("device_patch_status", "device_id, patch_status");
+const patch = await fetchAll("device_patch_status", "device_id, patch_status", "device_id");
 for (const p of patch) {
   const d = devById.get(p.device_id);
   if (!d || p.patch_status == null) continue; // no reported status = unknown, not evaluated
@@ -117,6 +130,7 @@ for (const p of patch) {
 const m365 = await fetchAll(
   "m365_users",
   "client_id, m365_user_id, display_name, user_principal_name, account_enabled, is_licensed, mfa_methods, mfa_strong",
+  "id",
 );
 for (const u of m365) {
   if (u.is_licensed && u.account_enabled) {
@@ -154,7 +168,7 @@ for (const u of m365) {
     });
   }
 }
-const tenants = await fetchAll("m365_tenant", "client_id, security_defaults_on, ca_policy_count");
+const tenants = await fetchAll("m365_tenant", "client_id, security_defaults_on, ca_policy_count", "client_id");
 for (const t of tenants) {
   // Both fields must be definite — either can be null when its Graph call
   // failed upstream, and a null ca_policy_count must never read as "0".
@@ -174,7 +188,11 @@ for (const t of tenants) {
 }
 
 // ---------- Network: down/alerting devices (activity) ----------
-const net = await fetchAll("network_devices", "client_id, source_device_id, name, kind, status, last_seen_at");
+const net = await fetchAll(
+  "network_devices",
+  "client_id, source_device_id, name, kind, status, last_seen_at",
+  "id",
+);
 for (const n of net) {
   const m = mapNetworkDown(n.status);
   if (!m) continue;
@@ -186,7 +204,7 @@ for (const n of net) {
     title: `${n.name ?? "Network device"} is ${n.status}`,
     context: { kind: n.kind, last_seen_at: n.last_seen_at },
     occurred_at: n.last_seen_at ?? now,
-    source_ref: refNetworkDown(n.source_device_id, n.last_seen_at),
+    source_ref: refNetworkDown(n.source_device_id, n.status, n.last_seen_at),
   });
 }
 
@@ -232,7 +250,7 @@ counts.postureOpen = postureRows.length;
 // ---------- Resolve posture rows whose weakness vanished from source ----------
 // Only among refs THIS run evaluated with a definite state (see `evaluate`
 // above) — everything else stays open, fail-safe, until we can say for sure.
-const openPosture = await fetchAll("security_events", "id, client_id, source_ref", (q) =>
+const openPosture = await fetchAll("security_events", "id, client_id, source_ref", "id", (q) =>
   q.eq("kind", "posture").eq("resolved", false),
 );
 const currentRefs = postureRows.map((r) => `${r.client_id}|${r.source_ref}`);
