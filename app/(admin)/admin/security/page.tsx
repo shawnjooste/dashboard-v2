@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { getSecurityEvents } from "@/lib/views/security";
+import { getSecurityEvents, getSecurityOverview } from "@/lib/views/security";
+import { SEVERITY_ORDER } from "@/lib/security/rollup";
 import { setTriage } from "@/lib/actions/security";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 
@@ -35,7 +36,10 @@ export default async function SecurityPage({
   const openOnly = params.open === "1";
   const clientId = params.client || undefined;
 
-  const { events, capped, totals } = await getSecurityEvents({ severity, kind, clientId, triage, openOnly });
+  const [{ events, capped, totals }, overview] = await Promise.all([
+    getSecurityEvents({ severity, kind, clientId, triage, openOnly }),
+    getSecurityOverview(),
+  ]);
   const clientsInFeed = [...new Map(events.map((e) => [e.clientId, e.clientName])).entries()].sort((a, b) =>
     a[1].localeCompare(b[1]),
   );
@@ -62,6 +66,54 @@ export default async function SecurityPage({
         title="Security"
         subtitle="The normalized security stream across every client and source — alerts, exposures, and Rocking's triage state."
       />
+
+      {/* Who needs attention most, across every client (open findings only) */}
+      <Card>
+        <CardHeader title="By client" count={overview.byClient.length} />
+        {overview.byClient.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted">No open findings anywhere. Quiet day.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="border-b border-line-soft text-left text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">
+              <tr>
+                <th className="px-4 py-2.5 font-semibold">Client</th>
+                {SEVERITY_ORDER.map((s) => (
+                  <th key={s} className="px-4 py-2.5 font-semibold capitalize">
+                    {s}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {overview.byClient.map((c) => (
+                <tr key={c.clientId} className="border-b border-line-soft last:border-0 hover:bg-canvas">
+                  <td className="px-4 py-2.5 font-medium">
+                    <Link href={`/admin/security?client=${c.clientId}`} className="text-ink hover:text-brand">
+                      {c.clientName}
+                    </Link>
+                  </td>
+                  {SEVERITY_ORDER.map((s) => {
+                    const n = c.counts[s] ?? 0;
+                    const tone =
+                      n === 0
+                        ? "text-faint"
+                        : s === "critical"
+                          ? "font-semibold text-brand"
+                          : s === "high"
+                            ? "font-semibold text-warn-ink"
+                            : "text-ink-2";
+                    return (
+                      <td key={s} className={`px-4 py-2.5 ${tone}`}>
+                        {n}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       {/* Severity summary for the current filter */}
       <div className="flex flex-wrap items-center gap-2">
