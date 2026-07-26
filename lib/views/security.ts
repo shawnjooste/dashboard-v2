@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { emptyCounts, rollupByClient, type ClientRollup, type SeverityCounts } from "@/lib/security/rollup";
 
 export type SecurityEventRow = {
   id: string;
@@ -58,4 +59,45 @@ export async function getSecurityEvents(filters: {
   const totals: Record<string, number> = {};
   for (const e of events) totals[e.severity] = (totals[e.severity] ?? 0) + 1;
   return { events, capped: (data?.length ?? 0) === CAP, totals };
+}
+
+export type SecurityOverview = {
+  totals: SeverityCounts;
+  byClient: ClientRollup<SecurityEventRow>[];
+};
+
+/** Open security events rolled up per client, worst-first — the SOC console's
+ *  single source. Staff-only by RLS, same as getSecurityEvents. "Open" means
+ *  resolved = false; activity events never resolve, so they always count. */
+export async function getSecurityOverview(): Promise<SecurityOverview> {
+  const supabase = await createClient();
+  const [{ data, error }, { data: clients }] = await Promise.all([
+    supabase
+      .from("security_events")
+      .select("id, kind, source, category, severity, client_id, entity_label, title, detail, occurred_at, resolved, triage_state")
+      .eq("resolved", false)
+      .order("occurred_at", { ascending: false })
+      .limit(2000),
+    supabase.from("clients").select("id, name"),
+  ]);
+  if (error) throw new Error(error.message);
+  const name = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const events: SecurityEventRow[] = (data ?? []).map((e) => ({
+    id: e.id,
+    kind: e.kind,
+    source: e.source,
+    category: e.category,
+    severity: e.severity,
+    clientId: e.client_id,
+    clientName: name.get(e.client_id) ?? "—",
+    entityLabel: e.entity_label,
+    title: e.title,
+    detail: e.detail,
+    occurredAt: e.occurred_at,
+    resolved: e.resolved,
+    triageState: e.triage_state,
+  }));
+  const totals = emptyCounts();
+  for (const e of events) totals[e.severity] = (totals[e.severity] ?? 0) + 1;
+  return { totals, byClient: rollupByClient(events) };
 }
