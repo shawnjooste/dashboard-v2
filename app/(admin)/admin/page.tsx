@@ -19,6 +19,11 @@ export default async function AdminHome() {
       value: String(d.jobs.open),
       dot: d.jobs.count > 0 ? "#B45309" : "#18181B",
     },
+    {
+      label: "SECURITY",
+      value: String(d.security.criticalHigh),
+      dot: d.security.criticalHigh > 0 ? "#B91C1C" : "#18181B",
+    },
   ];
 
   return (
@@ -32,7 +37,7 @@ export default async function AdminHome() {
       <p className="mt-1.5 text-sm text-muted">Everything that needs you, across all clients.</p>
 
       {/* Business glance */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-6">
         {kpis.map((k) => (
           <div key={k.label} className="rounded-[10px] border border-line bg-card px-4 py-3.5">
             <span className="flex items-center gap-[7px]">
@@ -46,6 +51,14 @@ export default async function AdminHome() {
 
       {/* Action panels */}
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DashboardPanel
+          title="Security needs attention"
+          count={d.security.count}
+          hot
+          items={d.security.items}
+          viewAll={{ label: "Open security", href: "/admin/security" }}
+          empty="Nothing critical open — the fleet looks clean."
+        />
         <DashboardPanel
           title="Approvals waiting"
           count={d.approvals.count}

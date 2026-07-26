@@ -6,6 +6,7 @@ import { getM365Overview } from "./m365";
 import { listRecentConversations } from "@/lib/freescout";
 import { fmtMoney } from "@/lib/quotes/doc";
 import { jobNudge } from "@/lib/job-nudge";
+import { getSecurityOverview } from "./security";
 import { type DeviceHealth } from "./health";
 
 /** One actionable line in a panel. `href` makes the primary text a link. */
@@ -32,6 +33,8 @@ export type AdminDashboard = {
   tickets: DashPanel & { ok: boolean };
   /** Jobs that are sitting (waiting or stale); `open` = all open jobs. */
   jobs: DashPanel & { open: number };
+  /** Open critical/high security findings across all clients. */
+  security: DashPanel & { criticalHigh: number };
 };
 
 const TOP = 3;
@@ -77,7 +80,7 @@ async function getOpenTickets(): Promise<AdminDashboard["tickets"]> {
 /** Everything the admin overview needs, gathered across all clients in one pass. */
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   const supabase = await createClient();
-  const [clientsRes, pendingRes, devices, people, quotes, m365, tickets, jobsRes] = await Promise.all([
+  const [clientsRes, pendingRes, devices, people, quotes, m365, tickets, jobsRes, securityOverview] = await Promise.all([
     supabase.from("clients").select("id, name, status").order("name"),
     supabase.from("profiles").select("id, email, client_id, created_at").eq("status", "pending"),
     getVisibleDeviceHealth(),
@@ -89,6 +92,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       .from("jobs")
       .select("id, title, client_id, status, waiting_note, updated_at")
       .in("status", ["todo", "in_progress", "waiting"]),
+    getSecurityOverview(),
   ]);
 
   const clientName = new Map((clientsRes.data ?? []).map((c) => [c.id, c.name]));
@@ -146,6 +150,22 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     })),
   };
 
+  // Security — the worst open findings across every client.
+  const secEvents = securityOverview.byClient.flatMap((c) => c.topItems);
+  const worst = secEvents
+    .filter((e) => e.severity === "critical" || e.severity === "high")
+    .sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "critical" ? -1 : 1));
+  const securityPanel: AdminDashboard["security"] = {
+    criticalHigh: (securityOverview.totals.critical ?? 0) + (securityOverview.totals.high ?? 0),
+    count: worst.length,
+    items: worst.slice(0, TOP).map((e) => ({
+      id: e.id,
+      primary: e.title,
+      secondary: `${e.clientName} · ${e.severity}`,
+      href: "/admin/security",
+    })),
+  };
+
   // Quotes the client hasn't acted on yet (derived 'sent' excludes expired/decided).
   const awaiting = quotes.filter((q) => q.status === "sent");
   const pipeline = awaiting.reduce((n, q) => n + (q.grandTotal ?? 0), 0);
@@ -172,5 +192,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     quotes: quotesPanel,
     tickets,
     jobs: jobsPanel,
+    security: securityPanel,
   };
 }
