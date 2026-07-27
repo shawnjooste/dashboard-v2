@@ -22,6 +22,8 @@ export type JobCard = {
   taskDone: number;
   waitingNote: string | null;
   fromQuote: boolean;
+  dueDate: string | null;
+  boardPosition: number;
   updatedAt: string;
 };
 
@@ -59,7 +61,11 @@ function emailLabel(email: string | undefined | null): string | null {
 export async function getJobBoard(): Promise<JobCard[]> {
   const supabase = await createClient();
   const [{ data: jobs }, { data: clients }, { data: tasks }, { data: profiles }] = await Promise.all([
-    supabase.from("jobs").select("id, client_id, title, owner_profile_id, status, waiting_note, quote_id, updated_at").order("updated_at", { ascending: false }),
+    supabase
+      .from("jobs")
+      .select("id, client_id, title, owner_profile_id, status, waiting_note, quote_id, due_date, board_position, updated_at")
+      .order("board_position", { ascending: true })
+      .order("updated_at", { ascending: false }),
     supabase.from("clients").select("id, name"),
     supabase.from("job_tasks").select("job_id, done"),
     supabase.from("profiles").select("id, email"),
@@ -85,6 +91,8 @@ export async function getJobBoard(): Promise<JobCard[]> {
       taskDone: c.d,
       waitingNote: j.waiting_note,
       fromQuote: !!j.quote_id,
+      dueDate: j.due_date,
+      boardPosition: j.board_position,
       updatedAt: j.updated_at,
     };
   });
