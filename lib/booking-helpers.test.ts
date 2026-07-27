@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PENDING_HOLD_MINUTES,
   fmtRands,
+  groupBookings,
   openSlots,
   slotTaken,
   totalCents,
@@ -79,5 +80,35 @@ describe("money", () => {
 describe("constants", () => {
   it("pending hold is 30 minutes", () => {
     expect(PENDING_HOLD_MINUTES).toBe(30);
+  });
+});
+
+describe("groupBookings", () => {
+  const now = new Date("2026-07-21T12:00:00Z");
+  const bk = (slotStart: string, status: string) => ({ slotStart, status });
+  it("paid future bookings are upcoming, soonest first", () => {
+    const g = groupBookings(
+      [bk("2026-07-24T06:00:00Z", "paid"), bk("2026-07-22T09:00:00Z", "paid")],
+      now,
+    );
+    expect(g.upcoming.map((b) => b.slotStart)).toEqual(["2026-07-22T09:00:00Z", "2026-07-24T06:00:00Z"]);
+    expect(g.needsAttention).toHaveLength(0);
+  });
+  it("paid bookings whose slot passed need attention", () => {
+    const g = groupBookings([bk("2026-07-20T06:00:00Z", "paid")], now);
+    expect(g.needsAttention).toHaveLength(1);
+    expect(g.upcoming).toHaveLength(0);
+  });
+  it("completed, cancelled and pending land in recent, newest slot first", () => {
+    const g = groupBookings(
+      [
+        bk("2026-07-10T06:00:00Z", "completed"),
+        bk("2026-07-15T06:00:00Z", "cancelled"),
+        bk("2026-07-22T06:00:00Z", "pending_payment"),
+      ],
+      now,
+    );
+    expect(g.recent.map((b) => b.status)).toEqual(["pending_payment", "cancelled", "completed"]);
+    expect(g.upcoming).toHaveLength(0);
   });
 });

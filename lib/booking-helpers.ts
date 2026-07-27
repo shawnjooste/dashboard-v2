@@ -57,6 +57,29 @@ export function totalCents(priceCents: number): number {
   return priceCents + vatCents(priceCents);
 }
 
+/** Admin triage buckets: paid+future = upcoming (soonest first); paid+past =
+ *  needs attention ("did we actually do this job?"); everything else = recent
+ *  history (newest slot first). */
+export function groupBookings<T extends { slotStart: string; status: string }>(
+  bookings: T[],
+  now: Date,
+): { upcoming: T[]; needsAttention: T[]; recent: T[] } {
+  const upcoming: T[] = [];
+  const needsAttention: T[] = [];
+  const recent: T[] = [];
+  for (const b of bookings) {
+    if (b.status === "paid") {
+      (new Date(b.slotStart) > now ? upcoming : needsAttention).push(b);
+    } else {
+      recent.push(b);
+    }
+  }
+  upcoming.sort((a, b) => a.slotStart.localeCompare(b.slotStart));
+  needsAttention.sort((a, b) => b.slotStart.localeCompare(a.slotStart));
+  recent.sort((a, b) => b.slotStart.localeCompare(a.slotStart));
+  return { upcoming, needsAttention, recent };
+}
+
 /** 115000 → "R 1 150,00" (space thousands, comma decimals — deterministic). */
 export function fmtRands(cents: number): string {
   const [whole, dec] = (cents / 100).toFixed(2).split(".");
