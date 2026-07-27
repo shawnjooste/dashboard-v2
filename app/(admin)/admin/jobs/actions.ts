@@ -251,3 +251,48 @@ export async function setJobOwner(jobId: string, ownerProfileId: string | null) 
   await supabase.from("jobs").update({ owner_profile_id: ownerProfileId, updated_at: new Date().toISOString() }).eq("id", jobId);
   revalidatePath(`/admin/jobs/${jobId}`);
 }
+
+/**
+ * Board drag: move a job to `toStatus` at `toIndex` within that column.
+ * A column change runs the same transition as the status buttons (including the
+ * completion email). Dropping into 'waiting' leaves waiting_note null — the card
+ * prompts for it afterwards rather than blocking the drag.
+ */
+export async function moveJob(jobId: string, toStatus: JobStatus, toIndex: number) {
+  const me = await staff();
+  if (!STATUSES.includes(toStatus)) throw new Error("invalid status");
+  const supabase = await createClient();
+  const { data: job } = await supabase.from("jobs").select("status").eq("id", jobId).maybeSingle();
+  if (!job) throw new Error("job not found");
+
+  if (job.status !== toStatus) {
+    await applyStatusChange(supabase, jobId, toStatus, null, me.id);
+  }
+
+  const { data: column } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("status", toStatus)
+    .order("board_position", { ascending: true })
+    .order("updated_at", { ascending: false });
+
+  const placed = placeCard((column ?? []).map((c) => c.id), jobId, toIndex);
+  await Promise.all(
+    placed.map((p) => supabase.from("jobs").update({ board_position: p.position }).eq("id", p.id)),
+  );
+
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Set or clear a job's target date. No email. */
+export async function setJobDueDate(jobId: string, dueDate: string | null) {
+  await staff();
+  const supabase = await createClient();
+  await supabase
+    .from("jobs")
+    .update({ due_date: dueDate || null, updated_at: new Date().toISOString() })
+    .eq("id", jobId);
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
