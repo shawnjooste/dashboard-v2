@@ -50,7 +50,11 @@ focused, numbered migrations.
 
 ## Phase 1 — Board feel
 
-**Migration `0053_jobs_board`**
+**Migration `0057_jobs_board`**
+
+> Numbering note: `0053`–`0056` were taken by the inbound-email/supplier work that
+> landed after this spec was first written. Phase 1 is `0057`, Phase 3 is `0058`.
+> Re-check the highest existing migration before creating either.
 
 ```sql
 alter table public.jobs add column due_date date;
@@ -130,7 +134,7 @@ own and tasks assigned to them across all jobs, overdue first. Backed by a new
 
 ## Phase 3 — Card depth
 
-**Migration `0054_job_comments_pin`**
+**Migration `0058_job_comments_pin`**
 
 ```sql
 create table public.job_comments (
