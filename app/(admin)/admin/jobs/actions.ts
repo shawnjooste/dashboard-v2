@@ -7,6 +7,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { notifyJobOpened, notifyJobCompleted, notifyJobUpdate, notifyTaskAssigned } from "@/lib/job-emails";
 import type { PersonName, AssigneeKind } from "@/lib/job-email-helpers";
 import { reorderSwap } from "@/lib/job-task-helpers";
+import { placeCard } from "@/lib/job-board-helpers";
 import type { JobStatus } from "@/lib/views/jobs";
 
 const STATUSES: JobStatus[] = ["todo", "in_progress", "waiting", "done", "cancelled"];
@@ -75,11 +76,23 @@ export async function createJobFromQuote(quoteId: string) {
   redirect(`/admin/jobs/${id}`);
 }
 
-export async function setJobStatus(jobId: string, status: JobStatus, waitingNote: string | null) {
-  const me = await staff();
-  if (!STATUSES.includes(status)) throw new Error("invalid status");
-  const supabase = await createClient();
-  const { data: job } = await supabase.from("jobs").select("client_id, title, status, owner_profile_id").eq("id", jobId).maybeSingle();
+/**
+ * The one status transition path — used by the status buttons and by a board
+ * drag. Handles the completed_at stamp, the client completion email, and the
+ * 'completed' activity row. Callers do the staff() guard and revalidation.
+ */
+async function applyStatusChange(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  jobId: string,
+  status: JobStatus,
+  waitingNote: string | null,
+  actorId: string,
+) {
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("client_id, title, status, owner_profile_id")
+    .eq("id", jobId)
+    .maybeSingle();
   if (!job) throw new Error("job not found");
 
   const justCompleted = status === "done" && job.status !== "done";
@@ -99,8 +112,15 @@ export async function setJobStatus(jobId: string, status: JobStatus, waitingNote
     } catch (e) {
       console.error("job completed email failed:", e);
     }
-    await supabase.from("job_updates").insert({ job_id: jobId, kind: "completed", posted_by_profile_id: me.id, emailed_count: emailed });
+    await supabase.from("job_updates").insert({ job_id: jobId, kind: "completed", posted_by_profile_id: actorId, emailed_count: emailed });
   }
+}
+
+export async function setJobStatus(jobId: string, status: JobStatus, waitingNote: string | null) {
+  const me = await staff();
+  if (!STATUSES.includes(status)) throw new Error("invalid status");
+  const supabase = await createClient();
+  await applyStatusChange(supabase, jobId, status, waitingNote, me.id);
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
 }
