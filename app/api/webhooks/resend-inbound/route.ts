@@ -86,7 +86,7 @@ export async function POST(req: Request) {
   const isInternal = fromEmail.endsWith("@rocking.one");
 
   // ---------- classify (mechanical only — no judgment here) ----------
-  let kind: "client_forward" | "supplier_reply" | "client_quote_reply" | "unclassified" = "unclassified";
+  let kind: "client_forward" | "supplier_reply" | "client_quote_reply" | "supplier_clarification" | "unclassified" = "unclassified";
   let rfqId: string | null = null;
   let quoteId: string | null = null;
 
@@ -104,21 +104,36 @@ export async function POST(req: Request) {
     }
   }
 
+  const tokenMatch = subject.match(/RFQ-([a-zA-Z0-9]{6,10})/);
+
   // supplier_reply: subject contains an open RFQ's tracking token and the
   // sender isn't internal staff.
-  if (kind === "unclassified" && !isInternal) {
-    const tokenMatch = subject.match(/RFQ-([a-zA-Z0-9]{6,10})/);
-    if (tokenMatch) {
-      const { data: rfq } = await service
-        .from("rfqs")
-        .select("id")
-        .eq("tracking_token", tokenMatch[1])
-        .in("status", ["new", "sourcing"])
-        .maybeSingle();
-      if (rfq) {
-        kind = "supplier_reply";
-        rfqId = rfq.id;
-      }
+  if (kind === "unclassified" && !isInternal && tokenMatch) {
+    const { data: rfq } = await service
+      .from("rfqs")
+      .select("id")
+      .eq("tracking_token", tokenMatch[1])
+      .in("status", ["new", "sourcing"])
+      .maybeSingle();
+    if (rfq) {
+      kind = "supplier_reply";
+      rfqId = rfq.id;
+    }
+  }
+
+  // supplier_clarification: staff replying to "which supplier?" — the
+  // pipeline emailed shawn@rocking.one with the pending RFQ's token in the
+  // subject because it couldn't resolve a supplier on its own.
+  if (kind === "unclassified" && isInternal && tokenMatch) {
+    const { data: rfq } = await service
+      .from("rfqs")
+      .select("id")
+      .eq("tracking_token", tokenMatch[1])
+      .is("supplier_email", null)
+      .maybeSingle();
+    if (rfq) {
+      kind = "supplier_clarification";
+      rfqId = rfq.id;
     }
   }
 
