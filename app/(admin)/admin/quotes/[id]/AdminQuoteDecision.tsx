@@ -12,15 +12,17 @@ export function AdminQuoteDecision({ quoteId }: { quoteId: string }) {
   const [pending, start] = useTransition();
   const [mode, setMode] = useState<null | "accept" | "reject">(null);
   const [reason, setReason] = useState("");
+  const [poNumber, setPoNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const run = (decision: "accepted" | "rejected", comment: string | null) => {
+  const run = (decision: "accepted" | "rejected", comment: string | null, po: string | null = null) => {
     setError(null);
     start(async () => {
-      const res = await adminDecideQuote(quoteId, decision, comment);
+      const res = await adminDecideQuote(quoteId, decision, comment, po);
       if (res.ok) {
         setMode(null);
         setReason("");
+        setPoNumber("");
         router.refresh();
       } else {
         setError(res.error);
@@ -62,11 +64,18 @@ export function AdminQuoteDecision({ quoteId }: { quoteId: string }) {
         {mode === "accept" && (
           <div className="space-y-2">
             <p className="text-[13px] font-medium text-ink">Accept this quote on behalf of the client?</p>
+            <input
+              type="text"
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              placeholder="Purchase order number (optional)"
+              className="w-full rounded-md border border-line bg-canvas px-2.5 py-2 text-[13px] text-ink outline-none focus:border-faint"
+            />
             <div className="flex gap-2">
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => run("accepted", null)}
+                onClick={() => run("accepted", null, poNumber.trim() || null)}
                 className="flex-1 rounded-md bg-good px-3 py-2 text-[13px] font-semibold text-white transition-colors hover:brightness-95 disabled:opacity-60"
               >
                 {pending ? "Saving…" : "Confirm accept"}

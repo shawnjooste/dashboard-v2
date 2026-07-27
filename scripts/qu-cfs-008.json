@@ -1,0 +1,96 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "Dell Pro 16 Laptop (32GB) & Spare Chargers",
+  "validUntil": "2026-07-23",
+  "number": "QU-CFS-008",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions",
+      "attention": "Siyamthanda",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-008",
+      "date": "16 July 2026",
+      "validUntil": "23 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell Pro 16 Laptop (32GB) & Spare Chargers",
+    "projectIntro": "This quote covers a Dell Pro 16 laptop upgraded to 32GB RAM (16GB models only are currently in stock, upgraded with an additional 16GB module), plus spare laptop chargers — 4x USB-C and 2x Dell round-pin. A second laptop request (Dell Latitude-class, Core Ultra 7 155U, 32GB native, biometric/Face IR) is being sourced separately and will follow in its own quote. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Laptop & Chargers",
+        "subtitle": "Supply only",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "name": "Laptop",
+            "items": [
+              {
+                "description": "Dell Pro 16 PC16250 — Ultra 7 255U, 16GB/512GB, 16\" FHD, W11 Pro, 3yr Pro Support",
+                "detail": "Intel Core Ultra 7 255U (12 TOPS, up to 5.2GHz). 16\" 16:10 FHD+ (1920x1200), 60Hz IPS, Anti-Glare, 300 nit. 512GB SSD PCIe Gen4. Intel Dual Band Wireless AX211 Wi-Fi 6/6E + Bluetooth. Windows 11 Professional. 3-year Dell Pro Support.",
+                "qty": 1,
+                "unitPrice": 27365.40
+              },
+              {
+                "description": "DDR5 5600MHz 16GB SODIMM (upgrade to 32GB total)",
+                "detail": "Additional 16GB module — combined with onboard 16GB for 32GB total (no native 32GB configuration currently in stock).",
+                "qty": 1,
+                "unitPrice": 4188.30
+              }
+            ]
+          },
+          {
+            "name": "Spare Chargers",
+            "items": [
+              {
+                "description": "Dell USB-C 90W AC Adapter (1m Power Cord, SA)",
+                "detail": "",
+                "qty": 4,
+                "unitPrice": 901.60
+              },
+              {
+                "description": "Dell 65W 4.5mm AC Adapter (Round-Pin)",
+                "detail": "ETA 3–4 weeks from supplier.",
+                "qty": 2,
+                "unitPrice": 362.25
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Laptop configured at 32GB via an additional RAM module (no native 32GB option currently in stock). Round-pin chargers have a 3–4 week supplier lead time — all other items are available sooner. A second laptop (Latitude-class, Ultra 7 155U, 32GB native) is being sourced and will be quoted separately.",
+    "terms": [
+      "This quote is valid for 9 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only — no installation or configuration included.",
+      "The 65W round-pin chargers have an estimated lead time of 3–4 weeks; all other items are available sooner.",
+      "Pricing is subject to exchange-rate fluctuations and supplier stock availability.",
+      "Payment is due prior to order placement.",
+      "Goods remain the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 23796.00, "note": "Supplier quote, BTO107_PC16250 — Dell Pro 16 Ultra 7 255U 16GB/512GB @ R23,796 ex VAT. Supplier not named in email; format matches prior Pinnacle quotes — unconfirmed. Standard 15% markup." },
+    { "path": "s0.g0.i1", "supplierCost": 3642.00,  "note": "Supplier quote, HSC516S56Z1-16G — DDR5 16GB SODIMM @ R3,642 ex VAT. Standard 15% markup." },
+    { "path": "s0.g1.i0", "supplierCost": 3136.00,  "note": "Supplier quote, 452-BDUI — 4× Dell USB-C 90W adapter @ R784 ex VAT each. Standard 15% markup." },
+    { "path": "s0.g1.i1", "supplierCost": 630.00,   "note": "Supplier quote, 450-ALOF — 2× Dell 65W 4.5mm adapter @ R315 ex VAT each. ETA 3-4 weeks. Standard 15% markup." }
+  ]
+}

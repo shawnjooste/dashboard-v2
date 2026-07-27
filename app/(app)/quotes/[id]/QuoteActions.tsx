@@ -18,8 +18,9 @@ export function QuoteActions({
   totalInclVat: string;
   canAct: boolean;
 }) {
-  const [mode, setMode] = useState<"none" | "amend" | "decline">("none");
+  const [mode, setMode] = useState<"none" | "accept" | "amend" | "decline">("none");
   const [comment, setComment] = useState("");
+  const [poNumber, setPoNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -34,14 +35,10 @@ export function QuoteActions({
     });
   };
 
-  const onAccept = () => {
-    if (
-      !window.confirm(
-        `Accept quote ${quoteNumber} for ${totalInclVat} incl VAT on behalf of ${clientName}?`,
-      )
-    )
-      return;
-    run(() => acceptQuote(quoteId));
+  const submitAccept = () => {
+    const fd = new FormData();
+    fd.set("po_number", poNumber);
+    run(() => acceptQuote(quoteId, fd));
   };
 
   const submitComment = () => {
@@ -58,7 +55,7 @@ export function QuoteActions({
           <>
             <button
               type="button"
-              onClick={onAccept}
+              onClick={() => { setMode(mode === "accept" ? "none" : "accept"); setError(null); }}
               disabled={pending}
               className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
             >
@@ -91,7 +88,43 @@ export function QuoteActions({
         </button>
       </div>
 
-      {mode !== "none" && canAct && (
+      {mode === "accept" && canAct && (
+        <div className="rounded-lg border border-line bg-card p-4">
+          <p className="text-[13px] font-medium text-ink">
+            Accept quote {quoteNumber} for {totalInclVat} incl VAT on behalf of {clientName}?
+          </p>
+          <label className="mt-3 block text-[13px] font-semibold text-ink-2">
+            Purchase order number (optional)
+          </label>
+          <input
+            type="text"
+            value={poNumber}
+            onChange={(e) => setPoNumber(e.target.value)}
+            placeholder="e.g. PO-4521"
+            className="mt-2 w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-[13.5px] text-ink outline-none"
+          />
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={submitAccept}
+              disabled={pending}
+              className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
+            >
+              {pending ? "Saving…" : "Confirm accept"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("none")}
+              disabled={pending}
+              className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line-soft"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(mode === "amend" || mode === "decline") && canAct && (
         <div className="rounded-lg border border-line bg-card p-4">
           <label className="text-[13px] font-semibold text-ink-2">
             {mode === "amend"

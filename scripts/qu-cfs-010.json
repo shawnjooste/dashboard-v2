@@ -1,0 +1,76 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "Spare Laptop Chargers",
+  "validUntil": "2026-07-30",
+  "number": "QU-CFS-010",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions",
+      "attention": "Siyamthanda",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-010",
+      "date": "16 July 2026",
+      "validUntil": "30 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Spare Laptop Chargers",
+    "projectIntro": "This quote covers spare laptop chargers — 4x USB-C and 2x Dell round-pin. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Spare Chargers",
+        "subtitle": "Supply only",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell USB-C 90W AC Adapter (1m Power Cord, SA)",
+                "detail": "",
+                "qty": 4,
+                "unitPrice": 901.60
+              },
+              {
+                "description": "Dell 65W 4.5mm AC Adapter (Round-Pin)",
+                "detail": "ETA 3–4 weeks from supplier.",
+                "qty": 2,
+                "unitPrice": 362.25
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Round-pin chargers have a 3–4 week supplier lead time — the USB-C chargers are available sooner.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only.",
+      "The 65W round-pin chargers have an estimated lead time of 3–4 weeks; the USB-C chargers are available sooner.",
+      "Pricing is subject to exchange-rate fluctuations and supplier stock availability.",
+      "Payment is due prior to order placement.",
+      "Goods remain the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 3136.00, "note": "Supplier quote, 452-BDUI — 4× Dell USB-C 90W adapter @ R784 ex VAT each. Split from QU-CFS-008 per Siya's ask to separate laptop from chargers. Standard 15% markup." },
+    { "path": "s0.g0.i1", "supplierCost": 630.00,  "note": "Supplier quote, 450-ALOF — 2× Dell 65W 4.5mm adapter @ R315 ex VAT each. ETA 3-4 weeks. Split from QU-CFS-008. Standard 15% markup." }
+  ]
+}

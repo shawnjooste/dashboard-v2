@@ -1,0 +1,89 @@
+{
+  "clientId": "6c2e8b46-b915-45a2-82d8-2fdfd220a938",
+  "title": "100Mbps Business Fibre Connectivity",
+  "validUntil": "2026-07-30",
+  "number": "QU-J2M-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "J2 MSSP",
+      "attention": "Jason Neilson",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-J2M-001",
+      "date": "16 July 2026",
+      "validUntil": "30 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "100Mbps Business Fibre Connectivity",
+    "projectIntro": "This quote covers a 100Mbps business fibre connection for J2 MSSP, backed by an SLA. The link is on-net with a low contention ratio and ample spare capacity, so the full 100Mbps is available at all times. Backhaul redundancy is built in via redundant paths and CGNAT — no separate failover link is required. The service is available from 1 August 2026 and is offered on a month-to-month basis; we do not offer fixed 12- or 24-month terms. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "setup",
+        "title": "Section 1 — Once-Off Setup",
+        "subtitle": "Connection and installation",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Business Fibre — Once-Off Setup",
+                "detail": "Connection and installation of the business fibre link.",
+                "qty": 1,
+                "unitPrice": 2500.00
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "recurring",
+        "title": "Section 2 — Monthly Connectivity",
+        "subtitle": "100Mbps business fibre, billed monthly",
+        "monthly": true,
+        "totalLabel": "TOTAL (incl VAT / month)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "100Mbps Business Fibre — SLA-Backed",
+                "detail": "On-net business fibre with SLA. Low contention (~1:5) with ample headroom to guarantee the full 100Mbps. Redundant backhaul paths via CGNAT.",
+                "qty": 1,
+                "unitPrice": 2500.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Month-to-month contract — no fixed term, no early termination penalty. Service available from 1 August 2026, subject to installation scheduling.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "This is a month-to-month service — no 12- or 24-month contract options are offered.",
+      "The service is backed by an SLA.",
+      "Backhaul redundancy is built into the link; a separate failover connection is not required.",
+      "Target service availability date: 1 August 2026, subject to installation scheduling.",
+      "Payment of the once-off setup fee is due prior to installation. Monthly fees are billed in advance."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 2500.00, "note": "Rocking's own connectivity product — sell price set directly by Shawn (per email to Jason Neilson, 15 Jul 2026). No external supplier markup; cost recorded equal to sell price (no tracked margin)." },
+    { "path": "s1.g0.i0", "supplierCost": 2500.00, "note": "Rocking's own connectivity product — 100Mbps monthly, sell price set directly by Shawn. No external supplier markup; cost recorded equal to sell price (no tracked margin)." }
+  ]
+}

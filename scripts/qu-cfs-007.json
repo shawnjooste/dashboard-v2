@@ -1,0 +1,75 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "Headsets & Webcams — Revised Order",
+  "validUntil": "2026-07-23",
+  "number": "QU-CFS-007",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions",
+      "attention": "Siyamthanda",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-007",
+      "date": "14 July 2026",
+      "validUntil": "23 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Headsets & Webcams — Revised Order",
+    "projectIntro": "This quote covers 15 Yealink UH34 SE dual headsets and 3 Genius FaceCam 1000X V2 webcams, per your revised requirements. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Headsets & Webcams",
+        "subtitle": "Supply only",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Yealink UH34 SE Dual Headset (Teams Edition)",
+                "detail": "Dual USB-A / 3.5mm jack connection.",
+                "qty": 15,
+                "unitPrice": 642.85
+              },
+              {
+                "description": "Genius FaceCam 1000X V2 Webcam (720HD)",
+                "detail": "",
+                "qty": 3,
+                "unitPrice": 272.55
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Quote based on Nology (QT00214372, 7 July 2026) and Linkqage (LSQ1715682, 7 July 2026). Supply only. Pricing valid for 9 days.",
+    "terms": [
+      "This quote is valid for 9 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only — no installation or configuration included.",
+      "Pricing is subject to exchange-rate fluctuations and supplier stock availability.",
+      "Payment is due prior to order placement.",
+      "Goods remain the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 8385.00, "note": "Nology QT00214372 — 15× Yealink UH34 SE @ R559 ex VAT each. Standard 15% markup. Stock in JHB branch. Pricing subject to FX." },
+    { "path": "s0.g0.i1", "supplierCost": 711.00,  "note": "Linkqage LSQ1715682 — 3× Genius FaceCam 1000X @ R237 ex VAT each. Standard 15% markup. FLAG: Linkqage quote valid 48hrs from 07-07-2026 — already expired, re-confirm pricing before ordering." }
+  ]
+}

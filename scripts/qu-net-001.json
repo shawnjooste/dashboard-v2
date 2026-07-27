@@ -1,0 +1,99 @@
+{
+  "clientId": "45d02cc0-6004-4b65-95f9-6e953937f612",
+  "title": "Rocking One — Managed IT Services",
+  "validUntil": "2026-07-16",
+  "number": "QU-NET-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Networkers Int",
+      "attention": "Robyn Dennis",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-NET-001",
+      "date": "2 July 2026",
+      "validUntil": "16 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Rocking One — Managed IT Services",
+    "projectIntro": "This quote covers Networkers Int's transition to Rocking One — Rocking's fully managed IT services platform. Rocking One consolidates your Microsoft 365 licensing, unlimited support, Datto Desktop AV + EDR endpoint protection, INKY Email Security, and Office 365 backup into a single per-user monthly subscription, replacing your existing SLA retainer and individual Microsoft 365 and backup line items. The comparison below shows your current spend against the Rocking One proposal. The PBX server fee (R 1,420 / month ex VAT) is not part of Rocking One and will continue to be billed separately. All prices below exclude VAT (15%).",
+    "comparisonTable": {
+      "beforeLabel": "Current (ex VAT)",
+      "afterLabel": "Rocking One",
+      "rows": [
+        { "label": "SLA Retainer", "before": "R 2,000", "after": "Included" },
+        { "label": "MS Office 365 Business Basic (1 user)", "before": "R 100", "after": "Included" },
+        { "label": "MS Office 365 Business Standard (14 users)", "before": "R 3,500", "after": "Included" },
+        { "label": "Office 365 Mailbox Backup (15 mailboxes)", "before": "R 750", "after": "Included" },
+        { "label": "Datto Desktop AV + EDR (15 users)", "before": "—", "after": "Included" },
+        { "label": "INKY Email Security (15 users)", "before": "—", "after": "Included" },
+        { "label": "Total ex VAT / month (excl. PBX)", "before": "R 6,350", "after": "R 8,900", "isTotal": true }
+      ]
+    },
+    "sections": [
+      {
+        "id": "recurring",
+        "title": "Section 1 — Rocking One Monthly Subscription",
+        "subtitle": "Per-user managed IT, billed monthly",
+        "monthly": true,
+        "totalLabel": "TOTAL (incl VAT / month)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Rocking One — Business Basic (per user / month)",
+                "detail": "Includes: Microsoft 365 Business Basic licence · Unlimited IT support · Datto Desktop Antivirus + EDR · INKY Email Security · Office 365 Backup.",
+                "qty": 1,
+                "unitPrice": 500.00
+              },
+              {
+                "description": "Rocking One — Business Standard (per user / month)",
+                "detail": "Includes: Microsoft 365 Business Standard licence · Unlimited IT support · Datto Desktop Antivirus + EDR · INKY Email Security · Office 365 Backup.",
+                "qty": 14,
+                "unitPrice": 600.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Rocking One replaces your SLA retainer, Microsoft 365 licences, and backup line items with a single per-user subscription that also adds Datto Desktop AV + EDR and INKY Email Security. The PBX server fee (R 1,420 / month ex VAT) remains unchanged and will continue to be billed separately.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Rocking One is billed monthly per active user. Users can be added or removed with 30 days' notice.",
+      "Microsoft 365 licensing is provided on a Microsoft NCE subscription and is subject to Microsoft price changes.",
+      "Datto and INKY services are subject to supplier pricing and availability.",
+      "The PBX server fee is not included in Rocking One and will continue to be invoiced separately.",
+      "Unlimited support covers remote support during business hours for covered users and devices.",
+      "On-site support, project work, and hardware supply are quoted separately."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": 0,
+      "note": "Rocking One Basic (1 user) @ R500 client ex VAT. Supplier cost TBD — components: M365 Business Basic (NCE ~R87 ex VAT), Datto AV+EDR, INKY, O365 Backup. Fill in once per-user costs confirmed."
+    },
+    {
+      "path": "s0.g0.i1",
+      "supplierCost": 0,
+      "note": "Rocking One Standard (14 users) @ R600/user client ex VAT. Supplier cost TBD — components: M365 Business Standard (NCE ~R217 ex VAT), Datto AV+EDR, INKY, O365 Backup. Fill in once per-user costs confirmed."
+    }
+  ]
+}

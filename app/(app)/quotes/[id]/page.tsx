@@ -103,6 +103,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           <strong>{STATUS_LABEL[quote.status]}</strong> by {quote.decision.actorName ?? "a manager"} on{" "}
           {quote.decision.at.slice(0, 10)}
           {quote.decision.comment ? <> — &ldquo;{quote.decision.comment}&rdquo;</> : null}
+          {quote.status === "accepted" && quote.poNumber ? <> — PO {quote.poNumber}</> : null}
           {quote.status === "changes_requested" && (
             <span className="block pt-1 text-warn-ink/80">
               We&apos;re on it — a revised version will land here and you&apos;ll get an email.

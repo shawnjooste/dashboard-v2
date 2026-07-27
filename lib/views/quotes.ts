@@ -93,6 +93,7 @@ export type QuoteDetail = {
   grandTotal: number | null;
   monthlyTotal: number | null;
   validUntil: string | null;
+  poNumber: string | null;
   decision: QuoteDecision;
 };
 
@@ -167,7 +168,7 @@ export async function getQuoteDetail(quoteId: string): Promise<QuoteDetail | nul
   const supabase = await createClient();
   const { data: q } = await supabase
     .from("quotes")
-    .select("id, client_id, quote_number, title, status, current_version")
+    .select("id, client_id, quote_number, title, status, current_version, po_number")
     .eq("id", quoteId)
     .maybeSingle();
   if (!q) return null;
@@ -193,6 +194,7 @@ export async function getQuoteDetail(quoteId: string): Promise<QuoteDetail | nul
     grandTotal: v.grand_total,
     monthlyTotal: v.monthly_total,
     validUntil: v.valid_until,
+    poNumber: q.po_number ?? null,
     decision,
   };
 }

@@ -14,7 +14,7 @@ type Decision = "accepted" | "rejected" | "changes_requested";
  * is a single conditional UPDATE (status must still be 'sent'); a losing
  * concurrent click changes nothing. Email failures never block the decision.
  */
-async function decide(quoteId: string, decision: Decision, comment: string | null) {
+async function decide(quoteId: string, decision: Decision, comment: string | null, poNumber: string | null = null) {
   const me = await getCurrentProfile();
   if (!me.authenticated || me.profile.role !== "client_manager" || !me.profile.client_id) {
     throw new Error("only client managers can act on quotes");
@@ -43,9 +43,11 @@ async function decide(quoteId: string, decision: Decision, comment: string | nul
   }
 
   // Atomic: only flips if still 'sent'. Losing click gets no row back.
+  const patch: { status: Decision; po_number?: string | null } = { status: decision };
+  if (decision === "accepted" && poNumber) patch.po_number = poNumber;
   const { data: updated } = await service
     .from("quotes")
-    .update({ status: decision })
+    .update(patch)
     .eq("id", quoteId)
     .eq("status", "sent")
     .select("id")
@@ -78,8 +80,9 @@ async function decide(quoteId: string, decision: Decision, comment: string | nul
   revalidatePath("/quotes");
 }
 
-export async function acceptQuote(quoteId: string) {
-  await decide(quoteId, "accepted", null);
+export async function acceptQuote(quoteId: string, formData: FormData) {
+  const poNumber = String(formData.get("po_number") ?? "").trim() || null;
+  await decide(quoteId, "accepted", null, poNumber);
 }
 
 export async function declineQuote(quoteId: string, formData: FormData) {

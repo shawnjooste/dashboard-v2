@@ -71,6 +71,14 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
           {/* Accepted → spin up a job to fulfil it */}
           {quote.rawStatus === "accepted" && <CreateJobFromQuote quoteId={quote.id} />}
 
+          {/* Purchase order, captured at accept */}
+          {quote.poNumber && (
+            <Card>
+              <CardHeader title="Purchase Order" />
+              <div className="px-4 py-3.5 text-sm font-medium text-ink">{quote.poNumber}</div>
+            </Card>
+          )}
+
           {/* Accept / reject on the client's behalf — only while decidable */}
           {decidable && <AdminQuoteDecision quoteId={quote.id} />}
 

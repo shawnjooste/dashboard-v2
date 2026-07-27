@@ -1889,6 +1889,7 @@ export type Database = {
           current_version: number
           id: string
           invoiced_at: string | null
+          po_number: string | null
           quote_number: string
           status: string
           title: string
@@ -1901,6 +1902,7 @@ export type Database = {
           current_version?: number
           id?: string
           invoiced_at?: string | null
+          po_number?: string | null
           quote_number: string
           status?: string
           title: string
@@ -1913,6 +1915,7 @@ export type Database = {
           current_version?: number
           id?: string
           invoiced_at?: string | null
+          po_number?: string | null
           quote_number?: string
           status?: string
           title?: string

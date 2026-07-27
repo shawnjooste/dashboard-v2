@@ -1,0 +1,110 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "Compact Camera Upgrades",
+  "validUntil": "2026-07-16",
+  "number": "QU-CFS-005",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions",
+      "attention": "",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-005",
+      "date": "9 July 2026",
+      "validUntil": "16 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Compact Camera Upgrades",
+    "projectIntro": "This quote covers a camera upgrade for Compact Food Solutions — 6× TPLink Vigi 40i Wide View 2K cameras, a wireless point-to-point link and freestanding pole for the rear camera, plus supporting cabling, conduit and consumables. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Camera Upgrade & Installation",
+        "subtitle": "Supply, installation & commissioning",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "TPLink Vigi 40i Wide View 2K Camera",
+                "detail": "ONVIF / RTSP support.",
+                "qty": 6,
+                "unitPrice": 1033.85
+              },
+              {
+                "description": "Shielded UV-Protected Ethernet Cable",
+                "detail": "Full job — cable run for all cameras.",
+                "qty": 1,
+                "unitPrice": 8048.85
+              },
+              {
+                "description": "Labour — Full Job to Completion",
+                "detail": "Installation, configuration and commissioning of all cameras and links.",
+                "qty": 1,
+                "unitPrice": 36800.00
+              },
+              {
+                "description": "Wireless P2P Link for Rear Camera",
+                "detail": "Includes enclosure and configuration.",
+                "qty": 1,
+                "unitPrice": 6898.85
+              },
+              {
+                "description": "Freestanding Post for Rear Camera",
+                "detail": "Sinking and concrete-anchoring of freestanding post. Excludes power pulled to the pole.",
+                "qty": 1,
+                "unitPrice": 4025.00
+              },
+              {
+                "description": "Consumables",
+                "detail": "Cabling, mounts, connectors, and sundry installation materials.",
+                "qty": 1,
+                "unitPrice": 2875.00
+              },
+              {
+                "description": "20mm Conduit — Mounted",
+                "detail": "Includes access ports and joins.",
+                "qty": 1,
+                "unitPrice": 3910.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Quote based on Microweb (QT-007002, 2026/07/08). Excludes power run to the rear camera pole — to be confirmed on site if required. Pricing valid for 14 days.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply and installation of hardware as specified. Excludes power pulled to the rear camera pole.",
+      "Payment terms: 50% deposit on acceptance, balance on completion.",
+      "Hardware remains the property of Rocking until paid in full.",
+      "Manufacturer warranty applies to all hardware supplied."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 5394.00,  "note": "Microweb QT-007002 — 6× TPLink Vigi 40i @ R899 ex VAT each. Standard 15% markup." },
+    { "path": "s0.g0.i1", "supplierCost": 6999.00,  "note": "Microweb QT-007002 — Shielded UV Ethernet cable, full job @ R6,999 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i2", "supplierCost": 32000.00, "note": "Microweb QT-007002 — Labour (full job to completion) @ R32,000 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i3", "supplierCost": 5999.00,  "note": "Microweb QT-007002 — Wireless P2P link for rear cam, incl enclosure/config @ R5,999 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i4", "supplierCost": 3500.00,  "note": "Microweb QT-007002 — Freestanding post, sinking + concrete @ R3,500 ex VAT (excl. power to pole). Standard 15% markup." },
+    { "path": "s0.g0.i5", "supplierCost": 2500.00,  "note": "Microweb QT-007002 — Consumables @ R2,500 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i6", "supplierCost": 3400.00,  "note": "Microweb QT-007002 — 20mm conduit, mounted with access ports/joins @ R3,400 ex VAT. Standard 15% markup." }
+  ]
+}

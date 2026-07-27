@@ -1,0 +1,76 @@
+{
+  "clientId": "461cfa18-e409-44be-9565-64a5308473bb",
+  "title": "Connectivity Upgrade — 500Mbps Liquid & 200Mbps On-Net",
+  "validUntil": "2026-07-30",
+  "number": "QU-YUP-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Yuppiechef Online",
+      "attention": "Thina Saunders",
+      "addressLines": ["Tifosa Park, 5 Bell Crescent", "Westlake Business Park, 7945"]
+    },
+    "meta": {
+      "quoteNumber": "QU-YUP-001",
+      "date": "16 July 2026",
+      "validUntil": "30 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Connectivity Upgrade — 500Mbps Liquid & 200Mbps On-Net",
+    "projectIntro": "This quote covers an upgrade to Yuppiechef's connectivity across your Store (Westlake) and Warehouse (AA building) sites, on a 24-month contract. It replaces your existing three connectivity line items in full: the 100Mbps on-net link at the Store, the 100Mbps on-net link at the Warehouse, and the 50Mbps Liquid link at the Store. In their place, we're offering an upgraded 200Mbps on-net link at the Store and a single 500Mbps Liquid link covering both the Store and Warehouse. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "recurring",
+        "title": "Section 1 — Connectivity",
+        "subtitle": "Billed monthly, 24-month contract",
+        "monthly": true,
+        "totalLabel": "TOTAL (incl VAT / month)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "On-Net Connectivity — 200Mbps (Store, Westlake)",
+                "detail": "Upgraded from 100Mbps. On Rocking's own network.",
+                "qty": 1,
+                "unitPrice": 3000.00
+              },
+              {
+                "description": "Liquid Connectivity — 500Mbps (Store & Warehouse)",
+                "detail": "Replaces the existing 50Mbps Liquid link at the Store and the 100Mbps on-net link at the Warehouse — a single 500Mbps Liquid link covering both sites.",
+                "qty": 1,
+                "unitPrice": 12000.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "This quote replaces your existing connectivity in full — the current 100Mbps on-net (Store), 100Mbps on-net (Warehouse), and 50Mbps Liquid (Store) lines all fall away once this is in place. 24-month contract term.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "This is a 24-month contract from the service start date.",
+      "This quote replaces all existing Rocking connectivity services for Yuppiechef — the current on-net and Liquid lines will be cancelled once this service is active.",
+      "Pricing is subject to underlying carrier (Liquid) price changes over the contract term.",
+      "Payment is due monthly in advance."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 0,     "note": "On-net (Rocking's own network) — no direct carrier cost. Replaces existing 100Mbps on-net Store line (same price, upgraded to 200Mbps)." },
+    { "path": "s0.g0.i1", "supplierCost": 11495.00, "note": "Liquid 1000Mbps tier @ R11,495/mo ex VAT — client sold 500Mbps of this; remaining 500Mbps retained as Rocking's core network redundancy (up from 150Mbps spare on the prior 200Mbps tier). Replaces existing 50Mbps Liquid (Store, R3,000/mo) and 100Mbps on-net (Warehouse, R3,000/mo) lines. Blended margin R3,505/mo vs R3,250/mo today. 24-month term." }
+  ]
+}

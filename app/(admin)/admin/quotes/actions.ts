@@ -41,6 +41,7 @@ export async function adminDecideQuote(
   quoteId: string,
   decision: "accepted" | "rejected",
   comment: string | null,
+  poNumber: string | null = null,
 ): Promise<AdminDecisionResult> {
   if (!quoteId) return { ok: false, error: "missing quote" };
   if (decision !== "accepted" && decision !== "rejected") return { ok: false, error: "invalid decision" };
@@ -62,9 +63,11 @@ export async function adminDecideQuote(
   }
 
   // Atomic: only flips from a decidable state; a losing concurrent click no-ops.
+  const patch: { status: "accepted" | "rejected"; po_number?: string | null } = { status: decision };
+  if (decision === "accepted" && poNumber?.trim()) patch.po_number = poNumber.trim();
   const { data: updated } = await service
     .from("quotes")
-    .update({ status: decision })
+    .update(patch)
     .eq("id", quoteId)
     .in("status", ["sent", "changes_requested"])
     .select("id")

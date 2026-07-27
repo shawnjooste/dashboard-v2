@@ -1,0 +1,96 @@
+{
+  "clientId": "4910ce77-b59a-4495-94cd-e0b42d09a409",
+  "title": "NVR & Camera System Upgrade",
+  "validUntil": "2026-07-16",
+  "number": "QU-CFS-004",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Compact Food Solutions",
+      "attention": "",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CFS-004",
+      "date": "9 July 2026",
+      "validUntil": "16 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "NVR & Camera System Upgrade",
+    "projectIntro": "This quote covers a full CCTV system upgrade for Compact Food Solutions — replacing all existing cameras with 31× TPLink Vigi 40i Wide View 2K units and replacing the existing NVR with a TP-Link VIGI 64-channel 4K recorder, including storage drives, labour, and consumables. The scope covers hardware supply, installation, NVR configuration, monitoring app setup, management access, and end-user training. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Hardware & Installation",
+        "subtitle": "Supply, installation & commissioning",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "TPLink Vigi 40i Wide View 2K Camera",
+                "detail": "ONVIF / RTSP support. Full wide-view 2K resolution. Replacement for all existing cameras.",
+                "qty": 31,
+                "unitPrice": 1033.85
+              },
+              {
+                "description": "TP-Link VIGI 64-Channel Network 4K NVR",
+                "detail": "64-channel 4K network video recorder. Replacement for existing NVR.",
+                "qty": 1,
+                "unitPrice": 13800.00
+              },
+              {
+                "description": "8TB Surveillance HDD 3.5\"",
+                "detail": "Dedicated surveillance-grade hard drive for NVR storage.",
+                "qty": 2,
+                "unitPrice": 10292.50
+              },
+              {
+                "description": "Labour — Full System Upgrade",
+                "detail": "Replace all existing cameras and NVR. Setup and configure new NVR, monitoring apps, and management access. End-user training on new system.",
+                "qty": 1,
+                "unitPrice": 27600.00
+              },
+              {
+                "description": "Consumables",
+                "detail": "Cabling, mounts, connectors, and sundry installation materials.",
+                "qty": 1,
+                "unitPrice": 2300.00
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Quote based on Microweb (QT-007003, 2026/07/08). Full system upgrade — all existing cameras and NVR replaced. Pricing valid for 14 days.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply and installation of hardware as specified. Any additional cabling or structural work required on site will be quoted separately.",
+      "Payment terms: 50% deposit on acceptance, balance on completion.",
+      "Hardware remains the property of Rocking until paid in full.",
+      "Manufacturer warranty applies to all hardware supplied."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 27869.00, "note": "Microweb QT-007003 — 31× TPLink Vigi 40i @ R899 ex VAT each. Standard 15% markup." },
+    { "path": "s0.g0.i1", "supplierCost": 12000.00, "note": "Microweb QT-007003 — TP-Link VIGI 64Ch 4K NVR @ R12,000 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i2", "supplierCost": 17900.00, "note": "Microweb QT-007003 — 2× 8TB Surveillance HDD @ R8,950 ex VAT each. Standard 15% markup." },
+    { "path": "s0.g0.i3", "supplierCost": 24000.00, "note": "Microweb QT-007003 — Labour (full job) @ R24,000 ex VAT. Standard 15% markup." },
+    { "path": "s0.g0.i4", "supplierCost": 2000.00,  "note": "Microweb QT-007003 — Consumables @ R2,000 ex VAT. Standard 15% markup." }
+  ]
+}
