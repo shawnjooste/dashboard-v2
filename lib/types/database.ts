@@ -1078,9 +1078,11 @@ export type Database = {
       }
       jobs: {
         Row: {
+          board_position: number
           client_id: string
           completed_at: string | null
           created_at: string
+          due_date: string | null
           id: string
           notes: string | null
           owner_profile_id: string | null
@@ -1091,9 +1093,11 @@ export type Database = {
           waiting_note: string | null
         }
         Insert: {
+          board_position?: number
           client_id: string
           completed_at?: string | null
           created_at?: string
+          due_date?: string | null
           id?: string
           notes?: string | null
           owner_profile_id?: string | null
@@ -1104,9 +1108,11 @@ export type Database = {
           waiting_note?: string | null
         }
         Update: {
+          board_position?: number
           client_id?: string
           completed_at?: string | null
           created_at?: string
+          due_date?: string | null
           id?: string
           notes?: string | null
           owner_profile_id?: string | null
