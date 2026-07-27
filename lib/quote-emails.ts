@@ -2,15 +2,15 @@
 // quote action — quote_events is the source of truth.
 import { createServiceClient } from "@/lib/supabase/service";
 
-const FROM = '"Rocking" <no-reply@send.rocking.one>';
+const FROM = '"Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-async function sendEmail(to: string[], subject: string, html: string): Promise<void> {
+async function sendEmail(to: string[], subject: string, html: string): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", subject);
-    return;
+    return null;
   }
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -18,6 +18,8 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<v
     body: JSON.stringify({ from: FROM, to, subject, html }),
   });
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
+  const sent = await res.json();
+  return sent?.id ? `<${sent.id}@send.rocking.one>` : null;
 }
 
 async function managerEmails(clientId: string): Promise<string[]> {
@@ -48,6 +50,7 @@ export async function notifyQuoteSent(opts: {
   clientId: string;
   quoteId: string;
   quoteNumber: string;
+  version: number;
   title: string;
   grandTotal: string;
   isRevision: boolean;
@@ -60,7 +63,7 @@ export async function notifyQuoteSent(opts: {
   const heading = opts.isRevision
     ? `Updated quote from Rocking — ${opts.quoteNumber}`
     : `New quote from Rocking — ${opts.quoteNumber}`;
-  await sendEmail(
+  const messageId = await sendEmail(
     to,
     `${heading}: ${opts.title}`,
     wrap(`
@@ -73,6 +76,15 @@ export async function notifyQuoteSent(opts: {
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
     `),
   );
+  if (messageId) {
+    const service = createServiceClient();
+    await service
+      .from("quote_events")
+      .update({ resend_message_id: messageId })
+      .eq("quote_id", opts.quoteId)
+      .eq("version", opts.version)
+      .eq("event", "sent");
+  }
 }
 
 /** First time a manager opens a quote → Shawn. */

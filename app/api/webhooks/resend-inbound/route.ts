@@ -1,0 +1,158 @@
+import { NextResponse } from "next/server";
+import { Webhook } from "svix";
+import { createServiceClient } from "@/lib/supabase/service";
+
+/**
+ * Resend inbound-email webhook for quotes@send.rocking.one. The webhook
+ * payload is metadata-only (from/to/subject/message_id/attachment list) — we
+ * fetch the full body via the Received Emails API before storing.
+ *
+ * This route only stores + coarsely classifies each message (mechanical,
+ * string-matching only). Actually reading/drafting/sending is judgment work
+ * done by a scheduled agent pass over unprocessed rows — never inline here,
+ * so the webhook stays fast and Resend's retry-on-non-2xx never re-triggers
+ * anything expensive or non-idempotent beyond the DB insert (deduped on
+ * message_id).
+ */
+export async function POST(req: Request) {
+  const raw = await req.text();
+
+  const secret = process.env.RESEND_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("RESEND_WEBHOOK_SECRET not set — rejecting inbound webhook");
+    return NextResponse.json({ error: "not configured" }, { status: 500 });
+  }
+
+  const svixId = req.headers.get("svix-id");
+  const svixTimestamp = req.headers.get("svix-timestamp");
+  const svixSignature = req.headers.get("svix-signature");
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return NextResponse.json({ error: "missing signature headers" }, { status: 401 });
+  }
+
+  let event: { type?: string; data?: { email_id?: string; from?: string; to?: string[]; subject?: string; message_id?: string } };
+  try {
+    const wh = new Webhook(secret);
+    event = wh.verify(raw, {
+      "svix-id": svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    }) as typeof event;
+  } catch {
+    return NextResponse.json({ error: "bad signature" }, { status: 401 });
+  }
+
+  if (event.type !== "email.received" || !event.data?.email_id) {
+    return NextResponse.json({ ignored: event.type ?? "unknown" });
+  }
+
+  const emailId = event.data.email_id;
+
+  // Webhook payload is metadata-only — fetch the full received email (body,
+  // headers, attachment list) before storing.
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error("RESEND_API_KEY not set — cannot fetch received email body");
+    return NextResponse.json({ error: "not configured" }, { status: 500 });
+  }
+  const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    console.error("failed to fetch received email:", emailId, res.status);
+    return NextResponse.json({ error: "fetch failed" }, { status: 502 });
+  }
+  const full = await res.json();
+
+  const fromEmail: string = (full.from ?? "").toLowerCase();
+  const toEmail: string = Array.isArray(full.to) ? full.to[0] ?? "" : (full.to ?? "");
+  const subject: string = full.subject ?? "";
+  const messageId: string | null = full.message_id ?? null;
+  const inReplyTo: string | null =
+    full.headers?.["in-reply-to"] ?? full.headers?.["In-Reply-To"] ?? null;
+
+  const service = createServiceClient();
+
+  // Dedup: Resend may retry a webhook delivery.
+  if (messageId) {
+    const { data: existing } = await service
+      .from("inbound_emails")
+      .select("id")
+      .eq("message_id", messageId)
+      .maybeSingle();
+    if (existing) return NextResponse.json({ ok: true, duplicate: true });
+  }
+
+  const isInternal = fromEmail.endsWith("@rocking.one");
+
+  // ---------- classify (mechanical only — no judgment here) ----------
+  let kind: "client_forward" | "supplier_reply" | "client_quote_reply" | "unclassified" = "unclassified";
+  let rfqId: string | null = null;
+  let quoteId: string | null = null;
+
+  // client_quote_reply: In-Reply-To matches a Resend message id we recorded
+  // when sending a quote.
+  if (inReplyTo) {
+    const { data: match } = await service
+      .from("quote_events")
+      .select("quote_id")
+      .eq("resend_message_id", inReplyTo)
+      .maybeSingle();
+    if (match) {
+      kind = "client_quote_reply";
+      quoteId = match.quote_id;
+    }
+  }
+
+  // supplier_reply: subject contains an open RFQ's tracking token and the
+  // sender isn't internal staff.
+  if (kind === "unclassified" && !isInternal) {
+    const tokenMatch = subject.match(/RFQ-([a-zA-Z0-9]{6,10})/);
+    if (tokenMatch) {
+      const { data: rfq } = await service
+        .from("rfqs")
+        .select("id")
+        .eq("tracking_token", tokenMatch[1])
+        .in("status", ["new", "sourcing"])
+        .maybeSingle();
+      if (rfq) {
+        kind = "supplier_reply";
+        rfqId = rfq.id;
+      }
+    }
+  }
+
+  // client_forward: internal staff forwarding a client request in.
+  if (kind === "unclassified" && isInternal) {
+    kind = "client_forward";
+  }
+
+  const { error } = await service.from("inbound_emails").insert({
+    message_id: messageId,
+    in_reply_to: inReplyTo,
+    from_email: fromEmail,
+    to_email: toEmail,
+    subject,
+    text_body: full.text ?? null,
+    html_body: full.html ?? null,
+    attachments: full.attachments ?? [],
+    kind,
+    rfq_id: rfqId,
+    quote_id: quoteId,
+    resend_email_id: emailId,
+  });
+  if (error) {
+    console.error("failed to store inbound email:", error.message);
+    return NextResponse.json({ error: "store failed" }, { status: 500 });
+  }
+
+  if (rfqId) {
+    await service.from("rfq_events").insert({
+      rfq_id: rfqId,
+      kind: "email_received",
+      body: `Reply from ${fromEmail}: "${subject}"`,
+    });
+  }
+
+  return NextResponse.json({ ok: true, kind });
+}

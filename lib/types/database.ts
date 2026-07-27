@@ -917,6 +917,75 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_emails: {
+        Row: {
+          attachments: Json
+          created_at: string
+          from_email: string
+          html_body: string | null
+          id: string
+          in_reply_to: string | null
+          kind: string
+          message_id: string | null
+          processed_at: string | null
+          quote_id: string | null
+          resend_email_id: string | null
+          rfq_id: string | null
+          subject: string | null
+          text_body: string | null
+          to_email: string
+        }
+        Insert: {
+          attachments?: Json
+          created_at?: string
+          from_email: string
+          html_body?: string | null
+          id?: string
+          in_reply_to?: string | null
+          kind?: string
+          message_id?: string | null
+          processed_at?: string | null
+          quote_id?: string | null
+          resend_email_id?: string | null
+          rfq_id?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email: string
+        }
+        Update: {
+          attachments?: Json
+          created_at?: string
+          from_email?: string
+          html_body?: string | null
+          id?: string
+          in_reply_to?: string | null
+          kind?: string
+          message_id?: string | null
+          processed_at?: string | null
+          quote_id?: string | null
+          resend_email_id?: string | null
+          rfq_id?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_emails_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_tasks: {
         Row: {
           assignee_profile_id: string | null
@@ -1765,6 +1834,7 @@ export type Database = {
           event: string
           id: string
           quote_id: string
+          resend_message_id: string | null
           version: number | null
         }
         Insert: {
@@ -1774,6 +1844,7 @@ export type Database = {
           event: string
           id?: string
           quote_id: string
+          resend_message_id?: string | null
           version?: number | null
         }
         Update: {
@@ -1783,6 +1854,7 @@ export type Database = {
           event?: string
           id?: string
           quote_id?: string
+          resend_message_id?: string | null
           version?: number | null
         }
         Relationships: [
@@ -1996,7 +2068,10 @@ export type Database = {
           requested_by: string | null
           sourcing_note: string | null
           status: string
+          supplier_email: string | null
+          supplier_name: string | null
           title: string
+          tracking_token: string | null
           updated_at: string
         }
         Insert: {
@@ -2014,7 +2089,10 @@ export type Database = {
           requested_by?: string | null
           sourcing_note?: string | null
           status?: string
+          supplier_email?: string | null
+          supplier_name?: string | null
           title: string
+          tracking_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -2032,7 +2110,10 @@ export type Database = {
           requested_by?: string | null
           sourcing_note?: string | null
           status?: string
+          supplier_email?: string | null
+          supplier_name?: string | null
           title?: string
+          tracking_token?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -149,7 +149,7 @@ if (noEmail) {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: '"Rocking" <no-reply@send.rocking.one>',
+      from: '"Rocking" <quotes@send.rocking.one>',
       to, subject: `${heading}: ${title}`,
       html: `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
@@ -167,6 +167,12 @@ if (noEmail) {
   });
   console.log(res.ok ? `Emailed ${to.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created`);
   if (res.ok) {
+    const sent = await res.json();
+    if (sent?.id) {
+      await sb.from("quote_events")
+        .update({ resend_message_id: `<${sent.id}@send.rocking.one>` })
+        .eq("quote_id", quoteId).eq("version", version).eq("event", "sent");
+    }
     // Log the send to the admin activity feed (best-effort).
     await sb.from("portal_activity").insert({
       kind: "email",
