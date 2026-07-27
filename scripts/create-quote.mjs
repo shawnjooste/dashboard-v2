@@ -150,7 +150,7 @@ if (noEmail) {
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: '"Rocking" <quotes@send.rocking.one>',
-      to, subject: `${heading}: ${title}`,
+      to, cc: ["shawn@rocking.one"], subject: `${heading}: ${title}`,
       html: `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">${heading}</h2>

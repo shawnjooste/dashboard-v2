@@ -6,7 +6,7 @@ const FROM = '"Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-async function sendEmail(to: string[], subject: string, html: string): Promise<string | null> {
+async function sendEmail(to: string[], subject: string, html: string, cc?: string[]): Promise<string | null> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", subject);
@@ -15,7 +15,7 @@ async function sendEmail(to: string[], subject: string, html: string): Promise<s
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify({ from: FROM, to, cc, subject, html }),
   });
   if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
   const sent = await res.json();
@@ -75,6 +75,7 @@ export async function notifyQuoteSent(opts: {
       </p>
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
     `),
+    [ADMIN_EMAIL],
   );
   if (messageId) {
     const service = createServiceClient();
