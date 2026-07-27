@@ -15,6 +15,7 @@ import {
   type Health,
 } from "@/components/ui";
 import { SupportPageHeader } from "@/components/SupportPageHeader";
+import { SupportEscalation } from "@/components/SupportEscalation";
 import { BookSession } from "@/components/BookSession";
 import { getActiveServices, getOpenSlots, getClientBookings } from "@/lib/views/bookings";
 import { fmtRands } from "@/lib/booking-helpers";
@@ -60,6 +61,8 @@ export default async function SupportPage() {
   return (
     <div className="space-y-6">
       <SupportPageHeader action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>} />
+
+      <SupportEscalation />
 
       <Card>
         <CardHeader title="Book a session" />
