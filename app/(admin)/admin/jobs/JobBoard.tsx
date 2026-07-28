@@ -15,7 +15,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { initials } from "@/components/ui";
-import { dueState } from "@/lib/job-board-helpers";
+import { dueState, boardDropIndex, type BoardDropTarget } from "@/lib/job-board-helpers";
 import { moveJob } from "./actions";
 import type { JobCard, JobStatus } from "@/lib/views/jobs";
 
@@ -57,12 +57,10 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
     const activeId = String(e.active.id);
     const overId = String(e.over.id);
     // Picking a card up and releasing it without moving onto a different
-    // target is the common case, not an edge case. Without this guard,
-    // `overStatus` resolves to undefined, `toStatus` falls back to the card's
-    // own column, the moved card is excluded from `target`, so
-    // `target.findIndex` returns -1 and `index` falls back to `target.length`
-    // — silently sending the card to the end of its own column and
-    // persisting that via moveJob. Bail out before any state change or
+    // target is the common case, not an edge case. Without this guard the
+    // code below still computes the card's own current position (a no-op),
+    // but it would still fire an unnecessary setItems + moveJob round trip
+    // on every plain click-release. Bail out before any state change or
     // server call.
     if (overId === activeId) return;
 
@@ -74,9 +72,14 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
     const toStatus = overStatus ?? columnOf(overId);
     if (!toStatus) return;
 
-    const target = items.filter((c) => c.status === toStatus && c.id !== activeId);
-    const toIndex = overStatus ? target.length : target.findIndex((c) => c.id === overId);
-    const index = toIndex < 0 ? target.length : toIndex;
+    const sameColumn = toStatus === from;
+    // For a same-column move this includes the active card at its current
+    // position (required so boardDropIndex can land it after/before the
+    // hovered card correctly); for a cross-column move the active card isn't
+    // a member of `toStatus` yet, so it's naturally absent.
+    const destinationIds = items.filter((c) => c.status === toStatus).map((c) => c.id);
+    const dropTarget: BoardDropTarget = overStatus ? { kind: "column" } : { kind: "card", id: overId };
+    const index = boardDropIndex(destinationIds, activeId, dropTarget, sameColumn);
 
     // Snapshot for rollback if the server call fails.
     const previousItems = items;

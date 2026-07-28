@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dueState, placeCard, toDateString } from "./job-board-helpers";
+import { dueState, placeCard, toDateString, boardDropIndex } from "./job-board-helpers";
 
 describe("dueState", () => {
   it("is 'none' when there is no due date", () => {
@@ -58,6 +58,58 @@ describe("placeCard", () => {
   });
   it("handles dropping into an empty column", () => {
     expect(placeCard([], "x", 0)).toEqual([{ id: "x", position: 0 }]);
+  });
+});
+
+describe("boardDropIndex", () => {
+  // Same-column moves: `destinationIds` is the column's current order,
+  // INCLUDING the active card (it is already a member of that column).
+  it("same-column downward: dragging onto a card below lands after it (bottom slot reachable)", () => {
+    const idx = boardDropIndex(["A", "B", "C"], "A", { kind: "card", id: "C" }, true);
+    expect(idx).toBe(2);
+    expect(placeCard(["A", "B", "C"], "A", idx).map((p) => p.id)).toEqual(["B", "C", "A"]);
+  });
+
+  it("same-column upward: dragging onto a card above lands before it", () => {
+    const idx = boardDropIndex(["A", "B", "C"], "C", { kind: "card", id: "A" }, true);
+    expect(idx).toBe(0);
+    expect(placeCard(["A", "B", "C"], "C", idx).map((p) => p.id)).toEqual(["C", "A", "B"]);
+  });
+
+  it("same-column adjacent swap downward", () => {
+    const idx = boardDropIndex(["A", "B"], "A", { kind: "card", id: "B" }, true);
+    expect(placeCard(["A", "B"], "A", idx).map((p) => p.id)).toEqual(["B", "A"]);
+  });
+
+  it("same-column adjacent swap upward", () => {
+    const idx = boardDropIndex(["A", "B"], "B", { kind: "card", id: "A" }, true);
+    expect(placeCard(["A", "B"], "B", idx).map((p) => p.id)).toEqual(["B", "A"]);
+  });
+
+  // Cross-column moves: `destinationIds` is the destination column's current
+  // order, EXCLUDING the active card (it isn't a member of that column yet).
+  it("cross-column drop onto a card inserts before that card", () => {
+    const idx = boardDropIndex(["X", "Y"], "A", { kind: "card", id: "Y" }, false);
+    expect(idx).toBe(1);
+    expect(placeCard(["X", "Y"], "A", idx).map((p) => p.id)).toEqual(["X", "A", "Y"]);
+  });
+
+  it("drop onto an empty column shell appends", () => {
+    const idx = boardDropIndex([], "A", { kind: "column" }, false);
+    expect(idx).toBe(0);
+    expect(placeCard([], "A", idx).map((p) => p.id)).toEqual(["A"]);
+  });
+
+  it("drop onto a populated column's shell appends last", () => {
+    const idx = boardDropIndex(["X", "Y"], "A", { kind: "column" }, false);
+    expect(idx).toBe(2);
+    expect(placeCard(["X", "Y"], "A", idx).map((p) => p.id)).toEqual(["X", "Y", "A"]);
+  });
+
+  it("same-column drop onto the column's own shell appends last, excluding the active card itself", () => {
+    const idx = boardDropIndex(["A", "B", "C"], "B", { kind: "column" }, true);
+    expect(idx).toBe(2);
+    expect(placeCard(["A", "B", "C"], "B", idx).map((p) => p.id)).toEqual(["A", "C", "B"]);
   });
 });
 

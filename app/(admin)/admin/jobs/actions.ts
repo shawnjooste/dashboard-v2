@@ -289,10 +289,11 @@ export async function moveJob(jobId: string, toStatus: JobStatus, toIndex: numbe
 export async function setJobDueDate(jobId: string, dueDate: string | null) {
   await staff();
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("jobs")
     .update({ due_date: dueDate || null, updated_at: new Date().toISOString() })
     .eq("id", jobId);
+  if (error) throw new Error(error.message);
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
 }

@@ -40,6 +40,42 @@ export function placeCard(
   return next.map((id, position) => ({ id, position }));
 }
 
+/** What a card was dropped on: another card, or a column's empty-space shell. */
+export type BoardDropTarget = { kind: "card"; id: string } | { kind: "column" };
+
+/**
+ * Compute the index to pass to `placeCard` for a jobs-board drag-and-drop.
+ *
+ * `destinationIds` is the destination column's ids in their current order.
+ * For a same-column move, the active card is already a member of that column
+ * — include it in `destinationIds` at its current position. For a
+ * cross-column move, the active card is not yet a member — exclude it.
+ *
+ * That inclusion convention is what makes a single formula correct for both
+ * cases: dropping on a card inserts before that card's position in
+ * `destinationIds`. For a same-column move this naturally lands the active
+ * card AFTER a card it started below, and BEFORE one it started above —
+ * matching dnd-kit's `arrayMove` preview under `verticalListSortingStrategy`
+ * (the previous implementation used the without-active index unconditionally,
+ * which is one slot too high for a downward same-column drop and also made
+ * the bottom slot of the tallest column unreachable). For a cross-column move
+ * it is the ordinary "insert before the hovered card" behaviour.
+ *
+ * Dropping on the column shell appends to the end of the column (after the
+ * active card is removed from consideration, for a same-column move).
+ */
+export function boardDropIndex(
+  destinationIds: string[],
+  activeId: string,
+  target: BoardDropTarget,
+  sameColumn: boolean,
+): number {
+  const withoutActiveLength = sameColumn ? destinationIds.length - 1 : destinationIds.length;
+  if (target.kind === "column") return withoutActiveLength;
+  const at = destinationIds.findIndex((id) => id === target.id);
+  return at < 0 ? withoutActiveLength : at;
+}
+
 /** A Date as YYYY-MM-DD in the business timezone (en-CA formats as ISO). */
 export function toDateString(d: Date, timeZone = "Africa/Johannesburg"): string {
   return new Intl.DateTimeFormat("en-CA", {

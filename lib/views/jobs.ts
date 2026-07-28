@@ -2,16 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export type JobStatus = "todo" | "in_progress" | "waiting" | "done" | "cancelled";
 
-export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
-  todo: "To do",
-  in_progress: "In progress",
-  waiting: "Waiting",
-  done: "Done",
-  cancelled: "Cancelled",
-};
-/** Columns shown on the board, in order. `cancelled` lives off-board. */
-export const BOARD_STATUSES: JobStatus[] = ["todo", "in_progress", "waiting", "done"];
-
 export type JobCard = {
   id: string;
   title: string;
