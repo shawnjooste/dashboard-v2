@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { saveCompanyDetails, type SaveResult } from "./actions";
 import { FIELD_LABELS, type CompanyDetails } from "@/lib/company-details-helpers";
@@ -31,6 +31,13 @@ function SaveButton() {
 export function CompanyDetailsForm({ details }: { details: CompanyDetails }) {
   const [state, action] = useActionState<SaveResult | null, FormData>(saveCompanyDetails, null);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (state?.ok) {
+      const t = setTimeout(() => setOpen(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
 
   if (!open) {
     return (

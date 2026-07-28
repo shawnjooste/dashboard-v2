@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SECTION_LABELS } from "@/lib/activity-helpers";
+import { FIELD_LABELS } from "@/lib/company-details-helpers";
 
 export type ActivityGroup = "logins" | "views" | "actions" | "changes" | "quotes" | "syncs" | "emails";
 
@@ -107,7 +108,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
     push({ at: i.started_at, group: "actions", actor: person(i.staff_profile_id), clientId: null, clientName: null, text: `viewed the portal as ${i.target_email}` });
   }
   for (const c of detailChanges.data ?? []) {
-    const label = c.field.replace(/_/g, " ");
+    const label = FIELD_LABELS[c.field as keyof typeof FIELD_LABELS] ?? c.field.replace(/_/g, " ");
     push({
       at: c.created_at,
       group: "changes",
@@ -118,7 +119,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
         c.old_value === null
           ? `set company ${label} to ${c.new_value}`
           : c.new_value === null
-            ? `cleared company ${label}`
+            ? `cleared company ${label} (was ${c.old_value})`
             : `changed company ${label} from ${c.old_value} to ${c.new_value}`,
     });
   }
