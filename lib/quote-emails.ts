@@ -2,7 +2,7 @@
 // quote action — quote_events is the source of truth.
 import { createServiceClient } from "@/lib/supabase/service";
 
-const FROM = '"Rocking" <quotes@send.rocking.one>';
+const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
@@ -36,6 +36,7 @@ async function managerEmails(clientId: string): Promise<string[]> {
 const wrap = (body: string) => `
   <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
     ${body}
+    <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
   </div>`;
 
 const button = (href: string, label: string) => `

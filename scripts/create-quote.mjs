@@ -149,7 +149,7 @@ if (noEmail) {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: '"Rocking" <quotes@send.rocking.one>',
+      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
       to, cc: ["shawn@rocking.one"], subject: `${heading}: ${title}`,
       html: `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
@@ -162,6 +162,7 @@ if (noEmail) {
           <p style="margin:20px 0 0;">
             <a href="${url}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">View the quote</a>
           </p>
+          <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
         </div>`,
     }),
   });
