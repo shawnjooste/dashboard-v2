@@ -85,3 +85,41 @@ export function toDateString(d: Date, timeZone = "Africa/Johannesburg"): string 
     day: "2-digit",
   }).format(d);
 }
+
+/** The card shape `filterJobCards` needs. Structural, so it works on any row carrying these. */
+export type FilterableCard = {
+  clientId: string;
+  ownerProfileId: string | null;
+  assignees: { id: string }[];
+};
+
+/** Board filter selections. Blank strings mean "no filter". */
+export type JobFilters = {
+  client?: string;
+  owner?: string;
+  assignee?: string;
+  /** When set, keep only jobs this profile owns or is assigned a task on. */
+  mineProfileId?: string;
+};
+
+/** Apply the board filters. Filters combine with AND; blanks are ignored. */
+export function filterJobCards<T extends FilterableCard>(cards: T[], filters: JobFilters): T[] {
+  const { client, owner, assignee, mineProfileId } = filters;
+  return cards.filter((c) => {
+    if (client && c.clientId !== client) return false;
+    if (owner && c.ownerProfileId !== owner) return false;
+    if (assignee && !c.assignees.some((a) => a.id === assignee)) return false;
+    if (mineProfileId && c.ownerProfileId !== mineProfileId && !c.assignees.some((a) => a.id === mineProfileId)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Sort comparator: soonest due first, undated last. */
+export function compareByDue(a: { dueDate: string | null }, b: { dueDate: string | null }): number {
+  if (a.dueDate === b.dueDate) return 0;
+  if (!a.dueDate) return 1;
+  if (!b.dueDate) return -1;
+  return a.dueDate < b.dueDate ? -1 : 1;
+}

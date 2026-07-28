@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dueState, placeCard, toDateString, boardDropIndex } from "./job-board-helpers";
+import { dueState, placeCard, toDateString, boardDropIndex, filterJobCards, compareByDue } from "./job-board-helpers";
 
 describe("dueState", () => {
   it("is 'none' when there is no due date", () => {
@@ -120,5 +120,68 @@ describe("toDateString", () => {
   });
   it("respects an explicit timezone", () => {
     expect(toDateString(new Date("2026-07-27T22:30:00Z"), "UTC")).toBe("2026-07-27");
+  });
+});
+
+const card = (over: Partial<{ id: string; clientId: string; ownerProfileId: string | null; assignees: { id: string }[] }> = {}) => ({
+  id: "j1",
+  clientId: "c1",
+  ownerProfileId: "p1" as string | null,
+  assignees: [{ id: "p2" }],
+  ...over,
+});
+
+describe("filterJobCards", () => {
+  it("returns everything when no filters are set", () => {
+    const cards = [card(), card({ id: "j2", clientId: "c2" })];
+    expect(filterJobCards(cards, {})).toHaveLength(2);
+  });
+  it("filters by client", () => {
+    const cards = [card(), card({ id: "j2", clientId: "c2" })];
+    expect(filterJobCards(cards, { client: "c2" }).map((c) => c.id)).toEqual(["j2"]);
+  });
+  it("filters by owner", () => {
+    const cards = [card(), card({ id: "j2", ownerProfileId: "p9" })];
+    expect(filterJobCards(cards, { owner: "p9" }).map((c) => c.id)).toEqual(["j2"]);
+  });
+  it("filters by assignee", () => {
+    const cards = [card(), card({ id: "j2", assignees: [{ id: "p9" }] })];
+    expect(filterJobCards(cards, { assignee: "p9" }).map((c) => c.id)).toEqual(["j2"]);
+  });
+  it("combines filters with AND", () => {
+    const cards = [
+      card({ id: "j1", clientId: "c1", ownerProfileId: "p1" }),
+      card({ id: "j2", clientId: "c1", ownerProfileId: "p9" }),
+      card({ id: "j3", clientId: "c2", ownerProfileId: "p1" }),
+    ];
+    expect(filterJobCards(cards, { client: "c1", owner: "p1" }).map((c) => c.id)).toEqual(["j1"]);
+  });
+  it("'mine' matches jobs I own OR am assigned to", () => {
+    const cards = [
+      card({ id: "owned", ownerProfileId: "me", assignees: [] }),
+      card({ id: "assigned", ownerProfileId: "other", assignees: [{ id: "me" }] }),
+      card({ id: "neither", ownerProfileId: "other", assignees: [{ id: "someone" }] }),
+    ];
+    expect(filterJobCards(cards, { mineProfileId: "me" }).map((c) => c.id)).toEqual(["owned", "assigned"]);
+  });
+  it("ignores blank filter values", () => {
+    expect(filterJobCards([card()], { client: "", owner: "", assignee: "" })).toHaveLength(1);
+  });
+});
+
+describe("compareByDue", () => {
+  it("orders earlier dates first", () => {
+    expect(compareByDue({ dueDate: "2026-07-01" }, { dueDate: "2026-07-02" })).toBeLessThan(0);
+  });
+  it("puts undated items last", () => {
+    expect(compareByDue({ dueDate: null }, { dueDate: "2026-07-02" })).toBeGreaterThan(0);
+    expect(compareByDue({ dueDate: "2026-07-02" }, { dueDate: null })).toBeLessThan(0);
+  });
+  it("treats two undated items as equal", () => {
+    expect(compareByDue({ dueDate: null }, { dueDate: null })).toBe(0);
+  });
+  it("sorts a list overdue-first, undated last", () => {
+    const list = [{ dueDate: null }, { dueDate: "2026-07-10" }, { dueDate: "2026-07-01" }];
+    expect([...list].sort(compareByDue).map((x) => x.dueDate)).toEqual(["2026-07-01", "2026-07-10", null]);
   });
 });

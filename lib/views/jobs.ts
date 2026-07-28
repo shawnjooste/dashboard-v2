@@ -5,9 +5,12 @@ export type JobStatus = "todo" | "in_progress" | "waiting" | "done" | "cancelled
 export type JobCard = {
   id: string;
   title: string;
+  clientId: string;
   clientName: string;
   status: JobStatus;
+  ownerProfileId: string | null;
   ownerLabel: string | null;
+  assignees: { id: string; label: string }[];
   taskTotal: number;
   taskDone: number;
   waitingNote: string | null;
@@ -58,26 +61,38 @@ export async function getJobBoard(): Promise<JobCard[]> {
       .order("board_position", { ascending: true })
       .order("updated_at", { ascending: false }),
     supabase.from("clients").select("id, name"),
-    supabase.from("job_tasks").select("job_id, done"),
+    supabase.from("job_tasks").select("job_id, done, assignee_profile_id"),
     supabase.from("profiles").select("id, email"),
   ]);
   const cn = new Map((clients ?? []).map((c) => [c.id, c.name]));
   const em = new Map((profiles ?? []).map((p) => [p.id, p.email]));
   const counts = new Map<string, { t: number; d: number }>();
+  const assigneeIds = new Map<string, Set<string>>();
   for (const t of tasks ?? []) {
     const c = counts.get(t.job_id) ?? { t: 0, d: 0 };
     c.t++;
     if (t.done) c.d++;
     counts.set(t.job_id, c);
+    if (t.assignee_profile_id) {
+      const set = assigneeIds.get(t.job_id) ?? new Set<string>();
+      set.add(t.assignee_profile_id);
+      assigneeIds.set(t.job_id, set);
+    }
   }
   return (jobs ?? []).map((j) => {
     const c = counts.get(j.id) ?? { t: 0, d: 0 };
     return {
       id: j.id,
       title: j.title,
+      clientId: j.client_id,
       clientName: cn.get(j.client_id) ?? "—",
       status: j.status as JobStatus,
+      ownerProfileId: j.owner_profile_id,
       ownerLabel: emailLabel(em.get(j.owner_profile_id ?? "")),
+      assignees: [...(assigneeIds.get(j.id) ?? [])].map((id) => ({
+        id,
+        label: emailLabel(em.get(id)) ?? id,
+      })),
       taskTotal: c.t,
       taskDone: c.d,
       waitingNote: j.waiting_note,
