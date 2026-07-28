@@ -134,7 +134,11 @@ own and tasks assigned to them across all jobs, overdue first. Backed by a new
 
 ## Phase 3 — Card depth
 
-**Migration `0058_job_comments_pin`**
+**Migration `0059_job_comments_pin`**
+
+> Numbering note: `0058` was taken by `0058_drop_redundant_supplier_contact_email`
+> while Phase 1 was in flight. Re-check the highest existing migration before
+> creating this one — the number drifts as other work lands.
 
 ```sql
 create table public.job_comments (
