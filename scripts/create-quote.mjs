@@ -214,7 +214,7 @@ if (noEmail) {
     // the two write paths must be kept in sync by hand.
     await sb.from("sent_emails").insert({
       client_id: clientId,
-      to_emails: [...to, "shawn@rocking.one"],
+      to_emails: [...to, "shawn@rocking.one"].map((e) => e.trim().toLowerCase()),
       subject: `${heading}: ${title}`,
       html: clientHtml,
       category: "quote",

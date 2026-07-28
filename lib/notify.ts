@@ -85,7 +85,12 @@ export async function sendOnboardingEmail(opts: {
     // Managers can read every client-audience row for their company, so the
     // stored copy points at the normal login page instead; without this a
     // manager could open a colleague's invite and sign in as them.
-    recordHtml: onboardingEmailHtml({ ...opts, portalUrl: `${APP_URL}/login` }),
+    recordHtml: onboardingEmailHtml({
+      ...opts,
+      portalUrl: `${APP_URL}/login`,
+      supportNote: opts.supportNote,
+      ctaLabel: "Go to the portal",
+    }),
     replyTo: SUPPORT_EMAIL,
   });
 }
