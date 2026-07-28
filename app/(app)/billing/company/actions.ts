@@ -32,11 +32,15 @@ export async function saveCompanyDetails(
   const next = normaliseDetails(Object.fromEntries(formData.entries()));
 
   const supabase = await createClient();
-  const { data: before } = await supabase
+  const { data: before, error: readErr } = await supabase
     .from("client_company_details")
     .select("*")
     .eq("client_id", clientId)
     .maybeSingle();
+  // Without the current row we cannot diff, and the upsert writes all 15
+  // columns — so proceeding would blank every field the form left empty
+  // while logging nothing. Fail closed instead.
+  if (readErr) return { ok: false, error: "Could not load your current details. Please try again." };
 
   const changes = diffCompanyDetails(before, next);
   if (!changes.length) return { ok: true, changed: 0 };

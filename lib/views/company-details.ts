@@ -39,11 +39,15 @@ const EMPTY: CompanyDetails = {
  *  null when no row exists yet, so callers never branch on existence. */
 export async function getCompanyDetails(clientId: string): Promise<CompanyDetailsRow> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("client_company_details")
     .select("*")
     .eq("client_id", clientId)
     .maybeSingle();
+  // A discarded error here would render every field as "—" and open a blank
+  // form for an existing record — a false empty state, not a cosmetic gap.
+  // Let the page's error boundary handle it instead.
+  if (error) throw error;
   if (!data) return { ...EMPTY, updatedAt: null };
 
   const row = { ...EMPTY } as CompanyDetails;
