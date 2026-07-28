@@ -56,7 +56,7 @@ export default async function AdminJobsPage({
     const q = p.toString();
     return q ? `/admin/jobs?${q}` : "/admin/jobs";
   };
-  const filtered = visible.length !== cards.length;
+  const filtered = !!(filters.client || filters.owner || filters.assignee || mine);
 
   return (
     <div className="space-y-5">

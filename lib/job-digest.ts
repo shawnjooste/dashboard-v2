@@ -16,6 +16,12 @@ export type Digest = { email: string; subject: string; body: string };
 const OVERDUE = `<span style="color:#B91C1C; font-weight:600;">Overdue</span>`;
 const DUE_SOON = `<span style="color:#B45309;">Due soon</span>`;
 
+/** Escape externally-sourced text (client names, titles, labels) before it goes into HTML.
+ * Escape `&` first, or the entities this introduces get double-escaped. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /** " — Overdue" / " — Due soon" / "" for a due date, relative to `today`. */
 function dueSuffix(dueDate: string | null, today: string): string {
   const state = dueState(dueDate, today);
@@ -37,22 +43,22 @@ export function buildDigest(person: DigestPerson, today: string): Digest | null 
   if (tasks.length) parts.push(plural(tasks.length, "task"));
   const subject = `Your open work — ${parts.join(", ")}`;
 
-  let body = `<p style="color:#444; margin:0 0 14px;">Hi ${person.name},</p>`;
+  let body = `<p style="color:#444; margin:0 0 14px;">Hi ${escapeHtml(person.name)},</p>`;
   body += `<p style="color:#444; margin:0 0 16px;">Here's what's still open on your plate.</p>`;
 
   if (jobs.length) {
     body += `<h3 style="margin:0 0 6px; font-size:15px;">Jobs you own</h3>`;
     for (const j of jobs) {
-      body += `<p style="color:#444; margin:0 0 6px;"><strong>${j.title}</strong>${dueSuffix(j.dueDate, today)}<br>`;
-      body += `<span style="color:#888; font-size:13px;">${j.clientName}</span></p>`;
+      body += `<p style="color:#444; margin:0 0 6px;"><strong>${escapeHtml(j.title)}</strong>${dueSuffix(j.dueDate, today)}<br>`;
+      body += `<span style="color:#888; font-size:13px;">${escapeHtml(j.clientName)}</span></p>`;
     }
   }
 
   if (tasks.length) {
     body += `<h3 style="margin:16px 0 6px; font-size:15px;">Tasks assigned to you</h3>`;
     for (const t of tasks) {
-      body += `<p style="color:#444; margin:0 0 6px;"><strong>${t.label}</strong>${dueSuffix(t.dueDate, today)}<br>`;
-      body += `<span style="color:#888; font-size:13px;">${t.jobTitle} · ${t.clientName}</span></p>`;
+      body += `<p style="color:#444; margin:0 0 6px;"><strong>${escapeHtml(t.label)}</strong>${dueSuffix(t.dueDate, today)}<br>`;
+      body += `<span style="color:#888; font-size:13px;">${escapeHtml(t.jobTitle)} · ${escapeHtml(t.clientName)}</span></p>`;
     }
   }
 

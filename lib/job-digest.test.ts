@@ -99,6 +99,19 @@ describe("buildDigest", () => {
   });
 });
 
+describe("buildDigest HTML escaping", () => {
+  it("escapes & and < in a client name so it does not appear raw", () => {
+    const d = buildDigest(
+      person({
+        ownedJobs: [{ title: "3CX migration", clientName: "Smith & Co <script>", dueDate: null }],
+      }),
+      TODAY,
+    )!;
+    expect(d.body).not.toContain("Smith & Co <script>");
+    expect(d.body).toContain("Smith &amp; Co &lt;script&gt;");
+  });
+});
+
 describe("buildDigests", () => {
   it("skips people with nothing open", () => {
     const out = buildDigests(

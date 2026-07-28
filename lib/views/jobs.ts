@@ -73,7 +73,14 @@ export async function getJobBoard(): Promise<JobCard[]> {
     c.t++;
     if (t.done) c.d++;
     counts.set(t.job_id, c);
-    if (t.assignee_profile_id) {
+    // Gate on !t.done: "assignees" must mean "still on the hook", matching
+    // getMyWork's `!t.done` filter and the digest route's `.eq("done", false)`.
+    // Without this gate, a job whose only assigned task someone already
+    // completed would still show them in the board's "Just mine" filter
+    // (via filterJobCards) and in the assignee dropdown options in
+    // app/(admin)/admin/jobs/page.tsx, while /admin/jobs/mine and the digest
+    // both correctly consider that person to have nothing open on it.
+    if (t.assignee_profile_id && !t.done) {
       const set = assigneeIds.get(t.job_id) ?? new Set<string>();
       set.add(t.assignee_profile_id);
       assigneeIds.set(t.job_id, set);
