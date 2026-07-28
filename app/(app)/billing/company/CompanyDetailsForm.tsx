@@ -10,8 +10,8 @@ const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 tex
 
 const GROUPS: { title: string; fields: (keyof CompanyDetails)[] }[] = [
   { title: "Identity", fields: ["registered_name", "trading_name", "registration_number", "vat_number"] },
-  { title: "Physical address", fields: ["physical_address", "physical_city", "physical_postal_code"] },
-  { title: "Postal address", fields: ["postal_address", "postal_city", "postal_postal_code"] },
+  { title: "Physical address", fields: ["physical_city", "physical_postal_code"] },
+  { title: "Postal address", fields: ["postal_city", "postal_postal_code"] },
   { title: "Billing contact", fields: ["billing_contact_name", "billing_contact_email", "billing_contact_phone"] },
 ];
 
@@ -56,6 +56,18 @@ export function CompanyDetailsForm({ details }: { details: CompanyDetails }) {
       {GROUPS.map((g) => (
         <div key={g.title}>
           <p className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">{g.title}</p>
+          {g.title === "Physical address" && (
+            <label className="mb-3 block">
+              <span className={LABEL}>{FIELD_LABELS.physical_address}</span>
+              <textarea name="physical_address" rows={3} defaultValue={details.physical_address ?? ""} className={FIELD} />
+            </label>
+          )}
+          {g.title === "Postal address" && (
+            <label className="mb-3 block">
+              <span className={LABEL}>{FIELD_LABELS.postal_address}</span>
+              <textarea name="postal_address" rows={3} defaultValue={details.postal_address ?? ""} className={FIELD} />
+            </label>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             {g.fields.map((f) => (
               <label key={f} className="block">

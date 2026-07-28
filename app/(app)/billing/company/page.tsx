@@ -30,7 +30,7 @@ export default async function CompanyDetailsPage() {
             {EDITABLE_FIELDS.map((f) => (
               <div key={f}>
                 <dt className="text-[11.5px] font-semibold uppercase tracking-[0.5px] text-faint">{FIELD_LABELS[f]}</dt>
-                <dd className="text-sm text-ink">{formatValue(f, details[f as keyof CompanyDetails])}</dd>
+                <dd className="whitespace-pre-line text-sm text-ink">{formatValue(f, details[f as keyof CompanyDetails])}</dd>
               </div>
             ))}
           </dl>
