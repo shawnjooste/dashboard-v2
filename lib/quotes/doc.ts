@@ -145,7 +145,7 @@ export function isExpired(validUntil: string | null, today = new Date()): boolea
   return validUntil < today.toISOString().slice(0, 10);
 }
 
-export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "changes_requested";
+export type QuoteStatus = "draft" | "pending_review" | "sent" | "accepted" | "rejected" | "changes_requested";
 export type DerivedStatus = QuoteStatus | "expired";
 
 export function derivedStatus(
@@ -158,6 +158,7 @@ export function derivedStatus(
 
 export const STATUS_LABEL: Record<DerivedStatus, string> = {
   draft: "Draft",
+  pending_review: "Pending review",
   sent: "Awaiting your decision",
   accepted: "Accepted",
   rejected: "Declined",

@@ -1,0 +1,69 @@
+{
+  "clientId": "5fe87e5f-7243-44b0-922e-9b075a2b20f5",
+  "title": "Dell Pro 16 Laptops (32GB) x3",
+  "validUntil": "2026-08-11",
+  "number": "QU-CIL-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "CILSA",
+      "attention": "",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CIL-001",
+      "date": "28 July 2026",
+      "validUntil": "11 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell Pro 16 Laptops (32GB) x3",
+    "projectIntro": "This quote covers 3x Dell Pro 16 laptops (Ultra 5 235U, 32GB RAM, 512GB SSD, vPro, 3-year Pro Support). All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Laptop Supply",
+        "subtitle": "Supply only",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell Pro 16 PC16250 — Ultra 5 235U, 32GB/512GB, 16\" FHD, W11 Pro, 3yr Pro Support, vPro",
+                "detail": "Intel Core Ultra 5 235U (12 TOPS, up to 4.9GHz). 16\" 16:10 FHD+ (1920x1200), 60Hz IPS, Anti-Glare, 300 nit. 32GB (1x32GB) 5600MHz DDR5. 512GB SSD PCIe Gen4. Intel Dual Band Wireless AX211 Wi-Fi 6/6E + Bluetooth. Windows 11 Professional. 3-year Dell Pro Support with vPro.",
+                "qty": 3,
+                "unitPrice": 27663.25
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Quote based on Pinnacle pricing (BTO106_PC16250, in-stock legacy pricing on the 32GB configuration). The 16GB configuration is currently on backorder awaiting new stock.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only — no installation or configuration included.",
+      "Pricing is subject to exchange-rate fluctuations and supplier stock availability.",
+      "Payment is due prior to order placement.",
+      "Goods remain the property of Rocking until paid in full.",
+      "Manufacturer warranty applies to all hardware supplied."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    { "path": "s0.g0.i0", "supplierCost": 72165.00, "note": "Pinnacle BTO106_PC16250 — Dell Pro 16 Ultra 5 235U 32GB/512GB @ R24,055 ex VAT each x3 (in-stock legacy pricing). Standard 15% markup. 16GB option (BTO105, R24,099 ex VAT) is on backorder — 32GB chosen as it's both cheaper and in stock." }
+  ]
+}

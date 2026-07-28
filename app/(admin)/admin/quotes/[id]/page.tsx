@@ -6,6 +6,7 @@ import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { AdminQuoteDecision } from "./AdminQuoteDecision";
+import { ApproveAndSendQuote } from "./ApproveAndSendQuote";
 import { PrintQuoteButton } from "./PrintQuoteButton";
 import { CreateJobFromQuote } from "./CreateJobFromQuote";
 
@@ -70,6 +71,9 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
 
           {/* Accepted → spin up a job to fulfil it */}
           {quote.rawStatus === "accepted" && <CreateJobFromQuote quoteId={quote.id} />}
+
+          {/* Built by the automated pipeline, not sent yet — approve to send */}
+          {quote.rawStatus === "pending_review" && <ApproveAndSendQuote quoteId={quote.id} />}
 
           {/* Purchase order, captured at accept */}
           {quote.poNumber && (

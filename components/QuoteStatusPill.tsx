@@ -3,6 +3,7 @@ import { STATUS_LABEL } from "@/lib/quotes/doc";
 
 const STYLE: Record<DerivedStatus, string> = {
   draft: "bg-line-soft text-ink-3",
+  pending_review: "bg-brand-tint text-[#B45309]",
   sent: "bg-warn-tint text-warn",
   accepted: "bg-good-tint text-good",
   rejected: "bg-brand-tint text-brand",

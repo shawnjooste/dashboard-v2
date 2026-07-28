@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
+const REVIEWERS = ["shawn@rocking.one", "kelle@rocking.one"];
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
 async function sendEmail(to: string[], subject: string, html: string, cc?: string[]): Promise<string | null> {
@@ -45,6 +46,29 @@ const button = (href: string, label: string) => `
       ${label}
     </a>
   </p>`;
+
+/** Auto-generated quote awaiting approval → Shawn + Kelle, not the client. */
+export async function notifyQuotePendingReview(opts: {
+  quoteId: string;
+  quoteNumber: string;
+  title: string;
+  clientName: string;
+  grandTotal: string;
+}): Promise<void> {
+  await sendEmail(
+    REVIEWERS,
+    `Quote ${opts.quoteNumber} ready for review — ${opts.clientName}`,
+    wrap(`
+      <h2 style="margin:0 0 8px;">Quote ready for review</h2>
+      <p style="color:#444; margin:0 0 16px;">
+        I've built a quote from a supplier reply and it's ready to go out, but it hasn't been sent yet:
+        <strong>${opts.title}</strong> for <strong>${opts.clientName}</strong> — ${opts.grandTotal} incl VAT.
+        Take a look and approve it to send.
+      </p>
+      ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "Review the quote")}
+    `),
+  );
+}
 
 /** New quote (or new version) → every active manager at the client. */
 export async function notifyQuoteSent(opts: {

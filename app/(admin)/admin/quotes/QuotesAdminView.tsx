@@ -7,9 +7,10 @@ import type { AdminQuoteRow } from "@/lib/views/quotes";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { setQuoteInvoiced } from "./actions";
 
-type Bucket = "all" | "awaiting" | "changes" | "toinvoice" | "invoiced" | "closed";
+type Bucket = "all" | "review" | "awaiting" | "changes" | "toinvoice" | "invoiced" | "closed";
 
 function bucketOf(q: AdminQuoteRow): Exclude<Bucket, "all"> | "draft" {
+  if (q.status === "pending_review") return "review";
   if (q.status === "sent") return "awaiting";
   if (q.status === "changes_requested") return "changes";
   if (q.status === "accepted") return q.invoicedAt ? "invoiced" : "toinvoice";
@@ -45,7 +46,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
   };
 
   const counts = useMemo(() => {
-    const c = { all: quotes.length, awaiting: 0, changes: 0, toinvoice: 0, invoiced: 0, closed: 0 };
+    const c = { all: quotes.length, review: 0, awaiting: 0, changes: 0, toinvoice: 0, invoiced: 0, closed: 0 };
     for (const x of quotes) {
       const b = bucketOf(x);
       if (b !== "draft") c[b] += 1;
@@ -75,6 +76,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
 
   const tiles: { key: Bucket; label: string; value: number; dot: string; hot: boolean }[] = [
     { key: "all", label: "ALL", value: counts.all, dot: "#18181B", hot: false },
+    { key: "review", label: "PENDING REVIEW", value: counts.review, dot: "#B45309", hot: counts.review > 0 },
     { key: "awaiting", label: "AWAITING CLIENT", value: counts.awaiting, dot: "#185FA5", hot: false },
     { key: "changes", label: "CHANGES ASKED", value: counts.changes, dot: "#B45309", hot: counts.changes > 0 },
     { key: "toinvoice", label: "TO INVOICE", value: counts.toinvoice, dot: "#D7141C", hot: counts.toinvoice > 0 },
@@ -121,7 +123,7 @@ export function QuotesAdminView({ quotes }: { quotes: AdminQuoteRow[] }) {
       </div>
 
       {/* Status tiles */}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {tiles.map((t) => {
           const active = filter === t.key;
           return (

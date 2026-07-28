@@ -3,6 +3,13 @@
 //   node scripts/create-quote.mjs quote.json            # new quote, status sent
 //   node scripts/create-quote.mjs quote.json --amend <quoteId>   # new version
 //   ... --no-email                                      # import silently
+//   ... --pending-review                                # status pending_review, notify
+//                                                        #   shawn@/kelle@rocking.one instead of
+//                                                        #   emailing the client — for quotes built
+//                                                        #   without a human already having reviewed
+//                                                        #   them (e.g. the automated inbound-email
+//                                                        #   pipeline). Approve-and-send happens from
+//                                                        #   the admin quote page.
 //
 // Input file:
 // {
@@ -52,6 +59,8 @@ if (!file) { console.error("usage: node scripts/create-quote.mjs <quote.json> [-
 const amendIdx = rest.indexOf("--amend");
 const amendId = amendIdx !== -1 ? rest[amendIdx + 1] : null;
 const noEmail = rest.includes("--no-email");
+const pendingReview = rest.includes("--pending-review");
+const initialStatus = pendingReview ? "pending_review" : "sent";
 const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
 if (!doc || !title) { console.error("input needs { title, doc }"); process.exit(1); }
@@ -90,9 +99,9 @@ if (amendId) {
   if (vErr) throw vErr;
   await insertInternal(v.id);
   const { error: uErr } = await sb.from("quotes")
-    .update({ current_version: version, status: "sent", title }).eq("id", quoteId);
+    .update({ current_version: version, status: initialStatus, title }).eq("id", quoteId);
   if (uErr) throw uErr;
-  await sb.from("quote_events").insert({ quote_id: quoteId, version, event: "sent" });
+  await sb.from("quote_events").insert({ quote_id: quoteId, version, event: initialStatus });
 } else {
   // ---------- brand-new quote ----------
   if (input.number) {
@@ -106,7 +115,7 @@ if (amendId) {
   doc.meta.quoteNumber = quoteNumber;
 
   const { data: q, error: qErr } = await sb.from("quotes").insert({
-    client_id: clientId, quote_number: quoteNumber, title, status: "sent",
+    client_id: clientId, quote_number: quoteNumber, title, status: initialStatus,
   }).select("id").single();
   if (qErr) throw qErr;
   quoteId = q.id;
@@ -120,7 +129,7 @@ if (amendId) {
   await insertInternal(v.id);
   await sb.from("quote_events").insert([
     { quote_id: quoteId, version: 1, event: "created" },
-    { quote_id: quoteId, version: 1, event: "sent" },
+    { quote_id: quoteId, version: 1, event: initialStatus },
   ]);
 }
 
@@ -141,6 +150,31 @@ const url = `${APP_URL}/quotes/${quoteId}`;
 
 if (noEmail) {
   console.log("Email skipped (--no-email)");
+} else if (pendingReview) {
+  const reviewUrl = `${APP_URL}/admin/quotes/${quoteId}`;
+  const reviewers = ["shawn@rocking.one", "kelle@rocking.one"];
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
+      to: reviewers, subject: `Quote ${quoteNumber} ready for review — ${doc.client.name}`,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
+          <h2 style="margin:0 0 8px;">Quote ready for review</h2>
+          <p style="color:#444; margin:0 0 16px;">
+            I've built a quote from a supplier reply and it's ready to go out, but it hasn't been sent yet:
+            <strong>${title}</strong> for <strong>${doc.client.name}</strong> — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)} / month` : ""}.
+            Take a look and approve it to send.
+          </p>
+          <p style="margin:20px 0 0;">
+            <a href="${reviewUrl}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">Review the quote</a>
+          </p>
+          <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
+        </div>`,
+    }),
+  });
+  console.log(res.ok ? `Review requested from ${reviewers.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created, pending review`);
 } else if (to.length && process.env.RESEND_API_KEY) {
   const heading = amendId
     ? `Updated quote from Rocking — ${quoteNumber}`
