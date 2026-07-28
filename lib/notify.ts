@@ -5,6 +5,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/send";
 import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-email";
+import type { DetailChange } from "@/lib/company-details-helpers";
 
 const ADMIN_EMAIL = "shawn@rocking.one";
 const SUPPORT_EMAIL = "support@rocking.co.za"; // FreeScout helpdesk inbox — replies land as tickets
@@ -202,5 +203,65 @@ export async function notifyFirstSignIn(userId: string): Promise<void> {
           </a>
         </p>
       </div>`,
+  });
+}
+
+const ACCOUNTS_EMAIL = "accounts@rocking.one";
+
+/**
+ * Tells accounts a client corrected their own company details. This is the
+ * trigger for a human to mirror the change into Xero — the portal is the
+ * client's record, Xero remains the billing system, and nothing syncs back
+ * automatically. Internal audience: it must never appear in the client's own
+ * communications history.
+ */
+export async function sendCompanyDetailsChanged(opts: {
+  clientId: string;
+  clientName: string;
+  changedBy: string;
+  changes: DetailChange[];
+}): Promise<void> {
+  if (!opts.changes.length) return;
+
+  const esc = (s: string) =>
+    s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const cell = (v: string | null) =>
+    v === null ? '<span style="color:#A1A1AA;">(empty)</span>' : esc(v);
+
+  const rows = opts.changes
+    .map(
+      (c) => `<tr>
+        <td style="padding:6px 12px 6px 0; font-weight:bold; color:#18181B;">${esc(c.label)}</td>
+        <td style="padding:6px 12px 6px 0; color:#71717A;">${cell(c.oldValue)}</td>
+        <td style="padding:6px 0; color:#18181B;">${cell(c.newValue)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const when = new Date().toLocaleString("en-ZA", { dateStyle: "long", timeStyle: "short" });
+
+  await sendEmail({
+    to: [ACCOUNTS_EMAIL],
+    subject: `Company details updated — ${opts.clientName}`,
+    clientId: opts.clientId,
+    category: "admin_alert",
+    audience: "internal",
+    html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif; max-width:640px; color:#18181B;">
+      <h2 style="margin:0 0 4px; font-size:18px;">Company details updated</h2>
+      <p style="margin:0 0 16px; color:#52525B; font-size:14px;">
+        <strong>${esc(opts.clientName)}</strong> — changed by ${esc(opts.changedBy)} on ${esc(when)}.
+      </p>
+      <table style="border-collapse:collapse; font-size:14px;">
+        <tr style="text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:#A1A1AA;">
+          <th style="padding:0 12px 6px 0;">Field</th>
+          <th style="padding:0 12px 6px 0;">Was</th>
+          <th style="padding:0 0 6px;">Now</th>
+        </tr>
+        ${rows}
+      </table>
+      <p style="margin:16px 0 0; color:#71717A; font-size:13px;">
+        Update Xero to match if this affects invoicing.
+      </p>
+    </div>`,
   });
 }
