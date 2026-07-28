@@ -141,3 +141,8 @@ export async function notifyTaskAssigned(opts: {
   await sendEmail([opts.assignee.email], subject, wrap(body), bcc);
   return 1;
 }
+
+/** Weekly open-work digest → one staff member. Body is inner HTML from lib/job-digest. */
+export async function sendJobDigest(to: string, subject: string, html: string): Promise<void> {
+  await sendEmail([to], subject, wrap(html));
+}
