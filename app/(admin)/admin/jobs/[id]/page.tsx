@@ -4,6 +4,7 @@ import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { saveJobNotes } from "../actions";
 import { JobStatusControl } from "./JobStatusControl";
 import { JobOwnerControl } from "./JobOwnerControl";
+import { JobDueDate } from "./JobDueDate";
 import { JobChecklist } from "./JobChecklist";
 import { PostUpdate } from "./PostUpdate";
 
@@ -51,6 +52,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <JobStatusControl jobId={job.id} status={job.status} waitingNote={job.waitingNote} />
 
           <JobOwnerControl jobId={job.id} ownerProfileId={job.ownerProfileId} staff={staff} />
+
+          <JobDueDate jobId={job.id} dueDate={job.dueDate} />
 
           <Card>
             <CardHeader title="Checklist" count={job.tasks.length} />

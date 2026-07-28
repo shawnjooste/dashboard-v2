@@ -40,6 +40,7 @@ export type JobDetail = {
   ownerLabel: string | null;
   notes: string | null;
   waitingNote: string | null;
+  dueDate: string | null;
   quoteId: string | null;
   quoteNumber: string | null;
   completedAt: string | null;
@@ -120,6 +121,7 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
     ownerLabel: emailLabel(em.get(j.owner_profile_id ?? "")),
     notes: j.notes,
     waitingNote: j.waiting_note,
+    dueDate: j.due_date,
     quoteId: j.quote_id,
     quoteNumber: (quoteRes.data as { quote_number: string } | null)?.quote_number ?? null,
     completedAt: j.completed_at,
