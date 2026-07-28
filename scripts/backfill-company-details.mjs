@@ -24,7 +24,17 @@ const refreshed = await refreshToken(
   decryptSecret({ ciphertext: conn.token_ciphertext, iv: conn.token_iv, tag: conn.token_tag }, env.XERO_TOKEN_ENC_KEY),
 );
 const renc = encryptSecret(refreshed.refresh_token, env.XERO_TOKEN_ENC_KEY);
-await sb.from("xero_connection").update({ token_ciphertext: renc.ciphertext, token_iv: renc.iv, token_tag: renc.tag }).eq("id", 1);
+const { error: tokenPersistErr } = await sb
+  .from("xero_connection")
+  .update({ token_ciphertext: renc.ciphertext, token_iv: renc.iv, token_tag: renc.tag })
+  .eq("id", 1);
+if (tokenPersistErr) {
+  console.error(
+    `WARNING: refreshed the Xero token but failed to persist it (${tokenPersistErr.message}). ` +
+      `Xero rotates the refresh token on every use, so the database now holds a DEAD token — the ` +
+      `next refresh will fail here and in the live app until someone manually reauthorises.`,
+  );
+}
 const tok = refreshed.access_token;
 const tid = conn.tenant_id;
 
@@ -94,11 +104,15 @@ for (const client of clients) {
     continue;
   }
 
-  const { data: existing } = await sb
+  const { data: existing, error: existingErr } = await sb
     .from("client_company_details")
     .select("*")
     .eq("client_id", client.id)
     .maybeSingle();
+  if (existingErr) {
+    console.warn(`  ! ${client.name}: could not read existing row (${existingErr.message}) — skipping, not overwriting`);
+    continue;
+  }
 
   const candidate = fromXero(x);
   const patch = {};
