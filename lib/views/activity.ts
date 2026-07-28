@@ -22,7 +22,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
   const supabase = await createClient();
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
 
-  const [activity, quoteEvents, quotes, rfqEvents, rfqs, changes, devices, time, imports, imp, profiles, clients] =
+  const [activity, quoteEvents, quotes, rfqEvents, rfqs, changes, devices, time, imports, imp, sentEmails, profiles, clients] =
     await Promise.all([
       supabase.from("portal_activity").select("occurred_at, profile_id, client_id, kind, section, detail").gte("occurred_at", since).order("occurred_at", { ascending: false }).limit(CAP),
       supabase.from("quote_events").select("created_at, quote_id, event, actor_profile_id").gte("created_at", since).order("created_at", { ascending: false }).limit(CAP),
@@ -34,6 +34,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
       supabase.from("support_time_entries").select("created_at, client_id, minutes, work_type, note, entered_by").gte("created_at", since).order("created_at", { ascending: false }).limit(CAP),
       supabase.from("import_runs").select("created_at, source, counts").gte("created_at", since).order("created_at", { ascending: false }).limit(CAP),
       supabase.from("impersonation_log").select("started_at, staff_profile_id, target_email").gte("started_at", since).order("started_at", { ascending: false }).limit(CAP),
+      supabase.from("sent_emails").select("sent_at, client_id, subject, to_emails, category, audience").gte("sent_at", since).order("sent_at", { ascending: false }).limit(CAP),
       supabase.from("profiles").select("id, email"),
       supabase.from("clients").select("id, name"),
     ]);
@@ -56,7 +57,6 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
     const base = { at: a.occurred_at, actor: person(a.profile_id), clientId: a.client_id, clientName: named(a.client_id) };
     if (a.kind === "login") push({ ...base, group: "logins", text: "signed in" });
     else if (a.kind === "visit") push({ ...base, group: "views", text: `viewed ${SECTION_LABELS[a.section] ?? a.section}` });
-    else if (a.kind === "email") push({ ...base, group: "emails", text: `${a.section.replace("_", " ")} email sent${a.detail ? `: ${a.detail}` : ""}` });
     else if (a.section === "ticket_created") push({ ...base, group: "actions", text: `raised a ticket${a.detail ? `: “${a.detail}”` : ""}` });
     else push({ ...base, group: "actions", text: `${a.section}${a.detail ? ` — ${a.detail}` : ""}` });
   }
@@ -106,7 +106,18 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
     push({ at: i.started_at, group: "actions", actor: person(i.staff_profile_id), clientId: null, clientName: null, text: `viewed the portal as ${i.target_email}` });
   }
 
+  for (const e of sentEmails.data ?? []) {
+    push({
+      at: e.sent_at,
+      group: "emails",
+      actor: null,
+      clientId: e.client_id,
+      clientName: named(e.client_id),
+      text: `${e.category} email${e.audience === "internal" ? " (internal)" : ""} sent: “${e.subject}” → ${(e.to_emails ?? []).join(", ")}`,
+    });
+  }
+
   items.sort((a, b) => b.at.localeCompare(a.at));
-  const capped = [activity, quoteEvents, rfqEvents, changes, time, imports, imp].some((r) => (r.data?.length ?? 0) === CAP);
+  const capped = [activity, quoteEvents, rfqEvents, changes, time, imports, imp, sentEmails].some((r) => (r.data?.length ?? 0) === CAP);
   return { items, capped };
 }
