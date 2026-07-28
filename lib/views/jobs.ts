@@ -11,6 +11,7 @@ export type JobCard = {
   ownerProfileId: string | null;
   ownerLabel: string | null;
   assignees: { id: string; label: string }[];
+  pinned: boolean;
   taskTotal: number;
   taskDone: number;
   waitingNote: string | null;
@@ -22,6 +23,7 @@ export type JobCard = {
 
 export type JobTask = { id: string; label: string; done: boolean; assigneeProfileId: string | null; assigneeLabel: string | null; position: number };
 export type JobUpdate = { id: string; kind: string; body: string | null; author: string | null; emailedCount: number; createdAt: string };
+export type JobComment = { id: string; body: string; author: string | null; createdAt: string };
 
 export type JobDetail = {
   id: string;
@@ -34,6 +36,8 @@ export type JobDetail = {
   notes: string | null;
   waitingNote: string | null;
   dueDate: string | null;
+  pinned: boolean;
+  comments: JobComment[];
   quoteId: string | null;
   quoteNumber: string | null;
   completedAt: string | null;
@@ -57,7 +61,8 @@ export async function getJobBoard(): Promise<JobCard[]> {
   const [{ data: jobs }, { data: clients }, { data: tasks }, { data: profiles }] = await Promise.all([
     supabase
       .from("jobs")
-      .select("id, client_id, title, owner_profile_id, status, waiting_note, quote_id, due_date, board_position, updated_at")
+      .select("id, client_id, title, owner_profile_id, status, waiting_note, quote_id, due_date, board_position, pinned, updated_at")
+      .order("pinned", { ascending: false })
       .order("board_position", { ascending: true })
       .order("updated_at", { ascending: false }),
     supabase.from("clients").select("id, name"),
@@ -100,6 +105,7 @@ export async function getJobBoard(): Promise<JobCard[]> {
         id,
         label: emailLabel(em.get(id)) ?? id,
       })),
+      pinned: j.pinned,
       taskTotal: c.t,
       taskDone: c.d,
       waitingNote: j.waiting_note,
@@ -115,12 +121,13 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
   const supabase = await createClient();
   const { data: j } = await supabase.from("jobs").select("*").eq("id", id).maybeSingle();
   if (!j) return null;
-  const [{ data: client }, { data: tasks }, { data: updates }, { data: profiles }, quoteRes] = await Promise.all([
+  const [{ data: client }, { data: tasks }, { data: updates }, { data: profiles }, quoteRes, { data: comments }] = await Promise.all([
     supabase.from("clients").select("name").eq("id", j.client_id).maybeSingle(),
     supabase.from("job_tasks").select("id, label, done, assignee_profile_id, position").eq("job_id", id).order("position"),
     supabase.from("job_updates").select("id, kind, body, posted_by_profile_id, emailed_count, created_at").eq("job_id", id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, email"),
     j.quote_id ? supabase.from("quotes").select("quote_number").eq("id", j.quote_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("job_comments").select("id, body, author_profile_id, created_at").eq("job_id", id).order("created_at"),
   ]);
   const em = new Map((profiles ?? []).map((p) => [p.id, p.email]));
   return {
@@ -134,6 +141,13 @@ export async function getJobDetail(id: string): Promise<JobDetail | null> {
     notes: j.notes,
     waitingNote: j.waiting_note,
     dueDate: j.due_date,
+    pinned: j.pinned,
+    comments: (comments ?? []).map((c) => ({
+      id: c.id,
+      body: c.body,
+      author: emailLabel(em.get(c.author_profile_id ?? "")),
+      createdAt: c.created_at,
+    })),
     quoteId: j.quote_id,
     quoteNumber: (quoteRes.data as { quote_number: string } | null)?.quote_number ?? null,
     completedAt: j.completed_at,
