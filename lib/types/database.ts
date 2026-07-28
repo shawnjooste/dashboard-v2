@@ -2340,7 +2340,6 @@ export type Database = {
       suppliers: {
         Row: {
           category: string | null
-          contact_email: string | null
           contact_name: string | null
           created_at: string
           email: string | null
@@ -2353,7 +2352,6 @@ export type Database = {
         }
         Insert: {
           category?: string | null
-          contact_email?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
@@ -2366,7 +2364,6 @@ export type Database = {
         }
         Update: {
           category?: string | null
-          contact_email?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
