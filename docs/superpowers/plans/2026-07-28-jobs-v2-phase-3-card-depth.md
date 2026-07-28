@@ -30,8 +30,11 @@
   `bg-line-soft`, `bg-canvas`. Reuse `PageHeader`, `Card`, `CardHeader`, `initials`
   from `@/components/ui`.
 - Tests are vitest, colocated, RELATIVE imports (`./job-activity`).
-- **The migration number is `0062`.** `0057`–`0061` are taken. Re-confirm with
-  `ls supabase/migrations | tail -3` before creating it — it has drifted twice.
+- **The migration number is `0063`.** `0057`–`0062` are taken. This number has now
+  drifted THREE times because other workstreams land migrations while this plan is
+  being executed. **Re-confirm with `ls supabase/migrations | tail -3` immediately
+  before creating the file**, and if a higher number exists, use the next free one
+  consistently throughout the task.
 - After the migration, regenerate types or `.from("...")` is typed `never`:
   `supabase gen types typescript --linked > lib/types/database.ts`
 - Verify with `npx vitest run` and `npm run build` before every commit.
@@ -55,7 +58,7 @@
 
 | File | Responsibility |
 | --- | --- |
-| `supabase/migrations/0062_job_comments_pin.sql` (create) | comments table, `pinned`, extended kind constraint |
+| `supabase/migrations/0063_job_comments_pin.sql` (create) | comments table, `pinned`, extended kind constraint |
 | `lib/job-activity.ts` (create) | pure: which kinds are client-facing, and their labels |
 | `lib/job-activity.test.ts` (create) | its tests |
 | `lib/views/jobs.ts` (modify) | `pinned` on card + detail, `comments` on detail |
@@ -70,7 +73,7 @@
 ### Task 1: Migration and types
 
 **Files:**
-- Create: `supabase/migrations/0062_job_comments_pin.sql`
+- Create: `supabase/migrations/0063_job_comments_pin.sql`
 - Modify: `lib/types/database.ts` (regenerated, never hand-edited)
 
 **Interfaces:**
@@ -87,7 +90,7 @@ the next free one and keep it consistent for the rest of this task.
 
 - [ ] **Step 2: Create the migration**
 
-Create `supabase/migrations/0062_job_comments_pin.sql`:
+Create `supabase/migrations/0063_job_comments_pin.sql`:
 
 ```sql
 -- Jobs v2 phase 3. Three additions:
@@ -121,7 +124,7 @@ alter table public.job_updates add constraint job_updates_kind_check
 - [ ] **Step 3: Apply it**
 
 Run: `supabase db push --linked`
-Expected: `0062_job_comments_pin.sql` listed as applied, no errors.
+Expected: `0063_job_comments_pin.sql` listed as applied, no errors.
 
 - [ ] **Step 4: Regenerate types**
 
@@ -143,7 +146,7 @@ Expected: `✓ Compiled successfully`.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add supabase/migrations/0062_job_comments_pin.sql lib/types/database.ts
+git add supabase/migrations/0063_job_comments_pin.sql lib/types/database.ts
 git commit -m "feat(jobs): job_comments table, pinned flag, activity kinds
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
