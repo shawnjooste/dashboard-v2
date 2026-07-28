@@ -83,7 +83,11 @@ export async function POST(req: Request) {
     if (existing) return NextResponse.json({ ok: true, duplicate: true });
   }
 
-  const isInternal = fromEmail.endsWith("@rocking.one");
+  // Staff send from more than one domain in practice (portal logins are
+  // @rocking.one, but day-to-day mail — e.g. forwards — comes from
+  // @rocking.co.za too).
+  const INTERNAL_DOMAINS = ["@rocking.one", "@rocking.co.za"];
+  const isInternal = INTERNAL_DOMAINS.some((d) => fromEmail.endsWith(d));
 
   // ---------- classify (mechanical only — no judgment here) ----------
   let kind: "client_forward" | "supplier_reply" | "client_quote_reply" | "supplier_clarification" | "unclassified" = "unclassified";
