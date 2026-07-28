@@ -56,8 +56,12 @@
 
 ## Task 1: Migration — tables, RLS, storage bucket
 
+> **Numbering note (2026-07-28):** `0061_sent_emails.sql` and `0062_staff_supplier_request.sql`
+> landed from a concurrent session after this plan was written. This migration ships as
+> **`0063_company_details_and_compliance.sql`**. Contents unchanged.
+
 **Files:**
-- Create: `supabase/migrations/0061_company_details_and_compliance.sql`
+- Create: `supabase/migrations/0063_company_details_and_compliance.sql`
 - Modify: `lib/types/database.ts` (regenerated, not hand-edited)
 
 **Interfaces:**
