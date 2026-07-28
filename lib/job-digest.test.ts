@@ -74,6 +74,29 @@ describe("buildDigest", () => {
     expect(d.body).toContain("Tasks assigned to you");
     expect(d.body).toContain("Clean laptops");
   });
+  it("omits the jobs section entirely when there are none", () => {
+    const d = buildDigest(
+      person({
+        ownedJobs: [],
+        assignedTasks: [{ label: "Clean laptops", jobTitle: "Laptop Assessment", clientName: "NI", dueDate: null }],
+      }),
+      TODAY,
+    )!;
+    expect(d.body).not.toContain("Jobs you own");
+    expect(d.body).toContain("Tasks assigned to you");
+    expect(d.body).toContain("Clean laptops");
+  });
+  it("marks items due within 2 days as 'Due soon'", () => {
+    const d = buildDigest(
+      person({
+        ownedJobs: [{ title: "Urgent", clientName: "C", dueDate: "2026-07-30" }],
+        assignedTasks: [],
+      }),
+      TODAY,
+    )!;
+    expect(d.body).toContain("Due soon");
+    expect(d.body).not.toContain("Overdue");
+  });
 });
 
 describe("buildDigests", () => {
