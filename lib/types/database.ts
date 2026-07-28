@@ -2236,6 +2236,60 @@ export type Database = {
           },
         ]
       }
+      sent_emails: {
+        Row: {
+          audience: string
+          category: string
+          client_id: string | null
+          html: string
+          id: string
+          resend_id: string | null
+          sent_at: string
+          sent_by_profile_id: string | null
+          subject: string
+          to_emails: string[]
+        }
+        Insert: {
+          audience?: string
+          category?: string
+          client_id?: string | null
+          html: string
+          id?: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by_profile_id?: string | null
+          subject: string
+          to_emails: string[]
+        }
+        Update: {
+          audience?: string
+          category?: string
+          client_id?: string | null
+          html?: string
+          id?: string
+          resend_id?: string | null
+          sent_at?: string
+          sent_by_profile_id?: string | null
+          subject?: string
+          to_emails?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_emails_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_emails_sent_by_profile_id_fkey"
+            columns: ["sent_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_aliases: {
         Row: {
           client_id: string
@@ -2689,6 +2743,7 @@ export type Database = {
         }[]
       }
       current_client_id: { Args: never; Returns: string }
+      current_user_email: { Args: never; Returns: string }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
