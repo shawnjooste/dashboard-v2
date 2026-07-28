@@ -277,9 +277,18 @@ export async function moveJob(jobId: string, toStatus: JobStatus, toIndex: numbe
     .order("updated_at", { ascending: false });
 
   const placed = placeCard((column ?? []).map((c) => c.id), jobId, toIndex);
-  await Promise.all(
+  // These writes are non-transactional by design (see the Jobs v2 spec). Discarding
+  // their errors, though, made a failed reorder indistinguishable from a drag that
+  // never reached the server — so surface both the attempt and any failure.
+  const results = await Promise.all(
     placed.map((p) => supabase.from("jobs").update({ board_position: p.position }).eq("id", p.id)),
   );
+  const failed = results.filter((r) => r.error);
+  if (failed.length) {
+    console.error("moveJob: board_position write failed", failed.map((f) => f.error?.message));
+  } else {
+    console.log(`moveJob: ${jobId} -> ${toStatus}@${toIndex}, renumbered ${placed.length} card(s)`);
+  }
 
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
