@@ -2,6 +2,7 @@
 // job action. Recipients = active managers of the job's client. Returns the
 // number of recipients (stored on job_updates.emailed_count).
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendEmail as send } from "@/lib/email/send";
 import {
   greetingName,
   assigneeGreetingName,
@@ -14,18 +15,25 @@ const FROM = '"Rocking" <no-reply@send.rocking.one>';
 
 type ManagerRecipient = { email: string; name: string };
 
-async function sendEmail(to: string[], subject: string, html: string, bcc?: string[]): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.warn("RESEND_API_KEY not set — skipping email:", subject);
-    return;
-  }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html, ...(bcc && bcc.length ? { bcc } : {}) }),
+/** Sends via the shared chokepoint (which records it for /communications).
+ *  BCC still goes out but is deliberately never recorded — blind stays blind. */
+async function sendEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  bcc?: string[],
+  opts?: { clientId?: string | null; audience?: "client" | "internal" },
+): Promise<void> {
+  await send({
+    to,
+    bcc,
+    subject,
+    html,
+    from: FROM,
+    category: "job",
+    audience: opts?.audience ?? "client",
+    clientId: opts?.clientId ?? null,
   });
-  if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
 }
 
 /** The job owner's email (for BCC), or null when there's no owner / no row. */
@@ -81,6 +89,7 @@ export async function notifyJobOpened(opts: { clientId: string; title: string; o
       <p style="color:#444; margin:0;">Rocking has opened a job for you: <strong>${opts.title}</strong>. We'll keep you posted on how it progresses.</p>
     `),
         i === 0 ? bcc : undefined, // owner copy rides the first send only
+        { clientId: opts.clientId, audience: "client" },
       );
       sent++;
     } catch (e) {
@@ -103,6 +112,7 @@ export async function notifyJobCompleted(opts: { clientId: string; title: string
       <p style="color:#444; margin:0;"><strong>${opts.title}</strong> is complete. Thanks — reach out any time if you need anything else.</p>
     `),
     bcc,
+    { clientId: opts.clientId, audience: "client" },
   );
   return to.length;
 }
@@ -121,6 +131,7 @@ export async function notifyJobUpdate(opts: { clientId: string; title: string; b
       <p style="color:#444; margin:0; white-space:pre-wrap;">${opts.body}</p>
     `),
     bcc,
+    { clientId: opts.clientId, audience: "client" },
   );
   return to.length;
 }
@@ -138,11 +149,11 @@ export async function notifyTaskAssigned(opts: {
   const name = assigneeGreetingName({ kind: opts.assignee.kind, email: opts.assignee.email, person: opts.assignee.person });
   const { subject, body } = assignmentEmailContent({ kind: opts.assignee.kind, name, jobTitle: opts.jobTitle, taskLabel: opts.taskLabel });
   const bcc = ownerBcc(opts.ownerEmail ?? null, [opts.assignee.email]);
-  await sendEmail([opts.assignee.email], subject, wrap(body), bcc);
+  await sendEmail([opts.assignee.email], subject, wrap(body), bcc, { audience: "internal" });
   return 1;
 }
 
 /** Weekly open-work digest → one staff member. Body is inner HTML from lib/job-digest. */
 export async function sendJobDigest(to: string, subject: string, html: string): Promise<void> {
-  await sendEmail([to], subject, wrap(html));
+  await sendEmail([to], subject, wrap(html), undefined, { audience: "internal" });
 }

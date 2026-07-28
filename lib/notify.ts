@@ -1,52 +1,14 @@
 // Server-only email notifications via Resend (the same domain used for auth).
+// Sending itself lives in lib/email/send.ts — the single chokepoint that also
+// records every message in sent_emails for /communications.
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendEmail } from "@/lib/email/send";
 import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-email";
 
-const FROM = '"Rocking" <no-reply@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 const SUPPORT_EMAIL = "support@rocking.co.za"; // FreeScout helpdesk inbox — replies land as tickets
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
-
-async function sendEmail(opts: {
-  to: string;
-  subject: string;
-  html: string;
-  replyTo?: string;
-  /** Activity-feed category, e.g. "onboarding" | "admin_alert". */
-  category?: string;
-  /** Client the email relates to, when known — shown in the activity feed. */
-  clientId?: string | null;
-}): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.warn("RESEND_API_KEY not set — skipping email:", opts.subject);
-    return;
-  }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: FROM,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
-    }),
-  });
-  if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
-  // Log the send to the activity feed. Best-effort: never fail the email.
-  try {
-    await createServiceClient().from("portal_activity").insert({
-      kind: "email",
-      section: opts.category ?? "general",
-      detail: `“${opts.subject}” → ${opts.to}`.slice(0, 200),
-      client_id: opts.clientId ?? null,
-    });
-  } catch (e) {
-    console.error("email activity log failed:", e);
-  }
-}
 
 /**
  * Emails staff when a user lands in the pending-approval queue. Idempotent:
@@ -72,7 +34,8 @@ export async function notifyPendingSignup(userId: string): Promise<void> {
   const domain = data.email.split("@")[1] ?? "";
   await sendEmail({
     category: "admin_alert",
-    to: ADMIN_EMAIL,
+    audience: "internal",
+    to: [ADMIN_EMAIL],
     subject: `New signup pending approval — ${data.email}`,
     html: `
       <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">
@@ -113,8 +76,9 @@ export async function sendOnboardingEmail(opts: {
 }): Promise<void> {
   await sendEmail({
     category: "onboarding",
+    audience: "client",
     clientId: opts.clientId,
-    to: opts.to,
+    to: [opts.to],
     subject: `Welcome to The Portal — ${opts.companyName}`,
     html: onboardingEmailHtml(opts),
     replyTo: SUPPORT_EMAIL,
@@ -133,10 +97,11 @@ export async function sendBookingConfirmation(opts: {
 }): Promise<void> {
   const rands = `R ${(opts.totalCents / 100).toFixed(2).replace(".", ",")}`;
   await sendEmail({
-    to: opts.to,
+    to: [opts.to],
     subject: `Booking confirmed — ${opts.serviceName}, ${opts.slotLabel}`,
     replyTo: SUPPORT_EMAIL,
     category: "booking",
+    audience: "client",
     clientId: opts.clientId,
     html: `
       <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1a1a;">
@@ -205,8 +170,9 @@ export async function notifyFirstSignIn(userId: string): Promise<void> {
 
   await sendEmail({
     category: "admin_alert",
+    audience: "internal",
     clientId: data.client_id,
-    to: ADMIN_EMAIL,
+    to: [ADMIN_EMAIL],
     subject: `First sign-in — ${name}${clientName ? ` (${clientName})` : ""}`,
     html: `
       <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">

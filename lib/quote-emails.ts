@@ -1,26 +1,35 @@
 // Quote notifications via Resend. Best-effort: a failed email never blocks the
-// quote action — quote_events is the source of truth.
+// quote action — quote_events is the source of truth. Sending goes through
+// lib/email/send.ts (which also records the message for /communications);
+// quote mail keeps its own FROM because quotes@ is the inbound-reply address.
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendEmail as send } from "@/lib/email/send";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 const REVIEWERS = ["shawn@rocking.one", "kelle@rocking.one"];
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-async function sendEmail(to: string[], subject: string, html: string, cc?: string[]): Promise<string | null> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.warn("RESEND_API_KEY not set — skipping email:", subject);
-    return null;
-  }
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, cc, subject, html }),
+/** Sends as quotes@ and returns the threading header Resend replies carry
+ *  (`<id@send.rocking.one>`), or null when the send was skipped. */
+async function sendEmail(
+  to: string[],
+  subject: string,
+  html: string,
+  cc?: string[],
+  opts?: { clientId?: string | null; audience?: "client" | "internal" },
+): Promise<string | null> {
+  const { id } = await send({
+    to,
+    cc,
+    subject,
+    html,
+    from: FROM,
+    category: "quote",
+    audience: opts?.audience ?? "client",
+    clientId: opts?.clientId ?? null,
   });
-  if (!res.ok) throw new Error(`Resend send failed (${res.status})`);
-  const sent = await res.json();
-  return sent?.id ? `<${sent.id}@send.rocking.one>` : null;
+  return id ? `<${id}@send.rocking.one>` : null;
 }
 
 async function managerEmails(clientId: string): Promise<string[]> {
@@ -67,6 +76,8 @@ export async function notifyQuotePendingReview(opts: {
       </p>
       ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "Review the quote")}
     `),
+    undefined,
+    { audience: "internal" },
   );
 }
 
@@ -101,6 +112,7 @@ export async function notifyQuoteSent(opts: {
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
     `),
     [ADMIN_EMAIL],
+    { clientId: opts.clientId, audience: "client" },
   );
   if (messageId) {
     const service = createServiceClient();
@@ -132,6 +144,8 @@ export async function notifyQuoteViewed(opts: {
       </p>
       ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "View in admin")}
     `),
+    undefined,
+    { audience: "internal" },
   );
 }
 
@@ -164,5 +178,7 @@ export async function notifyQuoteDecision(opts: {
       ${opts.comment ? `<p style="color:#444; border-left:3px solid #E4E4E7; padding-left:12px; margin:0 0 16px;">"${opts.comment}"</p>` : ""}
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
     `),
+    undefined,
+    { clientId: opts.clientId, audience: "client" },
   );
 }
