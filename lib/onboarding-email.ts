@@ -76,6 +76,10 @@ export function billingWelcomeContent(company: string): {
   };
 }
 
+/** SECURITY: `portalUrl` is normally a one-click passwordless sign-in link —
+ *  possession of it authenticates as the invitee. Anything that persists or
+ *  re-displays this HTML must render it with a harmless URL instead (see
+ *  `recordHtml` in lib/email/send.ts). */
 export function onboardingEmailHtml(opts: {
   firstName: string;
   companyName: string;

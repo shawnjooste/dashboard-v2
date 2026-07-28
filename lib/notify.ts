@@ -81,6 +81,11 @@ export async function sendOnboardingEmail(opts: {
     to: [opts.to],
     subject: `Welcome to The Portal — ${opts.companyName}`,
     html: onboardingEmailHtml(opts),
+    // The sent copy carries a one-click sign-in link — a bearer credential.
+    // Managers can read every client-audience row for their company, so the
+    // stored copy points at the normal login page instead; without this a
+    // manager could open a colleague's invite and sign in as them.
+    recordHtml: onboardingEmailHtml({ ...opts, portalUrl: `${APP_URL}/login` }),
     replyTo: SUPPORT_EMAIL,
   });
 }

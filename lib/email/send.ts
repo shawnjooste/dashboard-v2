@@ -11,6 +11,12 @@ export type SendEmailOptions = {
   to: string[];
   subject: string;
   html: string;
+  /** What to STORE, when it must differ from what was sent. Onboarding mail
+   *  embeds a passwordless sign-in link: possession of that URL is
+   *  authentication as the invitee, and managers can read every client-audience
+   *  row for their company — so the recorded copy points at /login instead.
+   *  Defaults to `html`. */
+  recordHtml?: string;
   /** Overrides DEFAULT_FROM. Quote mail sends as quotes@ (the inbound-reply
    *  address) — changing a sender's from-address breaks reply threading. */
   from?: string;
@@ -60,9 +66,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string | 
       .from("sent_emails")
       .insert({
         client_id: opts.clientId ?? null,
-        to_emails: [...opts.to, ...(opts.cc ?? [])],
+        // Addresses are lowercased so member visibility (which compares against
+        // the lowercased current_user_email()) can never fail on casing.
+        to_emails: [...opts.to, ...(opts.cc ?? [])].map((e) => e.trim().toLowerCase()),
         subject: opts.subject,
-        html: opts.html,
+        html: opts.recordHtml ?? opts.html,
         category: opts.category ?? "general",
         audience: opts.audience ?? "client",
         resend_id: id,

@@ -232,7 +232,7 @@ export async function setTaskAssignee(taskId: string, jobId: string, assigneePro
         const { data: o } = await supabase.from("profiles").select("email").eq("id", job.owner_profile_id).maybeSingle();
         ownerEmailAddr = o?.email ?? null;
       }
-      await notifyTaskAssigned({ assignee, jobTitle: job.title, taskLabel: task.label, ownerEmail: ownerEmailAddr });
+      await notifyTaskAssigned({ assignee, jobTitle: job.title, taskLabel: task.label, ownerEmail: ownerEmailAddr, clientId: job.client_id });
     } catch (e) {
       console.error("task assigned email failed:", e);
     }

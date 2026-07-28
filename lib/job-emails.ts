@@ -145,11 +145,24 @@ export async function notifyTaskAssigned(opts: {
   jobTitle: string;
   taskLabel: string;
   ownerEmail?: string | null;
+  /** The job's client — required for a client assignee's copy to reach their
+   *  communications history. */
+  clientId?: string | null;
 }): Promise<number> {
   const name = assigneeGreetingName({ kind: opts.assignee.kind, email: opts.assignee.email, person: opts.assignee.person });
   const { subject, body } = assignmentEmailContent({ kind: opts.assignee.kind, name, jobTitle: opts.jobTitle, taskLabel: opts.taskLabel });
   const bcc = ownerBcc(opts.ownerEmail ?? null, [opts.assignee.email]);
-  await sendEmail([opts.assignee.email], subject, wrap(body), bcc, { audience: "internal" });
+  // A task can be assigned to a client manager as well as to staff — a client
+  // assignee's copy is genuinely their mail and belongs in their history.
+  await sendEmail(
+    [opts.assignee.email],
+    subject,
+    wrap(body),
+    bcc,
+    opts.assignee.kind === "client"
+      ? { audience: "client", clientId: opts.clientId ?? null }
+      : { audience: "internal" },
+  );
   return 1;
 }
 

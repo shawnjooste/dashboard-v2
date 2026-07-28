@@ -219,6 +219,7 @@ if (noEmail) {
       html: clientHtml,
       category: "quote",
       audience: "client",
+      resend_id: sent?.id ?? null,
     }).then(({ error }) => { if (error) console.error("sent_emails log failed:", error.message); });
   }
 } else {
