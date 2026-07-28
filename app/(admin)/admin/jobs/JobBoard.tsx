@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, useRef, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -160,16 +160,39 @@ function Column({
 function SortableCard({ card, today }: { card: JobCard; today: string }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const due = dueState(card.dueDate, today);
+  // A card is both a link and a drag handle, which collide in two ways:
+  //   1. <a> is natively draggable, so pressing and moving starts the BROWSER's
+  //      link-drag. That swallows the pointermove events dnd-kit's sensor needs,
+  //      so the drag never activates and the release lands as a plain click —
+  //      the card just opens. `draggable={false}` on the link disables it.
+  //   2. Once dragging works, pointerup still fires a click on the link, so
+  //      dropping a card would navigate to it. Remember that a drag happened and
+  //      swallow that one click.
+  const draggedRef = useRef(false);
+  useEffect(() => {
+    if (isDragging) draggedRef.current = true;
+  }, [isDragging]);
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...listeners}
-      className={`touch-none ${isDragging ? "opacity-50" : ""}`}
+      // Capture phase, so it resets before dnd-kit's own pointerdown listener runs.
+      onPointerDownCapture={() => {
+        draggedRef.current = false;
+      }}
+      className={`touch-none select-none ${isDragging ? "opacity-50" : ""}`}
     >
       <Link
         href={`/admin/jobs/${card.id}`}
+        draggable={false}
+        onClick={(e) => {
+          if (draggedRef.current) {
+            e.preventDefault();
+            draggedRef.current = false;
+          }
+        }}
         className="block rounded-lg border border-line bg-card p-3 transition-colors hover:border-faint"
       >
         <div className="text-[13px] font-semibold leading-snug text-ink">{card.title}</div>
