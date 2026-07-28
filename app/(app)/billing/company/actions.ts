@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { canAccess, toOverrides } from "@/lib/feature-access";
 import { sendCompanyDetailsChanged } from "@/lib/notify";
 import { diffCompanyDetails, normaliseDetails } from "@/lib/company-details-helpers";
 
@@ -22,6 +23,9 @@ export async function saveCompanyDetails(
   if (!me.authenticated) return { ok: false, error: "Please sign in again." };
   if (me.profile.role !== "client_manager" || !me.profile.client_id) {
     return { ok: false, error: "Only managers can edit company details." };
+  }
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "billing")) {
+    return { ok: false, error: "Billing is not enabled for your account." };
   }
   const clientId = me.profile.client_id;
 
