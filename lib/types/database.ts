@@ -74,6 +74,84 @@ export type Database = {
           },
         ]
       }
+      client_company_details: {
+        Row: {
+          billing_contact_email: string | null
+          billing_contact_name: string | null
+          billing_contact_phone: string | null
+          billing_notes: string | null
+          client_id: string
+          physical_address: string | null
+          physical_city: string | null
+          physical_postal_code: string | null
+          po_required: boolean
+          postal_address: string | null
+          postal_city: string | null
+          postal_postal_code: string | null
+          registered_name: string | null
+          registration_number: string | null
+          trading_name: string | null
+          updated_at: string
+          updated_by_profile_id: string | null
+          vat_number: string | null
+        }
+        Insert: {
+          billing_contact_email?: string | null
+          billing_contact_name?: string | null
+          billing_contact_phone?: string | null
+          billing_notes?: string | null
+          client_id: string
+          physical_address?: string | null
+          physical_city?: string | null
+          physical_postal_code?: string | null
+          po_required?: boolean
+          postal_address?: string | null
+          postal_city?: string | null
+          postal_postal_code?: string | null
+          registered_name?: string | null
+          registration_number?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          updated_by_profile_id?: string | null
+          vat_number?: string | null
+        }
+        Update: {
+          billing_contact_email?: string | null
+          billing_contact_name?: string | null
+          billing_contact_phone?: string | null
+          billing_notes?: string | null
+          client_id?: string
+          physical_address?: string | null
+          physical_city?: string | null
+          physical_postal_code?: string | null
+          po_required?: boolean
+          postal_address?: string | null
+          postal_city?: string | null
+          postal_postal_code?: string | null
+          registered_name?: string | null
+          registration_number?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          updated_by_profile_id?: string | null
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_company_details_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_company_details_updated_by_profile_id_fkey"
+            columns: ["updated_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_domains: {
         Row: {
           client_id: string
@@ -179,6 +257,89 @@ export type Database = {
             columns: ["support_package_id"]
             isOneToOne: false
             referencedRelation: "support_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_detail_changes: {
+        Row: {
+          changed_by_profile_id: string | null
+          client_id: string
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_by_profile_id?: string | null
+          client_id: string
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_by_profile_id?: string | null
+          client_id?: string
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_detail_changes_changed_by_profile_id_fkey"
+            columns: ["changed_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_detail_changes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_documents: {
+        Row: {
+          created_at: string
+          description: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by_profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by_profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_documents_uploaded_by_profile_id_fkey"
+            columns: ["uploaded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
