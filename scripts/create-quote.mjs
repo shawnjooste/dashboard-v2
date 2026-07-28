@@ -179,13 +179,7 @@ if (noEmail) {
   const heading = amendId
     ? `Updated quote from Rocking — ${quoteNumber}`
     : `New quote from Rocking — ${quoteNumber}`;
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
-      to, cc: ["shawn@rocking.one"], subject: `${heading}: ${title}`,
-      html: `
+  const clientHtml = `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">${heading}</h2>
           <p style="color:#444; margin:0 0 16px;">
@@ -197,7 +191,14 @@ if (noEmail) {
             <a href="${url}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">View the quote</a>
           </p>
           <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
-        </div>`,
+        </div>`;
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
+      to, cc: ["shawn@rocking.one"], subject: `${heading}: ${title}`,
+      html: clientHtml,
     }),
   });
   console.log(res.ok ? `Emailed ${to.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created`);
@@ -208,13 +209,17 @@ if (noEmail) {
         .update({ resend_message_id: `<${sent.id}@send.rocking.one>` })
         .eq("quote_id", quoteId).eq("version", version).eq("event", "sent");
     }
-    // Log the send to the admin activity feed (best-effort).
-    await sb.from("portal_activity").insert({
-      kind: "email",
-      section: "quote",
+    // Record it for /communications and the admin activity feed (best-effort).
+    // Mirrors lib/email/send.ts — this script can't import the TS helper, so
+    // the two write paths must be kept in sync by hand.
+    await sb.from("sent_emails").insert({
       client_id: clientId,
-      detail: `“${heading}: ${title}” → ${to.join(", ")}`.slice(0, 200),
-    }).then(({ error }) => { if (error) console.error("activity log failed:", error.message); });
+      to_emails: [...to, "shawn@rocking.one"],
+      subject: `${heading}: ${title}`,
+      html: clientHtml,
+      category: "quote",
+      audience: "client",
+    }).then(({ error }) => { if (error) console.error("sent_emails log failed:", error.message); });
   }
 } else {
   console.log("No manager emails sent", to.length ? "(no RESEND_API_KEY)" : "(client has no active managers)");
