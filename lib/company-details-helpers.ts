@@ -90,7 +90,7 @@ export function normaliseDetails(input: Record<string, FormDataEntryValue | null
     }
     const raw = input[field];
     const s = typeof raw === "string" ? raw.trim() : "";
-    (out as Record<string, string | null>)[field] = s === "" ? null : s;
+    (out as unknown as Record<string, string | null>)[field] = s === "" ? null : s;
   }
   return out;
 }
