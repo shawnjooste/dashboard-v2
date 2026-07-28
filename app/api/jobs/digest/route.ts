@@ -15,8 +15,12 @@ import { sendJobDigest } from "@/lib/job-emails";
  *
  * Recipients are active rocking_staff who own an open job or hold an incomplete
  * task on one. Anyone with nothing open is skipped by buildDigests.
+ *
+ * Exported as BOTH GET and POST on purpose: Vercel Cron invokes the path with a
+ * GET, while a manual trigger is naturally a POST. Both run the identical
+ * guarded handler, so the scheduled and manual paths can never diverge.
  */
-export async function POST(req: Request) {
+async function runDigest(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     console.error("CRON_SECRET not set — refusing to run the jobs digest");
@@ -64,5 +68,11 @@ export async function POST(req: Request) {
       console.error("jobs digest failed for", d.email, e);
     }
   }
+  if (sent < digests.length) {
+    console.error(`jobs digest: only ${sent} of ${digests.length} sends succeeded`);
+  }
   return NextResponse.json({ recipients: digests.length, sent });
 }
+
+export const GET = runDigest;
+export const POST = runDigest;
