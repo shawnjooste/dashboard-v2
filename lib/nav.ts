@@ -64,11 +64,18 @@ export const NAV: Record<UserRole, NavGroup[]> = {
         { label: "Services", href: "/services" },
         { label: "Quotes", href: "/quotes" },
         { label: "Team", href: "/team" },
+        { label: "Communications", href: "/communications" },
       ],
     },
   ],
   client_member: [
     { label: "", items: [{ label: "My machine", href: "/" }] },
-    { label: "Your services", items: [{ label: "Support", href: "/support" }] },
+    {
+      label: "Your services",
+      items: [
+        { label: "Support", href: "/support" },
+        { label: "Communications", href: "/communications" },
+      ],
+    },
   ],
 };
