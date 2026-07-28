@@ -85,8 +85,10 @@
 
 Run: `ls supabase/migrations | tail -3`
 
-Expected: the highest is `0061_sent_emails.sql`. If a higher number exists, use
-the next free one and keep it consistent for the rest of this task.
+Expected: the highest is `0062_staff_supplier_request.sql`, making `0063` free.
+Other workstreams are actively landing migrations in this repo, so if a higher
+number now exists, use the next free one and keep it consistent for the rest of
+this task — including in the commit message.
 
 - [ ] **Step 2: Create the migration**
 
