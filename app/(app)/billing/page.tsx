@@ -4,6 +4,7 @@ import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getClientBilling } from "@/lib/views/billing";
 import { BillingView } from "@/components/BillingView";
 import { PageHeader } from "@/components/ui";
+import { BillingTabs } from "@/components/BillingTabs";
 
 export default async function BillingPage() {
   const me = await getCurrentProfile();
@@ -17,6 +18,7 @@ export default async function BillingPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Billing" subtitle="Your invoices and account balance with Rocking." />
+      <BillingTabs active="invoices" />
       {billing.enabled ? (
         <BillingView billing={billing} today={today} />
       ) : (
