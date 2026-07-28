@@ -33,6 +33,17 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
   const [, start] = useTransition();
   // Local copy so the board reorders instantly; the server revalidation follows.
   const [items, setItems] = useState(cards);
+  // Tracks the last `cards` prop we've synced from, so we can tell a genuinely
+  // new server payload (after router.refresh(), another tab's edit, etc.) apart
+  // from a re-render caused by our own optimistic update. Reset during render
+  // (not an effect) per the standard "derive state from props" pattern — this
+  // intentionally does NOT use a `key` on the component, which would remount it
+  // and lose scroll/focus.
+  const [prevCards, setPrevCards] = useState(cards);
+  if (cards !== prevCards) {
+    setPrevCards(cards);
+    setItems(cards);
+  }
 
   const sensors = useSensors(
     // A small drag threshold so clicking a card still navigates to it.
@@ -42,9 +53,18 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
   const columnOf = (id: string) => items.find((c) => c.id === id)?.status;
 
   const onDragEnd = (e: DragEndEvent) => {
-    const activeId = String(e.active.id);
     if (!e.over) return;
+    const activeId = String(e.active.id);
     const overId = String(e.over.id);
+    // Picking a card up and releasing it without moving onto a different
+    // target is the common case, not an edge case. Without this guard,
+    // `overStatus` resolves to undefined, `toStatus` falls back to the card's
+    // own column, the moved card is excluded from `target`, so
+    // `target.findIndex` returns -1 and `index` falls back to `target.length`
+    // — silently sending the card to the end of its own column and
+    // persisting that via moveJob. Bail out before any state change or
+    // server call.
+    if (overId === activeId) return;
 
     const from = columnOf(activeId);
     if (!from) return;
@@ -58,6 +78,9 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
     const toIndex = overStatus ? target.length : target.findIndex((c) => c.id === overId);
     const index = toIndex < 0 ? target.length : toIndex;
 
+    // Snapshot for rollback if the server call fails.
+    const previousItems = items;
+
     setItems((prev) => {
       const moved = prev.find((c) => c.id === activeId);
       if (!moved) return prev;
@@ -69,8 +92,13 @@ export function JobBoard({ cards, today }: { cards: JobCard[]; today: string }) 
     });
 
     start(async () => {
-      await moveJob(activeId, toStatus, index);
-      router.refresh();
+      try {
+        await moveJob(activeId, toStatus, index);
+        router.refresh();
+      } catch (err) {
+        console.error("moveJob failed:", err);
+        setItems(previousItems);
+      }
     });
   };
 
@@ -127,14 +155,13 @@ function Column({
 }
 
 function SortableCard({ card, today }: { card: JobCard; today: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const due = dueState(card.dueDate, today);
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      {...attributes}
       {...listeners}
       className={`touch-none ${isDragging ? "opacity-50" : ""}`}
     >
