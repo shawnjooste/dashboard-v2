@@ -22,7 +22,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
   const supabase = await createClient();
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
 
-  const [activity, quoteEvents, quotes, rfqEvents, rfqs, changes, devices, time, imports, imp, sentEmails, profiles, clients] =
+  const [activity, quoteEvents, quotes, rfqEvents, rfqs, changes, devices, time, imports, imp, sentEmails, profiles, clients, detailChanges] =
     await Promise.all([
       supabase.from("portal_activity").select("occurred_at, profile_id, client_id, kind, section, detail").gte("occurred_at", since).order("occurred_at", { ascending: false }).limit(CAP),
       supabase.from("quote_events").select("created_at, quote_id, event, actor_profile_id").gte("created_at", since).order("created_at", { ascending: false }).limit(CAP),
@@ -37,6 +37,7 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
       supabase.from("sent_emails").select("sent_at, client_id, subject, to_emails, category, audience").gte("sent_at", since).order("sent_at", { ascending: false }).limit(CAP),
       supabase.from("profiles").select("id, email"),
       supabase.from("clients").select("id, name"),
+      supabase.from("company_detail_changes").select("created_at, client_id, field, old_value, new_value, changed_by_profile_id").gte("created_at", since).order("created_at", { ascending: false }).limit(CAP),
     ]);
 
   const email = new Map((profiles.data ?? []).map((p) => [p.id, p.email]));
@@ -105,6 +106,22 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
   for (const i of imp.data ?? []) {
     push({ at: i.started_at, group: "actions", actor: person(i.staff_profile_id), clientId: null, clientName: null, text: `viewed the portal as ${i.target_email}` });
   }
+  for (const c of detailChanges.data ?? []) {
+    const label = c.field.replace(/_/g, " ");
+    push({
+      at: c.created_at,
+      group: "changes",
+      actor: person(c.changed_by_profile_id),
+      clientId: c.client_id,
+      clientName: named(c.client_id),
+      text:
+        c.old_value === null
+          ? `set company ${label} to ${c.new_value}`
+          : c.new_value === null
+            ? `cleared company ${label}`
+            : `changed company ${label} from ${c.old_value} to ${c.new_value}`,
+    });
+  }
 
   for (const e of sentEmails.data ?? []) {
     push({
@@ -118,6 +135,6 @@ export async function getActivity(days: number): Promise<{ items: ActivityItem[]
   }
 
   items.sort((a, b) => b.at.localeCompare(a.at));
-  const capped = [activity, quoteEvents, rfqEvents, changes, time, imports, imp, sentEmails].some((r) => (r.data?.length ?? 0) === CAP);
+  const capped = [activity, quoteEvents, rfqEvents, changes, time, imports, imp, sentEmails, detailChanges].some((r) => (r.data?.length ?? 0) === CAP);
   return { items, capped };
 }
