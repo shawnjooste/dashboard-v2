@@ -6,13 +6,7 @@
 export const MAX_DOC_BYTES = 4_000_000;
 
 export function safeDocName(name: string): string {
-  const lastDotIndex = name.lastIndexOf(".");
-  if (lastDotIndex > 0) {
-    const beforeExt = name.substring(0, lastDotIndex);
-    const ext = name.substring(lastDotIndex);
-    return beforeExt.replace(/[^a-zA-Z0-9-]/g, "_") + ext;
-  }
-  return name.replace(/[^a-zA-Z0-9-]/g, "_");
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
 /** Returns a human-readable error, or null when the file is an acceptable PDF. */

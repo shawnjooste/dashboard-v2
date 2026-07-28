@@ -42,7 +42,12 @@ describe("safeDocName", () => {
   it("replaces spaces and unsafe characters", () => {
     expect(safeDocName("Bank Letter (2026).pdf")).toBe("Bank_Letter__2026_.pdf");
   });
-  it("strips path separators so a name cannot escape its folder", () => {
-    expect(safeDocName("../../etc/passwd.pdf")).toBe("______etc_passwd.pdf");
+  it("neutralises path separators so a name cannot escape its folder", () => {
+    // Dots are preserved (as in safePhotoName); only the separators matter for
+    // traversal, and the stored path is UUID-prefixed regardless.
+    expect(safeDocName("../../etc/passwd.pdf")).toBe(".._.._etc_passwd.pdf");
+  });
+  it("preserves dots inside a legitimate filename", () => {
+    expect(safeDocName("report.v2.pdf")).toBe("report.v2.pdf");
   });
 });
