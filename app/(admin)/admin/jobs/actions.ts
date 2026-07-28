@@ -113,6 +113,15 @@ async function applyStatusChange(
       console.error("job completed email failed:", e);
     }
     await supabase.from("job_updates").insert({ job_id: jobId, kind: "completed", posted_by_profile_id: actorId, emailed_count: emailed });
+  } else if (job.status !== status) {
+    // Internal trail only — no email, and never shown in the client panel.
+    await supabase.from("job_updates").insert({
+      job_id: jobId,
+      kind: "status",
+      body: `${job.status} → ${status}`,
+      posted_by_profile_id: actorId,
+      emailed_count: 0,
+    });
   }
 }
 
@@ -198,7 +207,7 @@ export async function saveJobNotes(formData: FormData) {
 
 /** Assign (or clear) a task's assignee. Emails a newly-assigned person; owner BCC'd. */
 export async function setTaskAssignee(taskId: string, jobId: string, assigneeProfileId: string | null) {
-  await staff();
+  const me = await staff();
   const supabase = await createClient();
   const { data: task } = await supabase.from("job_tasks").select("assignee_profile_id, label").eq("id", taskId).maybeSingle();
   if (!task) throw new Error("task not found");
@@ -236,6 +245,13 @@ export async function setTaskAssignee(taskId: string, jobId: string, assigneePro
     } catch (e) {
       console.error("task assigned email failed:", e);
     }
+    await supabase.from("job_updates").insert({
+      job_id: jobId,
+      kind: "assigned",
+      body: `${task.label} → ${assignee.email}`,
+      posted_by_profile_id: me.id,
+      emailed_count: 0,
+    });
   }
   revalidatePath(`/admin/jobs/${jobId}`);
 }
@@ -273,6 +289,9 @@ export async function moveJob(jobId: string, toStatus: JobStatus, toIndex: numbe
     .from("jobs")
     .select("id")
     .eq("status", toStatus)
+    // Must match getJobBoard's ordering (pinned, then position, then recency) —
+    // the drop index is computed against what the user sees.
+    .order("pinned", { ascending: false })
     .order("board_position", { ascending: true })
     .order("updated_at", { ascending: false });
 
@@ -302,6 +321,39 @@ export async function setJobDueDate(jobId: string, dueDate: string | null) {
     .from("jobs")
     .update({ due_date: dueDate || null, updated_at: new Date().toISOString() })
     .eq("id", jobId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Add a staff comment. Internal only — never emailed, never shown to clients. */
+export async function addJobComment(jobId: string, body: string) {
+  const me = await staff();
+  const clean = body.trim();
+  if (!clean) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("job_comments")
+    .insert({ job_id: jobId, body: clean, author_profile_id: me.id });
+  if (error) throw new Error(error.message);
+  await supabase.from("jobs").update({ updated_at: new Date().toISOString() }).eq("id", jobId);
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Remove a staff comment. */
+export async function deleteJobComment(commentId: string, jobId: string) {
+  await staff();
+  const supabase = await createClient();
+  const { error } = await supabase.from("job_comments").delete().eq("id", commentId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/jobs/${jobId}`);
+}
+
+/** Golden ticket: pin a job to the top of its board column. No email. */
+export async function toggleJobPinned(jobId: string, pinned: boolean) {
+  await staff();
+  const supabase = await createClient();
+  const { error } = await supabase.from("jobs").update({ pinned }).eq("id", jobId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
