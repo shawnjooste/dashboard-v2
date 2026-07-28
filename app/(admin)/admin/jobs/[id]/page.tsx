@@ -7,9 +7,11 @@ import { JobOwnerControl } from "./JobOwnerControl";
 import { JobDueDate } from "./JobDueDate";
 import { JobChecklist } from "./JobChecklist";
 import { PostUpdate } from "./PostUpdate";
+import { isClientUpdate, activityLabel } from "@/lib/job-activity";
+import { JobComments } from "./JobComments";
+import { JobPinControl } from "./JobPinControl";
 
 const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
-const KIND_LABEL: Record<string, string> = { opened: "Opened", completed: "Completed", update: "Update sent" };
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,30 +24,34 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     );
   }
   const [assignees, { staff }] = await Promise.all([getJobAssignees(job.clientId), getJobFormOptions()]);
+  const clientUpdates = job.updates.filter((u) => isClientUpdate(u.kind));
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        breadcrumb={
-          <Link href="/admin/jobs" className="hover:text-ink">
-            ← Jobs
-          </Link>
-        }
-        title={job.title}
-        subtitle={
-          <span>
-            {job.clientName}
-            {job.quoteNumber && (
-              <>
-                {" · from "}
-                <Link href={`/admin/quotes/${job.quoteId}`} className="text-brand hover:text-brand-dark">
-                  {job.quoteNumber}
-                </Link>
-              </>
-            )}
-          </span>
-        }
-      />
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader
+          breadcrumb={
+            <Link href="/admin/jobs" className="hover:text-ink">
+              ← Jobs
+            </Link>
+          }
+          title={job.title}
+          subtitle={
+            <span>
+              {job.clientName}
+              {job.quoteNumber && (
+                <>
+                  {" · from "}
+                  <Link href={`/admin/quotes/${job.quoteId}`} className="text-brand hover:text-brand-dark">
+                    {job.quoteNumber}
+                  </Link>
+                </>
+              )}
+            </span>
+          }
+        />
+        <JobPinControl jobId={job.id} pinned={job.pinned} />
+      </div>
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-5">
@@ -58,6 +64,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <Card>
             <CardHeader title="Checklist" count={job.tasks.length} />
             <JobChecklist jobId={job.id} tasks={job.tasks} assignees={assignees} />
+          </Card>
+
+          <Card>
+            <CardHeader title="Comments" count={job.comments.length} />
+            <JobComments jobId={job.id} comments={job.comments} />
           </Card>
 
           <Card>
@@ -82,12 +93,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
         <div className="space-y-4 lg:w-[340px] lg:shrink-0">
           <Card>
-            <CardHeader title="Client updates" count={job.updates.length} />
+            <CardHeader title="Client updates" count={clientUpdates.length} />
             <div className="border-b border-line-soft px-4 py-3.5">
               <PostUpdate jobId={job.id} />
             </div>
+            {clientUpdates.length === 0 ? (
+              <div className="px-4 py-4 text-xs text-faint">Nothing sent yet.</div>
+            ) : (
+              clientUpdates.map((u) => <UpdateRow key={u.id} u={u} />)
+            )}
+          </Card>
+
+          <Card>
+            <CardHeader title="Activity" count={job.updates.length} />
             {job.updates.length === 0 ? (
-              <div className="px-4 py-4 text-xs text-faint">No activity yet.</div>
+              <div className="px-4 py-4 text-xs text-faint">Nothing yet.</div>
             ) : (
               job.updates.map((u) => <UpdateRow key={u.id} u={u} />)
             )}
@@ -102,7 +122,7 @@ function UpdateRow({ u }: { u: JobUpdate }) {
   return (
     <div className="border-b border-line-soft px-4 py-2.5 text-sm last:border-0">
       <div className="flex items-center gap-2">
-        <span className="font-medium text-ink">{KIND_LABEL[u.kind] ?? u.kind}</span>
+        <span className="font-medium text-ink">{activityLabel(u.kind)}</span>
         <span className="ml-auto text-xs text-faint">{fmtTs(u.createdAt)}</span>
       </div>
       {u.body && <div className="mt-0.5 whitespace-pre-wrap text-[13px] text-ink-2">{u.body}</div>}
