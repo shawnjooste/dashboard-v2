@@ -147,6 +147,82 @@ export async function getJobFormOptions(): Promise<{ clients: ClientOption[]; st
   };
 }
 
+export type MyJob = {
+  id: string;
+  title: string;
+  clientName: string;
+  status: JobStatus;
+  dueDate: string | null;
+  taskTotal: number;
+  taskDone: number;
+};
+export type MyTask = {
+  id: string;
+  label: string;
+  jobId: string;
+  jobTitle: string;
+  clientName: string;
+  dueDate: string | null;
+};
+export type MyWork = { ownedJobs: MyJob[]; assignedTasks: MyTask[] };
+
+/** One staffer's open work: jobs they own, and incomplete tasks assigned to them. */
+export async function getMyWork(profileId: string): Promise<MyWork> {
+  const supabase = await createClient();
+  // One tasks query serves both purposes: the done/total counts need every task,
+  // and the assigned list is the incomplete subset of the same rows.
+  const [{ data: jobs }, { data: clients }, { data: tasks }] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, client_id, title, owner_profile_id, status, due_date")
+      .not("status", "in", "(done,cancelled)"),
+    supabase.from("clients").select("id, name"),
+    supabase.from("job_tasks").select("id, job_id, label, done, assignee_profile_id"),
+  ]);
+  const cn = new Map((clients ?? []).map((c) => [c.id, c.name]));
+  const openJobs = jobs ?? [];
+  const byId = new Map(openJobs.map((j) => [j.id, j]));
+
+  const counts = new Map<string, { t: number; d: number }>();
+  for (const t of tasks ?? []) {
+    const c = counts.get(t.job_id) ?? { t: 0, d: 0 };
+    c.t++;
+    if (t.done) c.d++;
+    counts.set(t.job_id, c);
+  }
+
+  const ownedJobs: MyJob[] = openJobs
+    .filter((j) => j.owner_profile_id === profileId)
+    .map((j) => {
+      const c = counts.get(j.id) ?? { t: 0, d: 0 };
+      return {
+        id: j.id,
+        title: j.title,
+        clientName: cn.get(j.client_id) ?? "—",
+        status: j.status as JobStatus,
+        dueDate: j.due_date,
+        taskTotal: c.t,
+        taskDone: c.d,
+      };
+    });
+
+  const assignedTasks: MyTask[] = (tasks ?? [])
+    .filter((t) => !t.done && t.assignee_profile_id === profileId && byId.has(t.job_id))
+    .map((t) => {
+      const j = byId.get(t.job_id)!;
+      return {
+        id: t.id,
+        label: t.label,
+        jobId: j.id,
+        jobTitle: j.title,
+        clientName: cn.get(j.client_id) ?? "—",
+        dueDate: j.due_date,
+      };
+    });
+
+  return { ownedJobs, assignedTasks };
+}
+
 /** People a task can be assigned to: all active staff + this client's active managers. */
 export async function getJobAssignees(clientId: string): Promise<AssigneeOption[]> {
   const supabase = await createClient();
