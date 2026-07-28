@@ -193,7 +193,9 @@ function SortableCard({ card, today }: { card: JobCard; today: string }) {
             draggedRef.current = false;
           }
         }}
-        className="block rounded-lg border border-line bg-card p-3 transition-colors hover:border-faint"
+        className={`block rounded-lg border bg-card p-3 transition-colors ${
+          card.pinned ? "border-warn-ink" : "border-line hover:border-faint"
+        }`}
       >
         <div className="text-[13px] font-semibold leading-snug text-ink">{card.title}</div>
         <div className="mt-0.5 truncate text-xs text-muted">{card.clientName}</div>
@@ -216,6 +218,11 @@ function SortableCard({ card, today }: { card: JobCard; today: string }) {
           )}
           {due === "due_soon" && (
             <span className="rounded bg-warn-tint px-1.5 py-0.5 text-[11px] text-warn-ink">Due soon</span>
+          )}
+          {card.pinned && (
+            <span className="rounded bg-warn-tint px-1.5 py-0.5 text-[11px] font-semibold text-warn-ink" title="Pinned">
+              ★ Pinned
+            </span>
           )}
           {card.fromQuote && (
             <span className="rounded bg-line-soft px-1.5 py-0.5 text-[11px] text-ink-3">from quote</span>
