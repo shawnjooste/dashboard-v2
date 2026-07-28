@@ -922,6 +922,8 @@ export type Database = {
           attachments: Json
           created_at: string
           from_email: string
+          header_cc: string | null
+          header_to: string | null
           html_body: string | null
           id: string
           in_reply_to: string | null
@@ -939,6 +941,8 @@ export type Database = {
           attachments?: Json
           created_at?: string
           from_email: string
+          header_cc?: string | null
+          header_to?: string | null
           html_body?: string | null
           id?: string
           in_reply_to?: string | null
@@ -956,6 +960,8 @@ export type Database = {
           attachments?: Json
           created_at?: string
           from_email?: string
+          header_cc?: string | null
+          header_to?: string | null
           html_body?: string | null
           id?: string
           in_reply_to?: string | null

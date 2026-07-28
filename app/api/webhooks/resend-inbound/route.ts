@@ -70,6 +70,10 @@ export async function POST(req: Request) {
   const messageId: string | null = full.message_id ?? null;
   const inReplyTo: string | null =
     full.headers?.["in-reply-to"] ?? full.headers?.["In-Reply-To"] ?? null;
+  // Real header recipients — full.to is the SMTP envelope (always quotes@),
+  // so only the headers say whether we were the To or merely Cc'd.
+  const headerTo: string | null = full.headers?.["to"] ?? null;
+  const headerCc: string | null = full.headers?.["cc"] ?? null;
 
   const service = createServiceClient();
 
@@ -90,9 +94,20 @@ export async function POST(req: Request) {
   const isInternal = INTERNAL_DOMAINS.some((d) => fromEmail.endsWith(d));
 
   // ---------- classify (mechanical only — no judgment here) ----------
-  let kind: "client_forward" | "supplier_reply" | "client_quote_reply" | "supplier_clarification" | "unclassified" = "unclassified";
+  let kind:
+    | "client_forward"
+    | "staff_supplier_request"
+    | "supplier_reply"
+    | "client_quote_reply"
+    | "supplier_clarification"
+    | "unclassified" = "unclassified";
   let rfqId: string | null = null;
   let quoteId: string | null = null;
+
+  // Were we the actual recipient, or just copied in? Staff running their own
+  // supplier thread Cc us for visibility; a forward addressed to us is a
+  // request to act.
+  const ccdOnly = !!headerCc?.toLowerCase().includes("quotes@send.rocking.one");
 
   // client_quote_reply: In-Reply-To matches a Resend message id we recorded
   // when sending a quote.
@@ -125,6 +140,22 @@ export async function POST(req: Request) {
     }
   }
 
+  // supplier_reply (no token): a supplier replying into a thread a staff
+  // member started themselves. Walk In-Reply-To back to the message we
+  // already stored and inherit its RFQ.
+  if (kind === "unclassified" && !isInternal && inReplyTo) {
+    const { data: parent } = await service
+      .from("inbound_emails")
+      .select("rfq_id")
+      .eq("message_id", inReplyTo)
+      .not("rfq_id", "is", null)
+      .maybeSingle();
+    if (parent?.rfq_id) {
+      kind = "supplier_reply";
+      rfqId = parent.rfq_id;
+    }
+  }
+
   // supplier_clarification: staff replying to "which supplier?" — the
   // pipeline emailed shawn@rocking.one with the pending RFQ's token in the
   // subject because it couldn't resolve a supplier on its own.
@@ -141,6 +172,13 @@ export async function POST(req: Request) {
     }
   }
 
+  // staff_supplier_request: a staff member emailing a supplier directly and
+  // Cc'ing us. Observe only — they've already asked, so the pipeline must NOT
+  // send its own pricing request or the supplier gets asked twice.
+  if (kind === "unclassified" && isInternal && ccdOnly) {
+    kind = "staff_supplier_request";
+  }
+
   // client_forward: internal staff forwarding a client request in.
   if (kind === "unclassified" && isInternal) {
     kind = "client_forward";
@@ -151,6 +189,8 @@ export async function POST(req: Request) {
     in_reply_to: inReplyTo,
     from_email: fromEmail,
     to_email: toEmail,
+    header_to: headerTo,
+    header_cc: headerCc,
     subject,
     text_body: full.text ?? null,
     html_body: full.html ?? null,
