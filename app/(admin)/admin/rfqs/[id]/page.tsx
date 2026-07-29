@@ -4,11 +4,19 @@ import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { saveRfqDetails } from "../actions";
 import { RfqStatusControl } from "./RfqStatusControl";
 import { LinkQuote } from "./LinkQuote";
+import { RfqThread } from "./RfqThread";
 
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.3px] text-faint";
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-faint";
 const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
-const KIND_LABEL: Record<string, string> = { created: "Created", status: "Stage change", quote_linked: "Quote linked", note: "Note" };
+const KIND_LABEL: Record<string, string> = {
+  created: "Created",
+  status: "Stage change",
+  quote_linked: "Quote linked",
+  note: "Note",
+  email_sent: "Email sent",
+  email_received: "Email received",
+};
 
 export default async function RfqDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -71,9 +79,40 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </form>
           </Card>
+
+          <Card>
+            <CardHeader title="Supplier emails" count={rfq.messages.length} />
+            <RfqThread messages={rfq.messages} />
+          </Card>
         </div>
 
         <div className="space-y-4 lg:w-[340px] lg:shrink-0">
+          {(rfq.supplierName || rfq.trackingToken) && (
+            <Card>
+              <CardHeader title="Supplier" />
+              <dl className="space-y-1.5 px-4 py-3.5 text-sm">
+                {rfq.supplierName && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted">Name</dt>
+                    <dd className="text-right font-medium text-ink-2">{rfq.supplierName}</dd>
+                  </div>
+                )}
+                {rfq.supplierEmail && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted">Email</dt>
+                    <dd className="break-all text-right text-ink-2">{rfq.supplierEmail}</dd>
+                  </div>
+                )}
+                {rfq.trackingToken && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted">Thread tag</dt>
+                    <dd className="text-right font-mono text-[12px] text-ink-3">RFQ-{rfq.trackingToken}</dd>
+                  </div>
+                )}
+              </dl>
+            </Card>
+          )}
+
           <Card>
             <CardHeader title="Quote" />
             <LinkQuote

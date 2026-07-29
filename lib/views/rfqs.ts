@@ -14,6 +14,19 @@ export type RfqCard = {
 };
 
 export type RfqEvent = { id: string; kind: string; body: string | null; author: string | null; createdAt: string };
+
+/** One message in the supplier exchange — ours (sent_emails) or theirs
+ *  (inbound_emails), merged into a single chronological thread. */
+export type RfqMessage = {
+  id: string;
+  direction: "out" | "in";
+  party: string;
+  subject: string | null;
+  body: string | null;
+  isHtml: boolean;
+  attachments: { filename?: string }[];
+  at: string;
+};
 export type QuoteOption = { id: string; label: string };
 export type ClientOption = { id: string; name: string };
 
@@ -32,6 +45,10 @@ export type RfqDetail = {
   quoteId: string | null;
   quoteNumber: string | null;
   events: RfqEvent[];
+  messages: RfqMessage[];
+  supplierName: string | null;
+  supplierEmail: string | null;
+  trackingToken: string | null;
   linkableQuotes: QuoteOption[];
 };
 
@@ -69,25 +86,79 @@ export async function getRfqBoard(): Promise<RfqCard[]> {
   });
 }
 
+/** Last-resort plain text from an inbound HTML-only message. */
+function stripHtml(html: string | null): string | null {
+  if (!html) return null;
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export async function getRfqDetail(id: string): Promise<RfqDetail | null> {
   const supabase = await createClient();
   const { data: r } = await supabase.from("rfqs").select("*").eq("id", id).maybeSingle();
   if (!r) return null;
-  const [{ data: client }, { data: events }, { data: profiles }, quoteRes, linkable] = await Promise.all([
-    r.client_id
-      ? supabase.from("clients").select("name").eq("id", r.client_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase.from("rfq_events").select("id, kind, body, posted_by_profile_id, created_at").eq("rfq_id", id).order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, email"),
-    r.quote_id
-      ? supabase.from("quotes").select("quote_number").eq("id", r.quote_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    r.client_id
-      ? supabase.from("quotes").select("id, quote_number, title").eq("client_id", r.client_id).order("created_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [{ data: client }, { data: events }, { data: profiles }, quoteRes, linkable, inbound, outbound] =
+    await Promise.all([
+      r.client_id
+        ? supabase.from("clients").select("name").eq("id", r.client_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase.from("rfq_events").select("id, kind, body, posted_by_profile_id, created_at").eq("rfq_id", id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, email"),
+      r.quote_id
+        ? supabase.from("quotes").select("quote_number").eq("id", r.quote_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      r.client_id
+        ? supabase.from("quotes").select("id, quote_number, title").eq("client_id", r.client_id).order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("inbound_emails")
+        .select("id, from_email, subject, text_body, html_body, attachments, created_at")
+        .eq("rfq_id", id),
+      supabase.from("sent_emails").select("id, to_emails, subject, html, sent_at").eq("rfq_id", id),
+    ]);
   const em = new Map((profiles ?? []).map((p) => [p.id, p.email]));
   const linkedName = (client as { name: string } | null)?.name ?? null;
+
+  const messages: RfqMessage[] = [
+    ...((inbound.data ?? []) as {
+      id: string; from_email: string; subject: string | null;
+      text_body: string | null; html_body: string | null;
+      attachments: unknown; created_at: string;
+    }[]).map((m) => ({
+      id: `in-${m.id}`,
+      direction: "in" as const,
+      party: m.from_email,
+      subject: m.subject,
+      // Prefer plain text: inbound HTML is full of quoted history and tracking
+      // images, and is not ours to trust unsanitised.
+      body: m.text_body ?? stripHtml(m.html_body),
+      isHtml: false,
+      attachments: Array.isArray(m.attachments) ? (m.attachments as { filename?: string }[]) : [],
+      at: m.created_at,
+    })),
+    ...((outbound.data ?? []) as {
+      id: string; to_emails: string[]; subject: string; html: string; sent_at: string;
+    }[]).map((m) => ({
+      id: `out-${m.id}`,
+      direction: "out" as const,
+      party: (m.to_emails ?? []).join(", "),
+      subject: m.subject,
+      body: m.html,
+      isHtml: true,
+      attachments: [],
+      at: m.sent_at,
+    })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
   return {
     id: r.id,
     title: r.title,
@@ -109,6 +180,10 @@ export async function getRfqDetail(id: string): Promise<RfqDetail | null> {
       author: emailLabel(em.get(e.posted_by_profile_id ?? "")),
       createdAt: e.created_at,
     })),
+    messages,
+    supplierName: r.supplier_name ?? null,
+    supplierEmail: r.supplier_email ?? null,
+    trackingToken: r.tracking_token ?? null,
     linkableQuotes: ((linkable.data ?? []) as { id: string; quote_number: string; title: string }[]).map((q) => ({
       id: q.id,
       label: `${q.quote_number} · ${q.title}`,

@@ -25,6 +25,10 @@ export type SendEmailOptions = {
   bcc?: string[];
   replyTo?: string;
   clientId?: string | null;
+  /** Links supplier correspondence to its RFQ so the admin RFQ page can show
+   *  the exchange as a thread. Always pair with audience:"internal" — these
+   *  mails carry our cost prices. */
+  rfqId?: string | null;
   /** onboarding | booking | quote | job | admin_alert | general */
   category?: string;
   /** "internal" = addressed to Rocking about a client; hidden from clients. */
@@ -66,6 +70,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string | 
       .from("sent_emails")
       .insert({
         client_id: opts.clientId ?? null,
+        rfq_id: opts.rfqId ?? null,
         // Addresses are lowercased so member visibility (which compares against
         // the lowercased current_user_email()) can never fail on casing.
         to_emails: [...opts.to, ...(opts.cc ?? [])].map((e) => e.trim().toLowerCase()),

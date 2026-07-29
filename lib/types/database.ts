@@ -2453,6 +2453,7 @@ export type Database = {
           html: string
           id: string
           resend_id: string | null
+          rfq_id: string | null
           sent_at: string
           sent_by_profile_id: string | null
           subject: string
@@ -2465,6 +2466,7 @@ export type Database = {
           html: string
           id?: string
           resend_id?: string | null
+          rfq_id?: string | null
           sent_at?: string
           sent_by_profile_id?: string | null
           subject: string
@@ -2477,6 +2479,7 @@ export type Database = {
           html?: string
           id?: string
           resend_id?: string | null
+          rfq_id?: string | null
           sent_at?: string
           sent_by_profile_id?: string | null
           subject?: string
@@ -2488,6 +2491,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_emails_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
             referencedColumns: ["id"]
           },
           {
