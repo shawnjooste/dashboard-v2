@@ -108,10 +108,19 @@ export async function saveRfqDetails(formData: FormData) {
   await staff();
   const id = String(formData.get("rfq_id") ?? "");
   if (!id) return;
+
+  // Client: either a real client row or a free-text prospect name — never both,
+  // so the card can't show one name while a quote links to another.
+  const clientId = String(formData.get("client_id") ?? "") || null;
+  const clientName = clientId ? null : String(formData.get("client_name") ?? "").trim() || null;
+
   const supabase = await createClient();
   await supabase
     .from("rfqs")
     .update({
+      title: String(formData.get("title") ?? "").trim() || undefined,
+      client_id: clientId,
+      client_name: clientName,
       requested_by: String(formData.get("requested_by") ?? "").trim() || null,
       description: String(formData.get("description") ?? "").trim() || null,
       needed_by: String(formData.get("needed_by") ?? "") || null,
@@ -119,5 +128,45 @@ export async function saveRfqDetails(formData: FormData) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
+  revalidatePath(`/admin/rfqs/${id}`);
+  revalidatePath("/admin/rfqs");
+}
+
+/**
+ * Set (or clear) the RFQ's supplier. Picking a known supplier fills the email
+ * from the suppliers table; a new name+email is upserted there so the pipeline
+ * learns it for next time. Does NOT email anyone — sending stays explicit.
+ */
+export async function saveRfqSupplier(formData: FormData) {
+  await staff();
+  const id = String(formData.get("rfq_id") ?? "");
+  if (!id) return;
+
+  const name = String(formData.get("supplier_name") ?? "").trim() || null;
+  const email = String(formData.get("supplier_email") ?? "").trim().toLowerCase() || null;
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    throw new Error("that doesn't look like a valid email address");
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("rfqs")
+    .update({ supplier_name: name, supplier_email: email, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  // Grow supplier memory: update the existing row, or add a new one.
+  if (name && email) {
+    const { data: existing } = await supabase
+      .from("suppliers")
+      .select("id, email")
+      .ilike("name", name)
+      .maybeSingle();
+    if (existing) {
+      if (!existing.email) await supabase.from("suppliers").update({ email }).eq("id", existing.id);
+    } else {
+      await supabase.from("suppliers").insert({ name, email });
+    }
+  }
+
   revalidatePath(`/admin/rfqs/${id}`);
 }

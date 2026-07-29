@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { getRfqDetail, type RfqEvent } from "@/lib/views/rfqs";
+import { getRfqDetail, getRfqFormClients, getSupplierOptions, type RfqEvent } from "@/lib/views/rfqs";
 import { PageHeader, Card, CardHeader } from "@/components/ui";
 import { saveRfqDetails } from "../actions";
 import { RfqStatusControl } from "./RfqStatusControl";
 import { LinkQuote } from "./LinkQuote";
 import { RfqThread } from "./RfqThread";
+import { SupplierPicker } from "./SupplierPicker";
 
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.3px] text-faint";
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-faint";
@@ -20,7 +21,11 @@ const KIND_LABEL: Record<string, string> = {
 
 export default async function RfqDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const rfq = await getRfqDetail(id);
+  const [rfq, clients, suppliers] = await Promise.all([
+    getRfqDetail(id),
+    getRfqFormClients(),
+    getSupplierOptions(),
+  ]);
   if (!rfq) {
     return (
       <p className="text-muted">
@@ -55,6 +60,33 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
             <form action={saveRfqDetails} className="space-y-3 px-4 py-4">
               <input type="hidden" name="rfq_id" value={rfq.id} />
               <label className="block">
+                <span className={LABEL}>Title</span>
+                <input name="title" defaultValue={rfq.title} className={FIELD} />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className={LABEL}>Client</span>
+                  <select name="client_id" defaultValue={rfq.clientId ?? ""} className={FIELD}>
+                    <option value="">— not a client yet —</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className={LABEL}>…or prospect name</span>
+                  <input
+                    name="client_name"
+                    defaultValue={rfq.clientId ? "" : (rfq.clientName ?? "")}
+                    placeholder="e.g. Acme (not yet a client)"
+                    className={FIELD}
+                  />
+                </label>
+              </div>
+              <p className="-mt-1 text-[11.5px] text-faint">
+                Picking a client takes precedence — the prospect name is only used when no client is set.
+              </p>
+              <label className="block">
                 <span className={LABEL}>Requested by</span>
                 <input name="requested_by" defaultValue={rfq.requestedBy ?? ""} className={FIELD} />
               </label>
@@ -87,31 +119,16 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <div className="space-y-4 lg:w-[340px] lg:shrink-0">
-          {(rfq.supplierName || rfq.trackingToken) && (
-            <Card>
-              <CardHeader title="Supplier" />
-              <dl className="space-y-1.5 px-4 py-3.5 text-sm">
-                {rfq.supplierName && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Name</dt>
-                    <dd className="text-right font-medium text-ink-2">{rfq.supplierName}</dd>
-                  </div>
-                )}
-                {rfq.supplierEmail && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Email</dt>
-                    <dd className="break-all text-right text-ink-2">{rfq.supplierEmail}</dd>
-                  </div>
-                )}
-                {rfq.trackingToken && (
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Thread tag</dt>
-                    <dd className="text-right font-mono text-[12px] text-ink-3">RFQ-{rfq.trackingToken}</dd>
-                  </div>
-                )}
-              </dl>
-            </Card>
-          )}
+          <Card>
+            <CardHeader title="Supplier" />
+            <SupplierPicker
+              rfqId={rfq.id}
+              suppliers={suppliers}
+              supplierName={rfq.supplierName}
+              supplierEmail={rfq.supplierEmail}
+              trackingToken={rfq.trackingToken}
+            />
+          </Card>
 
           <Card>
             <CardHeader title="Quote" />

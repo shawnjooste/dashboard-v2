@@ -35,6 +35,9 @@ export type RfqDetail = {
   title: string;
   clientId: string | null;
   clientLabel: string;
+  /** Raw prospect name — clientLabel falls back to "—" for display, which must
+   *  never be written back into an editable field. */
+  clientName: string | null;
   requestedBy: string | null;
   description: string | null;
   neededBy: string | null;
@@ -164,6 +167,7 @@ export async function getRfqDetail(id: string): Promise<RfqDetail | null> {
     title: r.title,
     clientId: r.client_id,
     clientLabel: rfqDisplayName(linkedName, r.client_name),
+    clientName: r.client_name ?? null,
     requestedBy: r.requested_by,
     description: r.description,
     neededBy: r.needed_by,
@@ -195,4 +199,13 @@ export async function getRfqFormClients(): Promise<ClientOption[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("id, name").order("name");
   return (data ?? []).map((c) => ({ id: c.id, name: c.name }));
+}
+
+export type SupplierOption = { name: string; email: string | null; category: string | null };
+
+/** Known suppliers, for the RFQ page's supplier picker. */
+export async function getSupplierOptions(): Promise<SupplierOption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("suppliers").select("name, email, category").order("name");
+  return (data ?? []).map((s) => ({ name: s.name, email: s.email, category: s.category }));
 }
