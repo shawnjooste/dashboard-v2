@@ -7,7 +7,10 @@
     "vatPercent": 15,
     "company": {
       "name": "Rocking (PTY) LTD",
-      "addressLines": ["Unit A3, Westlake Square", "Westlake Drive, Westlake, 7945"],
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
       "vat": "4810312173",
       "regNumber": "2013/047237/07",
       "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
@@ -15,7 +18,9 @@
     "client": {
       "name": "Wade Bales Wine Co.",
       "attention": "Trevor Kinnear & Wade Bales",
-      "addressLines": ["Constantia, Cape Town"]
+      "addressLines": [
+        "Constantia, Cape Town"
+      ]
     },
     "meta": {
       "quoteNumber": "QU-WAD-002",
@@ -38,19 +43,19 @@
                 "description": "Server Migration & Installation — 2 Servers",
                 "detail": "Physically receiving both servers, racking and cabling at Westlake, bringing them up, and verifying replication between them.",
                 "qty": 1,
-                "unitPrice": 1500.00
+                "unitPrice": 1500.0
               },
               {
                 "description": "MikroTik Hard-Lock + Tailscale Deployment",
                 "detail": "Firewall reconfigured to accept inbound traffic only from Hetzner's fixed IP addresses, and Tailscale deployed for remote access to the servers. Tailscale's free tier covers your usage (up to 6 users / 100 devices), so no licensing cost applies — this line is labour only.",
                 "qty": 1,
-                "unitPrice": 1500.00
+                "unitPrice": 1500.0
               },
               {
                 "description": "Openserve Fibre — Once-Off Installation & Fixed IP Setup",
                 "detail": "Installation of the 500Mbps Openserve link at Constantia, including configuration of the fixed IP address.",
                 "qty": 1,
-                "unitPrice": 1500.00
+                "unitPrice": 1500.0
               }
             ]
           }
@@ -70,13 +75,13 @@
                 "description": "Server Colocation — Rocking Westlake Facility",
                 "detail": "Both physical servers housed at Rocking's Westlake facility — powered, connected and kept online. Priced per server.",
                 "qty": 2,
-                "unitPrice": 750.00
+                "unitPrice": 750.0
               },
               {
                 "description": "Server 1 — Monthly Boot & Patch Window",
                 "detail": "Rocking boots Server 1 each month so your team can remote in and apply whatever patching is required. Covers the boot and availability window only; patching itself is carried out by your team.",
                 "qty": 1,
-                "unitPrice": 250.00
+                "unitPrice": 250.0
               }
             ]
           },
@@ -87,7 +92,7 @@
                 "description": "Openserve Fibre — 500Mbps with Fixed IP",
                 "detail": "Single Openserve FTTH link at Constantia including a fixed IP address. No Openserve SLA applies to FTTH.",
                 "qty": 1,
-                "unitPrice": 1500.00
+                "unitPrice": 1500.0
               },
               {
                 "description": "Wireless WISP Backup Link",
@@ -125,12 +130,40 @@
     }
   },
   "internal": [
-    { "path": "s0.g0.i0", "supplierCost": 0, "note": "Own labour (Andre + Trevor coordination) — receiving, racking, bringing up 2 servers, replication checks. Priced R1,500 ex VAT per Shawn (was not on QU-001). No external supplier cost." },
-    { "path": "s0.g0.i1", "supplierCost": 0, "note": "Own labour (Andre) — MikroTik hard-lock to Hetzner fixed IPs + Tailscale deploy. Tailscale free tier (6 users/100 devices) = no licensing cost. Priced R1,500 ex VAT per Shawn; replaces QU-001's R2,500 Proxmox setup line." },
-    { "path": "s0.g0.i2", "supplierCost": null, "note": "Openserve FTTH once-off install + fixed IP setup, R1,500 ex VAT to client. QU-001 had install at R1,000/link; uplifted to R1,500 for the fixed IP. WHOLESALE INSTALL COST NOT SUPPLIED — margin unknown, confirm Openserve once-off before invoicing." },
-    { "path": "s1.g0.i0", "supplierCost": 0, "note": "Colocation at Rocking's own Westlake facility — 2x physical servers @ R750/mo ex VAT each (same unit rate as QU-001 Option A, now x2). No external cost; power/rack space is ours." },
-    { "path": "s1.g0.i1", "supplierCost": 0, "note": "Own labour — monthly boot of Server 1 so client patches remotely. R250/mo ex VAT per Shawn. New line, not on QU-001." },
-    { "path": "s1.g1.i0", "supplierCost": null, "note": "Openserve FTTH 500Mbps + fixed IP, R1,500/mo ex VAT to client (QU-001 Option B rate, 1 link not 2). WHOLESALE MONTHLY COST NOT SUPPLIED — margin unknown. Fixed IP may carry an additional wholesale charge; confirm before activation." },
-    { "path": "s1.g1.i1", "supplierCost": null, "note": "Wireless WISP backup link — TBC line, deliberately unpriced. Blocked on confirming which WISPs have a high site with LOS above Constantia. Not in totals." }
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": 0,
+      "note": "Own labour (Andre + Trevor coordination) — receiving, racking, bringing up 2 servers, replication checks. Priced R1,500 ex VAT per Shawn (was not on QU-001). No external supplier cost."
+    },
+    {
+      "path": "s0.g0.i1",
+      "supplierCost": 0,
+      "note": "Own labour (Andre) — MikroTik hard-lock to Hetzner fixed IPs + Tailscale deploy. Tailscale free tier (6 users/100 devices) = no licensing cost. Priced R1,500 ex VAT per Shawn. DELIBERATELY REPLACES two QU-001 lines: the R2,500 once-off Proxmox setup AND the R500/mo MikroTik firewall management. Confirmed by Shawn 2026-07-30 — the ongoing management retainer is intentionally dropped in favour of this one-time hard-lock, so there is no monthly firewall management revenue on this quote. Do not re-add without asking."
+    },
+    {
+      "path": "s0.g0.i2",
+      "supplierCost": null,
+      "note": "Openserve FTTH once-off install + fixed IP setup, R1,500 ex VAT to client. QU-001 had install at R1,000/link; uplifted to R1,500 for the fixed IP. WHOLESALE INSTALL COST NOT SUPPLIED — margin unknown, confirm Openserve once-off before invoicing."
+    },
+    {
+      "path": "s1.g0.i0",
+      "supplierCost": 0,
+      "note": "Colocation at Rocking's own Westlake facility — 2x physical servers @ R750/mo ex VAT each (same unit rate as QU-001 Option A, now x2). No external cost; power/rack space is ours."
+    },
+    {
+      "path": "s1.g0.i1",
+      "supplierCost": 0,
+      "note": "Own labour — monthly boot of Server 1 so client patches remotely. R250/mo ex VAT per Shawn. New line, not on QU-001."
+    },
+    {
+      "path": "s1.g1.i0",
+      "supplierCost": null,
+      "note": "Openserve FTTH 500Mbps + fixed IP, R1,500/mo ex VAT to client (QU-001 Option B rate, 1 link not 2). WHOLESALE MONTHLY COST NOT SUPPLIED — margin unknown. Fixed IP may carry an additional wholesale charge; confirm before activation."
+    },
+    {
+      "path": "s1.g1.i1",
+      "supplierCost": null,
+      "note": "Wireless WISP backup link — TBC line, deliberately unpriced. Blocked on confirming which WISPs have a high site with LOS above Constantia. Not in totals."
+    }
   ]
 }
