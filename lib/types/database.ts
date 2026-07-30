@@ -344,48 +344,125 @@ export type Database = {
           },
         ]
       }
+      connectivity_samples: {
+        Row: {
+          at: string
+          id: string
+          latency_ms: number | null
+          loss_pct: number | null
+          service_id: string
+          up: boolean | null
+        }
+        Insert: {
+          at?: string
+          id?: string
+          latency_ms?: number | null
+          loss_pct?: number | null
+          service_id: string
+          up?: boolean | null
+        }
+        Update: {
+          at?: string
+          id?: string
+          latency_ms?: number | null
+          loss_pct?: number | null
+          service_id?: string
+          up?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connectivity_samples_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "connectivity_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connectivity_services: {
         Row: {
           client_id: string
+          conn_type: string
           created_at: string
+          description: string | null
+          dns_servers: string | null
+          down_since: string | null
           download_mbps: number | null
+          gateway: string | null
           id: string
+          ip_address: string | null
           is_active: boolean
           kind: string
           label: string
+          last_checked_at: string | null
+          last_up: boolean | null
+          latency_ms: number | null
           librenms_device_id: number | null
+          loss_pct: number | null
           notes: string | null
+          pppoe_secret: Json | null
+          pppoe_username: string | null
           provider: string | null
+          subnet_mask: string | null
           updated_at: string
           upload_mbps: number | null
+          vlan: number | null
         }
         Insert: {
           client_id: string
+          conn_type?: string
           created_at?: string
+          description?: string | null
+          dns_servers?: string | null
+          down_since?: string | null
           download_mbps?: number | null
+          gateway?: string | null
           id?: string
+          ip_address?: string | null
           is_active?: boolean
           kind?: string
           label: string
+          last_checked_at?: string | null
+          last_up?: boolean | null
+          latency_ms?: number | null
           librenms_device_id?: number | null
+          loss_pct?: number | null
           notes?: string | null
+          pppoe_secret?: Json | null
+          pppoe_username?: string | null
           provider?: string | null
+          subnet_mask?: string | null
           updated_at?: string
           upload_mbps?: number | null
+          vlan?: number | null
         }
         Update: {
           client_id?: string
+          conn_type?: string
           created_at?: string
+          description?: string | null
+          dns_servers?: string | null
+          down_since?: string | null
           download_mbps?: number | null
+          gateway?: string | null
           id?: string
+          ip_address?: string | null
           is_active?: boolean
           kind?: string
           label?: string
+          last_checked_at?: string | null
+          last_up?: boolean | null
+          latency_ms?: number | null
           librenms_device_id?: number | null
+          loss_pct?: number | null
           notes?: string | null
+          pppoe_secret?: Json | null
+          pppoe_username?: string | null
           provider?: string | null
+          subnet_mask?: string | null
           updated_at?: string
           upload_mbps?: number | null
+          vlan?: number | null
         }
         Relationships: [
           {
