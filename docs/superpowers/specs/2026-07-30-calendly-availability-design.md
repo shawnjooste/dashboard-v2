@@ -87,10 +87,10 @@ Changes to existing code:
   ask Calendly; on failure or no mapping, fall back to the current internal
   computation. The internal double-book guard (our own bookings subtract)
   applies in BOTH paths — belt and braces against Calendly lag.
-- `BookSession` UI: slots load per selected service (small change — slots
-  currently identical for both services; with Calendly they can differ, e.g.
-  onsite buffers). Server component passes per-service slots or the client
-  refetches via a server action on service change.
+- `BookSession` UI: slots become per-service (with Calendly they can differ —
+  onsite buffers). The support page preloads BOTH services' slot lists
+  server-side (there are only two) and `BookSession` switches lists on
+  service change — no client-side refetching machinery.
 - `confirmBooking()` (lib/booking-confirm.ts): after the paid-flip, alongside
   FreeScout/email side-effects, call `createCalendlyBooking` with the client
   booker's email/name and the note; store `calendly_event_uri`. Failure logs
