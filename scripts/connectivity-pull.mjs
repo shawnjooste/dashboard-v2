@@ -22,12 +22,24 @@ const numOrNull = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+// Latency only counts when it's a real measurement — a down device reports 0.
+const posOrNull = (v) => {
+  const n = numOrNull(v);
+  return n != null && n > 0 ? n : null;
+};
+
 function mapIcmp(device) {
   if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
   const s = device.status;
   const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
   if (up === null) return { up: null, latencyMs: null, lossPct: null };
-  return { up, latencyMs: numOrNull(device.ping_avg), lossPct: numOrNull(device.ping_loss) };
+  // Latency: LibreNMS returns last_ping_timetaken (ms) on /devices/{id};
+  // ping_avg is preferred when a deployment provides it. Loss isn't exposed.
+  return {
+    up,
+    latencyMs: posOrNull(device.ping_avg) ?? posOrNull(device.last_ping_timetaken),
+    lossPct: numOrNull(device.ping_loss),
+  };
 }
 
 function nextDownSince(prevDownSince, up, nowIso) {

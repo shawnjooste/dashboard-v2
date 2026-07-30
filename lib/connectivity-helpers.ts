@@ -49,14 +49,27 @@ const numOrNull = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-/** LibreNMS device payload → ICMP sample. Never throws; unknown on malformed. */
+/** Latency only counts when it's a real measurement — a down device reports 0. */
+const posOrNull = (v: unknown): number | null => {
+  const n = numOrNull(v);
+  return n != null && n > 0 ? n : null;
+};
+
+/** LibreNMS device payload → ICMP sample. Never throws; unknown on malformed.
+ *  Latency comes from `last_ping_timetaken` (ms) on /devices/{id}; `ping_avg`
+ *  is preferred when present. Packet loss is not exposed on the device payload
+ *  (it lives in device_perf), so lossPct is usually null. */
 export function mapIcmp(device: unknown): IcmpSample {
   if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
   const rec = device as Record<string, unknown>;
   const s = rec.status;
   const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
   if (up === null) return { up: null, latencyMs: null, lossPct: null };
-  return { up, latencyMs: numOrNull(rec.ping_avg), lossPct: numOrNull(rec.ping_loss) };
+  return {
+    up,
+    latencyMs: posOrNull(rec.ping_avg) ?? posOrNull(rec.last_ping_timetaken),
+    lossPct: numOrNull(rec.ping_loss),
+  };
 }
 
 /** Outage start: stamped on the first down poll, held while down, cleared on

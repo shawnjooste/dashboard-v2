@@ -60,6 +60,14 @@ describe("mapIcmp", () => {
     expect(mapIcmp(null)).toEqual({ up: null, latencyMs: null, lossPct: null });
     expect(mapIcmp({ nope: 1 })).toEqual({ up: null, latencyMs: null, lossPct: null });
   });
+  it("reads the real LibreNMS shape: boolean status + last_ping_timetaken", () => {
+    expect(mapIcmp({ status: true, last_ping_timetaken: 0.442, ping_avg: null, ping_loss: null })).toEqual({
+      up: true,
+      latencyMs: 0.442,
+      lossPct: null,
+    });
+    expect(mapIcmp({ status: false, last_ping_timetaken: 0 })).toEqual({ up: false, latencyMs: null, lossPct: null });
+  });
 });
 
 describe("nextDownSince", () => {

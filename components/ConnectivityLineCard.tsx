@@ -91,7 +91,7 @@ export function ConnectivityLineCard({ line }: { line: ConnectivityLine }) {
           <div className="space-y-1.5">
             <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-faint">Health</div>
             <Setting label="Latency" value={line.latencyMs == null ? "—" : `${line.latencyMs.toFixed(1)} ms`} />
-            <Setting label="Packet loss" value={line.lossPct == null ? "—" : `${line.lossPct}%`} />
+            {line.lossPct != null && <Setting label="Packet loss" value={`${line.lossPct}%`} />}
             <Setting label="Checked" value={line.lastCheckedAt ? ago(line.lastCheckedAt, nowMs) : "—"} />
             {latencies.length >= 2 && (
               <div className="pt-1">
