@@ -10,12 +10,13 @@ const FIELD =
 
 export function BookSession({
   services,
-  slots,
+  slotsByService,
 }: {
   services: BookingService[];
-  slots: { iso: string; label: string }[];
+  slotsByService: Record<string, { iso: string; label: string }[]>;
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const [day, setDay] = useState<string>("");
   const [state, formAction, pending] = useActionState<CreateBookingResult | null, FormData>(
     async (prev, fd) => {
       const result = await createBooking(prev, fd);
@@ -25,14 +26,18 @@ export function BookSession({
     null,
   );
   const selected = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
+  const slots = slotsByService[serviceId] ?? [];
   const days = useMemo(() => [...new Set(slots.map((s) => s.label.split(",")[0]))], [slots]);
-  const [day, setDay] = useState<string>("");
   const daySlots = slots.filter((s) => s.label.startsWith(day ? `${day},` : ""));
+  const onService = (id: string) => {
+    setServiceId(id);
+    setDay(""); // slot lists differ per service — a stale day may not exist
+  };
 
   return (
     <form action={formAction} className="space-y-3 px-4 py-3.5">
       <div className="flex flex-wrap items-center gap-2">
-        <select name="service_id" value={serviceId} onChange={(e) => setServiceId(e.target.value)} className={FIELD}>
+        <select name="service_id" value={serviceId} onChange={(e) => onService(e.target.value)} className={FIELD}>
           {services.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} — {fmtRands(totalCents(s.priceCents))} incl VAT

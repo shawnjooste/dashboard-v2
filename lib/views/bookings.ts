@@ -1,11 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { PENDING_HOLD_MINUTES, openSlots, type SlotBlocker } from "@/lib/booking-helpers";
+import { PENDING_HOLD_MINUTES, openSlots, slotTaken, type SlotBlocker } from "@/lib/booking-helpers";
 import { slotLabel } from "@/lib/calendly-helpers";
+import { getCalendlySlots } from "@/lib/calendly-availability";
 
 export { slotLabel };
 
-export type BookingService = { id: string; key: string; name: string; priceCents: number };
+export type BookingService = {
+  id: string;
+  key: string;
+  name: string;
+  priceCents: number;
+  calendlyEventTypeUri: string | null;
+};
 
 export type Booking = {
   id: string;
@@ -19,28 +26,55 @@ export type Booking = {
   note: string | null;
   freescoutNumber: number | null;
   clientName?: string;
+  calendlyEventUri: string | null;
+  /** Whether this booking's service is mapped to a Calendly event type. */
+  serviceMapped: boolean;
 };
 
 export async function getActiveServices(): Promise<BookingService[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("support_services")
-    .select("id, key, name, price_cents")
+    .select("id, key, name, price_cents, calendly_event_type_uri")
     .eq("active", true)
     .order("key");
-  return (data ?? []).map((s) => ({ id: s.id, key: s.key, name: s.name, priceCents: s.price_cents }));
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    key: s.key,
+    name: s.name,
+    priceCents: s.price_cents,
+    calendlyEventTypeUri: s.calendly_event_type_uri,
+  }));
 }
 
-/** Open slots for the next 10 business days. Availability must see EVERY
- *  client's bookings (capacity is global), which client RLS forbids — so
- *  this uses the service client but exposes only slot times. */
-export async function getOpenSlots(): Promise<{ iso: string; label: string }[]> {
+/** Per-service open slots. Calendly (Tim's real calendar) when the service is
+ *  mapped and reachable; internal business-hours grid otherwise. In BOTH
+ *  paths our own live bookings are subtracted — the internal double-book
+ *  backstop against Calendly sync lag. Blocker data must see EVERY client's
+ *  bookings (capacity is global), which client RLS forbids — so the service
+ *  client reads them, exposing only slot times. */
+export async function getOpenSlotsByService(
+  services: BookingService[],
+): Promise<Record<string, { iso: string; label: string }[]>> {
   const service = createServiceClient();
   const { data } = await service
     .from("support_bookings")
     .select("slot_start, status, created_at")
     .gte("slot_start", new Date().toISOString());
-  return openSlots({ now: new Date(), businessDays: 10, blockers: (data ?? []) as SlotBlocker[] });
+  const blockers = (data ?? []) as SlotBlocker[];
+  const now = new Date();
+  const internal = openSlots({ now, businessDays: 10, blockers });
+
+  const out: Record<string, { iso: string; label: string }[]> = {};
+  for (const svc of services) {
+    let slots: { iso: string; label: string }[] | null = null;
+    if (svc.calendlyEventTypeUri) {
+      slots = await getCalendlySlots(svc.calendlyEventTypeUri);
+      if (slots) slots = slots.filter((s) => !slotTaken(s.iso, blockers, now));
+    }
+    out[svc.id] = slots ?? internal;
+  }
+  return out;
 }
 
 type BookingRow = {
@@ -52,7 +86,8 @@ type BookingRow = {
   paystack_reference: string;
   note: string | null;
   freescout_number: number | null;
-  support_services: { name: string } | null;
+  calendly_event_uri: string | null;
+  support_services: { name: string; calendly_event_type_uri: string | null } | null;
   clients?: { name: string } | null;
 };
 
@@ -68,10 +103,12 @@ const toBooking = (b: BookingRow): Booking => ({
   note: b.note,
   freescoutNumber: b.freescout_number,
   clientName: b.clients?.name,
+  calendlyEventUri: b.calendly_event_uri,
+  serviceMapped: !!b.support_services?.calendly_event_type_uri,
 });
 
 const SELECT =
-  "id, slot_start, amount_cents, vat_cents, status, paystack_reference, note, freescout_number, support_services(name)";
+  "id, slot_start, amount_cents, vat_cents, status, paystack_reference, note, freescout_number, calendly_event_uri, support_services(name, calendly_event_type_uri)";
 
 export async function getBooking(id: string): Promise<Booking | null> {
   const supabase = await createClient();

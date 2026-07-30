@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createTicket } from "@/lib/freescout";
 import { sendBookingConfirmation } from "@/lib/notify";
 import { slotLabel } from "@/lib/calendly-helpers";
+import { createCalendlyBooking } from "@/lib/calendly-availability";
 
 /** Flip a booking to paid once payment is verified. Idempotent — the webhook
  *  and the booking page's verify fallback can both call this safely. The
@@ -14,7 +15,7 @@ export async function confirmBooking(
   const { data: b } = await service
     .from("support_bookings")
     .select(
-      "id, client_id, slot_start, amount_cents, vat_cents, status, note, booked_by, support_services(key, name), clients(name)",
+      "id, client_id, slot_start, amount_cents, vat_cents, status, note, booked_by, support_services(key, name, calendly_event_type_uri), clients(name)",
     )
     .eq("paystack_reference", reference)
     .maybeSingle();
@@ -34,14 +35,24 @@ export async function confirmBooking(
   if (error) throw new Error(error.message);
 
   // Side-effects are best-effort — never let them look like payment failure.
-  const svc = b.support_services as unknown as { key: string; name: string } | null;
+  const svc = b.support_services as unknown as {
+    key: string;
+    name: string;
+    calendly_event_type_uri?: string | null;
+  } | null;
   const clientName = (b.clients as unknown as { name: string } | null)?.name ?? "client";
   const label = slotLabel(b.slot_start);
   try {
     const { data: booker } = b.booked_by
-      ? await service.from("profiles").select("email").eq("id", b.booked_by).maybeSingle()
+      ? await service
+          .from("profiles")
+          .select("email, people:person_id(display_name)")
+          .eq("id", b.booked_by)
+          .maybeSingle()
       : { data: null };
     const email = booker?.email;
+    const bookerName =
+      (booker?.people as unknown as { display_name: string | null } | null)?.display_name ?? null;
     if (email) {
       const { data: pkgRow } = await service
         .from("clients")
@@ -64,6 +75,22 @@ export async function confirmBooking(
         reference,
         clientId: b.client_id,
       });
+      // Put the session on Tim's calendar via Calendly (invites him + the
+      // client natively). Best-effort like everything in this block.
+      if (svc?.calendly_event_type_uri) {
+        const created = await createCalendlyBooking({
+          eventTypeUri: svc.calendly_event_type_uri,
+          startIso: b.slot_start,
+          invitee: { name: bookerName ?? email.split("@")[0], email },
+          note: b.note,
+        });
+        if (created?.eventUri) {
+          await service
+            .from("support_bookings")
+            .update({ calendly_event_uri: created.eventUri })
+            .eq("id", b.id);
+        }
+      }
     }
   } catch (e) {
     console.error("booking side-effects failed (payment is recorded):", e);

@@ -129,6 +129,12 @@ export default async function SupportPackagesPage() {
               ex VAT / hour
             </label>
             <span className="text-xs text-muted">({fmtRands(totalCents(s.priceCents))} incl)</span>
+            <input
+              name="calendly_uri"
+              defaultValue={s.calendlyEventTypeUri ?? ""}
+              placeholder="Calendly event type URI (blank = internal grid)"
+              className={`${FIELD} min-w-0 flex-1`}
+            />
             <button className="ml-auto rounded-lg bg-ink px-3.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-black">
               Save
             </button>

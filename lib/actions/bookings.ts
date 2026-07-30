@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { slotTaken, totalCents, vatCents, type SlotBlocker } from "@/lib/booking-helpers";
 import { initializeTransaction } from "@/lib/paystack";
+import { cancelCalendlyEvent } from "@/lib/calendly-availability";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
@@ -14,6 +15,11 @@ async function staff() {
   if (!me.authenticated || me.profile.role !== "rocking_staff") throw new Error("staff only");
   return me.profile;
 }
+
+const str = (fd: FormData, k: string) => {
+  const v = String(fd.get(k) ?? "").trim();
+  return v || null;
+};
 
 export type CreateBookingResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -99,7 +105,17 @@ export async function cancelBooking(id: string) {
     .update({ status: "cancelled" })
     .eq("id", id)
     .in("status", ["pending_payment", "paid"]);
+  // Free Tim's calendar too — best-effort, the portal cancellation stands regardless.
+  const { data: b } = await service
+    .from("support_bookings")
+    .select("calendly_event_uri")
+    .eq("id", id)
+    .maybeSingle();
+  if (b?.calendly_event_uri) {
+    await cancelCalendlyEvent(b.calendly_event_uri, "Cancelled via the Rocking portal");
+  }
   revalidatePath("/admin/support-packages");
+  revalidatePath("/admin/bookings");
   revalidatePath("/support");
 }
 
@@ -108,10 +124,14 @@ export async function saveServicePrice(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const rands = Number(formData.get("price_rands"));
   if (!id || !Number.isFinite(rands) || rands <= 0) throw new Error("invalid price");
+  const uri = str(formData, "calendly_uri");
+  if (uri && !uri.startsWith("https://api.calendly.com/event_types/")) {
+    throw new Error("Calendly event type URI must look like https://api.calendly.com/event_types/…");
+  }
   const supabase = await createClient();
   const { error } = await supabase
     .from("support_services")
-    .update({ price_cents: Math.round(rands * 100) })
+    .update({ price_cents: Math.round(rands * 100), calendly_event_type_uri: uri })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/support-packages");

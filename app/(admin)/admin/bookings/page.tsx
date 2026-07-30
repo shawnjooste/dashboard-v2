@@ -14,6 +14,14 @@ function Row({ b, actions }: { b: Booking; actions: boolean }) {
       <span className="shrink-0 rounded bg-line-soft px-1.5 py-0.5 text-[11px] font-medium capitalize text-ink-3">
         {b.status === "pending_payment" ? "pending" : b.status}
       </span>
+      {b.status === "paid" && b.serviceMapped && !b.calendlyEventUri && (
+        <span
+          className="shrink-0 rounded bg-warn-tint px-1.5 py-0.5 text-[11px] font-medium text-warn-ink"
+          title="Calendly booking failed — Tim's calendar doesn't have this session; add it manually."
+        >
+          no calendar event
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-ink">
           <span className="font-medium">{b.clientName ?? "—"}</span> · {b.serviceName}
