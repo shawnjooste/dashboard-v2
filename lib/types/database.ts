@@ -2170,6 +2170,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          booking_link_created_at: string | null
+          booking_url: string | null
           client_id: string
           created_at: string
           created_by: string | null
@@ -2183,6 +2185,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_link_created_at?: string | null
+          booking_url?: string | null
           client_id: string
           created_at?: string
           created_by?: string | null
@@ -2196,6 +2200,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_link_created_at?: string | null
+          booking_url?: string | null
           client_id?: string
           created_at?: string
           created_by?: string | null

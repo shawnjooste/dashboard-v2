@@ -4,6 +4,7 @@
 // quote mail keeps its own FROM because quotes@ is the inbound-reply address.
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail as send } from "@/lib/email/send";
+import { createSingleUseBookingLink, isBookingLinkStale } from "@/lib/calendly";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
@@ -81,6 +82,40 @@ export async function notifyQuotePendingReview(opts: {
   );
 }
 
+/**
+ * The quote's single-use booking link, minting one if there isn't a usable one.
+ * Stored on the quote so a re-send reuses it rather than creating a second link
+ * and splitting bookings; re-minted once Calendly's 90-day expiry has passed.
+ * Never throws — a quote must still send if Calendly is down.
+ */
+async function ensureBookingLink(quoteId: string): Promise<string | null> {
+  const service = createServiceClient();
+  const { data: q } = await service
+    .from("quotes")
+    .select("booking_url, booking_link_created_at")
+    .eq("id", quoteId)
+    .maybeSingle();
+  const existing = q?.booking_url ?? null;
+  if (existing && !isBookingLinkStale(q?.booking_link_created_at ?? null)) return existing;
+
+  const url = await createSingleUseBookingLink();
+  if (!url) return existing;
+  await service
+    .from("quotes")
+    .update({ booking_url: url, booking_link_created_at: new Date().toISOString() })
+    .eq("id", quoteId);
+  return url;
+}
+
+/** "Book a call" line for a client-facing quote email. */
+const bookingCta = (url: string | null) =>
+  url
+    ? `<p style="margin:18px 0 0; color:#444;">
+         Prefer to talk it through? <a href="${url}" style="color:#D7141C; font-weight:600;">Book a 30-minute call</a>
+         &mdash; one booking per quote.
+       </p>`
+    : "";
+
 /** New quote (or new version) → every active manager at the client. */
 export async function notifyQuoteSent(opts: {
   clientId: string;
@@ -99,6 +134,7 @@ export async function notifyQuoteSent(opts: {
   const heading = opts.isRevision
     ? `Updated quote from Rocking — ${opts.quoteNumber}`
     : `New quote from Rocking — ${opts.quoteNumber}`;
+  const bookingUrl = await ensureBookingLink(opts.quoteId);
   const messageId = await sendEmail(
     to,
     `${heading}: ${opts.title}`,
@@ -110,6 +146,7 @@ export async function notifyQuoteSent(opts: {
         You can review it, print it, and accept or decline online.
       </p>
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
+      ${bookingCta(bookingUrl)}
     `),
     [ADMIN_EMAIL],
     { clientId: opts.clientId, audience: "client" },

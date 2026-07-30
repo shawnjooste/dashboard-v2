@@ -133,6 +133,70 @@ if (amendId) {
   ]);
 }
 
+// ---------- single-use booking link (mirrors lib/calendly.ts) ----------
+// Calendly caps these at one booking, so the link belongs to the quote: the
+// first recipient to click consumes it. Stored on the quote so a re-send
+// reuses it rather than splitting bookings across two links. Unused links
+// expire after 90 days, hence the staleness check.
+const CALENDLY_EVENT_TYPE = "https://api.calendly.com/event_types/81ecffd2-21f7-414f-a480-9da2ad101ddc";
+const LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+async function ensureBookingLink(qid) {
+  const { data: q } = await sb
+    .from("quotes")
+    .select("booking_url, booking_link_created_at")
+    .eq("id", qid)
+    .maybeSingle();
+  const existing = q?.booking_url ?? null;
+  const fresh =
+    existing &&
+    q.booking_link_created_at &&
+    Date.now() - new Date(q.booking_link_created_at).getTime() < LINK_TTL_MS;
+  if (fresh) return existing;
+  if (!process.env.CALENDLY_API_TOKEN) {
+    console.warn("CALENDLY_API_TOKEN not set — no booking link on this quote");
+    return existing;
+  }
+  try {
+    const res = await fetch("https://api.calendly.com/scheduling_links", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.CALENDLY_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        max_event_count: 1,
+        owner: CALENDLY_EVENT_TYPE,
+        owner_type: "EventType",
+      }),
+    });
+    if (!res.ok) {
+      console.error(`Calendly link failed (${res.status}) — quote still sends`);
+      return existing;
+    }
+    const url = (await res.json())?.resource?.booking_url ?? null;
+    if (url) {
+      await sb
+        .from("quotes")
+        .update({ booking_url: url, booking_link_created_at: new Date().toISOString() })
+        .eq("id", qid);
+    }
+    return url ?? existing;
+  } catch (e) {
+    console.error("Calendly link error — quote still sends:", e.message);
+    return existing;
+  }
+}
+
+const bookingCta = (url) =>
+  url
+    ? `
+          <p style="margin:18px 0 0; color:#444;">
+            Prefer to talk it through? <a href="${url}" style="color:#D7141C; font-weight:600;">Book a 30-minute call</a>
+            &mdash; one booking per quote.
+          </p>`
+    : "";
+
 async function insertInternal(versionId) {
   if (!internal.length) return;
   const rows = internal.map((r) => ({
@@ -179,6 +243,7 @@ if (noEmail) {
   const heading = amendId
     ? `Updated quote from Rocking — ${quoteNumber}`
     : `New quote from Rocking — ${quoteNumber}`;
+  const bookingUrl = await ensureBookingLink(quoteId);
   const clientHtml = `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">${heading}</h2>
@@ -189,7 +254,7 @@ if (noEmail) {
           </p>
           <p style="margin:20px 0 0;">
             <a href="${url}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">View the quote</a>
-          </p>
+          </p>${bookingCta(bookingUrl)}
           <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
         </div>`;
   const res = await fetch("https://api.resend.com/emails", {
