@@ -32,3 +32,43 @@ export function mapLibrenmsDevice(d: unknown, nowMs: number): LineStatus {
   }
   return { up: null, downSince: null };
 }
+
+export const CONN_TYPES = ["pppoe", "static", "dhcp"] as const;
+
+export const CONN_TYPE_LABELS: Record<string, string> = {
+  pppoe: "PPPoE",
+  static: "Static IP",
+  dhcp: "Automatic (DHCP)",
+};
+
+export type IcmpSample = { up: boolean | null; latencyMs: number | null; lossPct: number | null };
+
+const numOrNull = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** LibreNMS device payload → ICMP sample. Never throws; unknown on malformed. */
+export function mapIcmp(device: unknown): IcmpSample {
+  if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
+  const rec = device as Record<string, unknown>;
+  const s = rec.status;
+  const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
+  if (up === null) return { up: null, latencyMs: null, lossPct: null };
+  return { up, latencyMs: numOrNull(rec.ping_avg), lossPct: numOrNull(rec.ping_loss) };
+}
+
+/** Outage start: stamped on the first down poll, held while down, cleared on
+ *  recovery, untouched when the poll itself failed (up === null). */
+export function nextDownSince(prevDownSince: string | null, up: boolean | null, nowIso: string): string | null {
+  if (up === null) return prevDownSince;
+  if (up) return null;
+  return prevDownSince ?? nowIso;
+}
+
+/** True when we have no check, or the newest is older than 20 minutes. */
+export function isStale(lastCheckedAt: string | null, nowMs: number): boolean {
+  if (!lastCheckedAt) return true;
+  return nowMs - Date.parse(lastCheckedAt) > 20 * 60 * 1000;
+}
