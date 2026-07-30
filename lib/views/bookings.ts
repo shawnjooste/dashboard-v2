@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { PENDING_HOLD_MINUTES, openSlots, type SlotBlocker } from "@/lib/booking-helpers";
+import { slotLabel } from "@/lib/calendly-helpers";
+
+export { slotLabel };
 
 export type BookingService = { id: string; key: string; name: string; priceCents: number };
 
@@ -17,15 +20,6 @@ export type Booking = {
   freescoutNumber: number | null;
   clientName?: string;
 };
-
-const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** "Mon 27 Jul, 08:00" in SAST (fixed UTC+2) for a stored UTC slot. */
-export function slotLabel(iso: string): string {
-  const d = new Date(new Date(iso).getTime() + 2 * 3_600_000);
-  return `${DAY[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]}, ${String(d.getUTCHours()).padStart(2, "0")}:00`;
-}
 
 export async function getActiveServices(): Promise<BookingService[]> {
   const supabase = await createClient();

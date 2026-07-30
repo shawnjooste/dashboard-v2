@@ -1,7 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { createTicket } from "@/lib/freescout";
 import { sendBookingConfirmation } from "@/lib/notify";
-import { slotLabel } from "@/lib/views/bookings";
+import { slotLabel } from "@/lib/calendly-helpers";
 
 /** Flip a booking to paid once payment is verified. Idempotent — the webhook
  *  and the booking page's verify fallback can both call this safely. The
