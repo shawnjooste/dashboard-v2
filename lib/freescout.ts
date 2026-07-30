@@ -15,6 +15,17 @@ function fsConfig() {
   return { url, key };
 }
 
+/** FreeScout now sits behind a Cloudflare Tunnel with an Access (Service Auth)
+ *  policy — the origin has no public ingress, and Cloudflare's edge rejects
+ *  anything without a valid service token before it reaches FreeScout. These
+ *  headers are what identify the portal. Absent env vars = no headers, so this
+ *  is a no-op on a directly-reachable instance (local dev, or pre-cutover). */
+function accessHeaders(): Record<string, string> {
+  const id = process.env.CF_ACCESS_CLIENT_ID;
+  const secret = process.env.CF_ACCESS_CLIENT_SECRET;
+  return id && secret ? { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret } : {};
+}
+
 async function fsFetch(path: string, init?: RequestInit): Promise<Response> {
   const { url, key } = fsConfig();
   return fetch(`${url}/api${path}`, {
@@ -22,6 +33,7 @@ async function fsFetch(path: string, init?: RequestInit): Promise<Response> {
     headers: {
       "X-FreeScout-API-Key": key,
       "Content-Type": "application/json",
+      ...accessHeaders(),
       ...init?.headers,
     },
     cache: "no-store",
