@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { getLineStatuses } from "@/lib/librenms";
-import { speedLabel, type LineStatus } from "@/lib/connectivity-helpers";
+import { speedLabel } from "@/lib/connectivity-helpers";
+
+export type ConnectivitySample = { at: string; latencyMs: number | null };
 
 export type ConnectivityLine = {
   id: string;
@@ -8,14 +9,33 @@ export type ConnectivityLine = {
   kind: string;
   provider: string | null;
   speed: string | null;
+  /** Raw values, so the admin edit form can prefill without wiping them. */
+  downloadMbps: number | null;
+  uploadMbps: number | null;
+  description: string | null;
+  connType: string;
+  pppoeUsername: string | null;
+  /** True when a password is stored — the value itself never ships here. */
+  hasSecret: boolean;
+  ipAddress: string | null;
+  subnetMask: string | null;
+  gateway: string | null;
+  dnsServers: string | null;
+  vlan: number | null;
   librenmsDeviceId: number | null;
   notes: string | null;
   isActive: boolean;
-  status: LineStatus | null;
+  lastUp: boolean | null;
+  latencyMs: number | null;
+  lossPct: number | null;
+  lastCheckedAt: string | null;
+  downSince: string | null;
+  samples: ConnectivitySample[];
 };
 
-/** A client's lines with live status for mapped ones. RLS scopes rows:
- *  clients see only their own active lines; staff may includeInactive. */
+/** A client's lines with the status the pull last wrote, plus 24h of samples.
+ *  RLS scopes rows; pppoe_secret is read only to derive hasSecret and is never
+ *  placed on the returned objects. */
 export async function getConnectivityLines(
   clientId: string,
   opts?: { includeInactive?: boolean },
@@ -23,24 +43,59 @@ export async function getConnectivityLines(
   const supabase = await createClient();
   let q = supabase
     .from("connectivity_services")
-    .select("id, label, kind, provider, download_mbps, upload_mbps, librenms_device_id, notes, is_active")
+    .select(
+      "id, label, kind, provider, download_mbps, upload_mbps, description, conn_type, pppoe_username, pppoe_secret, ip_address, subnet_mask, gateway, dns_servers, vlan, librenms_device_id, notes, is_active, last_up, latency_ms, loss_pct, last_checked_at, down_since",
+    )
     .eq("client_id", clientId)
     .order("label");
   if (!opts?.includeInactive) q = q.eq("is_active", true);
   const { data } = await q;
   const rows = data ?? [];
-  const ids = rows.map((r) => r.librenms_device_id).filter((n): n is number => n != null);
-  const statuses = await getLineStatuses([...new Set(ids)]);
+  if (rows.length === 0) return [];
+
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data: sampleRows } = await supabase
+    .from("connectivity_samples")
+    .select("service_id, at, latency_ms")
+    .in(
+      "service_id",
+      rows.map((r) => r.id),
+    )
+    .gte("at", since)
+    .order("at");
+  const byService = new Map<string, ConnectivitySample[]>();
+  for (const s of sampleRows ?? []) {
+    const list = byService.get(s.service_id) ?? [];
+    list.push({ at: s.at, latencyMs: s.latency_ms == null ? null : Number(s.latency_ms) });
+    byService.set(s.service_id, list);
+  }
+
   return rows.map((r) => ({
     id: r.id,
     label: r.label,
     kind: r.kind,
     provider: r.provider,
     speed: speedLabel(r.download_mbps, r.upload_mbps),
+    downloadMbps: r.download_mbps,
+    uploadMbps: r.upload_mbps,
+    description: r.description,
+    connType: r.conn_type,
+    pppoeUsername: r.pppoe_username,
+    hasSecret: !!r.pppoe_secret,
+    ipAddress: r.ip_address,
+    subnetMask: r.subnet_mask,
+    gateway: r.gateway,
+    dnsServers: r.dns_servers,
+    vlan: r.vlan,
     librenmsDeviceId: r.librenms_device_id,
     notes: r.notes,
     isActive: r.is_active,
-    status: r.librenms_device_id != null ? (statuses.get(r.librenms_device_id) ?? null) : null,
+    lastUp: r.last_up,
+    latencyMs: r.latency_ms == null ? null : Number(r.latency_ms),
+    lossPct: r.loss_pct == null ? null : Number(r.loss_pct),
+    lastCheckedAt: r.last_checked_at,
+    downSince: r.down_since,
+    samples: byService.get(r.id) ?? [],
   }));
 }
 
