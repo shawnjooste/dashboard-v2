@@ -2659,6 +2659,7 @@ export type Database = {
         Row: {
           amount_cents: number
           booked_by: string | null
+          calendly_event_uri: string | null
           client_id: string
           created_at: string
           freescout_number: number | null
@@ -2675,6 +2676,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           booked_by?: string | null
+          calendly_event_uri?: string | null
           client_id: string
           created_at?: string
           freescout_number?: number | null
@@ -2691,6 +2693,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           booked_by?: string | null
+          calendly_event_uri?: string | null
           client_id?: string
           created_at?: string
           freescout_number?: number | null
@@ -2767,6 +2770,7 @@ export type Database = {
       support_services: {
         Row: {
           active: boolean
+          calendly_event_type_uri: string | null
           id: string
           key: string
           name: string
@@ -2774,6 +2778,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          calendly_event_type_uri?: string | null
           id?: string
           key: string
           name: string
@@ -2781,6 +2786,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          calendly_event_type_uri?: string | null
           id?: string
           key?: string
           name?: string
