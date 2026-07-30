@@ -138,6 +138,9 @@ if (amendId) {
 // first recipient to click consumes it. Stored on the quote so a re-send
 // reuses it rather than splitting bookings across two links. Unused links
 // expire after 90 days, hence the staleness check.
+// Per-person token: the link is minted on that host's Calendly and lands in
+// their diary. Quote calls are with Shawn. (Mirrors lib/calendly.ts.)
+const CALENDLY_TOKEN_ENV = "CALENDLY_API_TOKEN_SHAWN";
 const CALENDLY_EVENT_TYPE = "https://api.calendly.com/event_types/81ecffd2-21f7-414f-a480-9da2ad101ddc";
 const LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -153,15 +156,15 @@ async function ensureBookingLink(qid) {
     q.booking_link_created_at &&
     Date.now() - new Date(q.booking_link_created_at).getTime() < LINK_TTL_MS;
   if (fresh) return existing;
-  if (!process.env.CALENDLY_API_TOKEN) {
-    console.warn("CALENDLY_API_TOKEN not set — no booking link on this quote");
+  if (!process.env[CALENDLY_TOKEN_ENV]) {
+    console.warn(`${CALENDLY_TOKEN_ENV} not set — no booking link on this quote`);
     return existing;
   }
   try {
     const res = await fetch("https://api.calendly.com/scheduling_links", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.CALENDLY_API_TOKEN}`,
+        Authorization: `Bearer ${process.env[CALENDLY_TOKEN_ENV]}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

@@ -1,0 +1,105 @@
+{
+  "clientId": "9d45c9bd-f67c-4e08-99dd-801432bcdfc2",
+  "title": "Microsoft 365 Licensing (incl. Copilot)",
+  "validUntil": "2026-07-31",
+  "number": "QU-OUT-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Outside Capital",
+      "attention": "Jayson & Anthea",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-OUT-001",
+      "date": "30 July 2026",
+      "validUntil": "31 July 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Microsoft 365 Licensing (incl. Copilot)",
+    "projectIntro": "This quote covers your Microsoft 365 licensing for 20 users, moved onto a Microsoft NCE annual commitment billed monthly, and includes two Microsoft 365 Copilot licences bundled with Business Standard. The Copilot licences are the notable change: you currently license Copilot directly from Microsoft in US dollars, whereas these are bundled and billed in rand — see the note below. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "recurring",
+        "title": "Section 1 — Microsoft 365 Licensing",
+        "subtitle": "Annual commitment, billed monthly",
+        "monthly": true,
+        "totalLabel": "TOTAL (incl VAT / month)",
+        "groups": [
+          {
+            "name": "Standard & Basic Licences",
+            "items": [
+              {
+                "description": "Microsoft 365 Business Standard",
+                "detail": "Per-user licence. Full desktop Office apps, 1TB OneDrive, Exchange, Teams and SharePoint. Annual commitment, billed monthly.",
+                "qty": 15,
+                "unitPrice": 250.65
+              },
+              {
+                "description": "Microsoft 365 Business Basic",
+                "detail": "Per-user licence. Web and mobile Office apps, Exchange, Teams and SharePoint. Annual commitment, billed monthly.",
+                "qty": 3,
+                "unitPrice": 115.0
+              }
+            ]
+          },
+          {
+            "name": "Copilot Bundle",
+            "items": [
+              {
+                "description": "Microsoft 365 Business Standard with Copilot",
+                "detail": "Per-user licence bundling Microsoft 365 Copilot with a full Business Standard licence — Copilot across Word, Excel, PowerPoint, Outlook and Teams. Annual commitment, billed monthly in rand.",
+                "qty": 2,
+                "unitPrice": 442.89
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "On the Copilot licences: you currently pay Microsoft directly at USD 36 per user per month for the Copilot add-on alone, on top of your existing Business Standard licences, and that dollar price moves with the exchange rate. The two bundled licences quoted above come in below what you are paying for the Copilot add-on on its own at current exchange rates — and the Business Standard licence is included in that figure rather than billed separately. Billing also moves to rand, so the cost stops shifting with the currency.",
+    "terms": [
+      "This quote is valid until 31 July 2026.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Licensing is provided on a Microsoft NCE annual commitment, billed monthly. The 12-month term applies from activation and renews annually unless cancelled before the renewal date.",
+      "Licence counts can be increased during the term at the same per-user rate. Reductions take effect at the annual renewal.",
+      "Microsoft pricing is subject to OEM (Microsoft) price adjustments.",
+      "The comparison to your current Copilot spend is based on Microsoft's USD 36 per user per month list price for the Copilot add-on and prevailing exchange rates; the rand prices quoted here are fixed for the term.",
+      "Payment of the monthly licence fee is due in advance."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": 3007.8,
+      "note": "Multi — M365 Business Standard, Annual Commit / Monthly Billing. 15 x R200.52 ex VAT = R3,007.80. NON-STANDARD 25% MARKUP per Shawn (not the usual 15%): 200.52 x 1.25 = R250.65 to client."
+    },
+    {
+      "path": "s0.g0.i1",
+      "supplierCost": 268.29,
+      "note": "Multi — M365 Business Basic, Annual Commit / Monthly Billing. 3 x R89.43 ex VAT = R268.29. Client price set to a round R115.00 ex VAT per Shawn (v2, 30 Jul) — that is a 28.6% markup on this line rather than the 25% applied elsewhere. Deliberate, do not 'correct' to R111.79."
+    },
+    {
+      "path": "s0.g1.i0",
+      "supplierCost": 708.62,
+      "note": "Multi — M365 Business Standard WITH COPILOT bundle, Annual Commit / Monthly Billing. 2 x R354.31 ex VAT = R708.62. 25% markup: 354.31 x 1.25 = R442.89 to client (rounded from 442.8875). Client currently pays Microsoft USD 36/user/mo for Copilot add-on alone — our bundled ZAR price beats that at any USD rate above ~R12.30, so the saving claim is safe at prevailing rates. NO FX RATE SUPPLIED — quote deliberately avoids stating a rand saving figure. Total monthly margin across quote: R996.19 (25%)."
+    }
+  ]
+}

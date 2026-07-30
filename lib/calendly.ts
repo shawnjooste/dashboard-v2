@@ -11,7 +11,13 @@
 // older than that as spent (see LINK_TTL_DAYS).
 import "server-only";
 
-/** Which meeting a quote call books into — TeamsCall, 30 min. */
+// Tokens are per-person (CALENDLY_API_TOKEN_<NAME>) because a booking link is
+// minted against that person's Calendly account and lands in their diary.
+// Quote calls are with Shawn, so quotes use his. Adding another host means
+// adding their token under the same convention, not renaming this one.
+export const QUOTE_HOST_TOKEN_ENV = "CALENDLY_API_TOKEN_SHAWN";
+
+/** Which meeting a quote call books into — Shawn's TeamsCall, 30 min. */
 export const QUOTE_EVENT_TYPE_URI =
   "https://api.calendly.com/event_types/81ecffd2-21f7-414f-a480-9da2ad101ddc";
 
@@ -33,9 +39,9 @@ export function isBookingLinkStale(createdAt: string | null): boolean {
 export async function createSingleUseBookingLink(
   eventTypeUri: string = QUOTE_EVENT_TYPE_URI,
 ): Promise<string | null> {
-  const token = process.env.CALENDLY_API_TOKEN;
+  const token = process.env[QUOTE_HOST_TOKEN_ENV];
   if (!token) {
-    console.warn("CALENDLY_API_TOKEN not set — skipping quote booking link");
+    console.warn(`${QUOTE_HOST_TOKEN_ENV} not set — skipping quote booking link`);
     return null;
   }
   try {
