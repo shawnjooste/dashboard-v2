@@ -13,6 +13,9 @@
 // Override the path with ROCKING_CONN_CONF. Run by hand to test:
 //   ROCKING_CONN_CONF=./conn-pull.json node scripts/connectivity-pull.mjs
 import { readFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const run = promisify(execFile);
 
 // --- mirrors of lib/connectivity-helpers.ts (the tested source of truth).
 // Plain node can't import the .ts helper; keep these two in sync by hand.
@@ -28,18 +31,37 @@ const posOrNull = (v) => {
   return n != null && n > 0 ? n : null;
 };
 
+// LibreNMS is authoritative for up/down. It does NOT expose round-trip time:
+// last_ping_timetaken is the poller's own runtime (0.4ms for a 53ms link), and
+// the real RTT lives in RRD behind rrdcached. So we ping the host ourselves —
+// same vantage point LibreNMS uses, since this runs on that box.
 function mapIcmp(device) {
   if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
   const s = device.status;
   const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
   if (up === null) return { up: null, latencyMs: null, lossPct: null };
-  // Latency: LibreNMS returns last_ping_timetaken (ms) on /devices/{id};
-  // ping_avg is preferred when a deployment provides it. Loss isn't exposed.
-  return {
-    up,
-    latencyMs: posOrNull(device.ping_avg) ?? posOrNull(device.last_ping_timetaken),
-    lossPct: numOrNull(device.ping_loss),
-  };
+  return { up, latencyMs: posOrNull(device.ping_avg), lossPct: numOrNull(device.ping_loss) };
+}
+
+function deviceHost(device) {
+  const h = device && typeof device === "object" ? device.hostname : null;
+  return typeof h === "string" && h.trim() ? h.trim() : null;
+}
+
+function parsePing(stdout) {
+  const loss = stdout.match(/([\d.]+)%\s*packet loss/);
+  const avg = stdout.match(/=\s*[\d.]+\/([\d.]+)\//);
+  return { latencyMs: avg ? posOrNull(avg[1]) : null, lossPct: loss ? numOrNull(loss[1]) : null };
+}
+
+/** Measure real RTT + loss. Never throws — ping exits non-zero on 100% loss. */
+async function measure(host) {
+  try {
+    const { stdout } = await run("ping", ["-c", "3", "-t", "5", host], { timeout: 15_000 });
+    return parsePing(stdout);
+  } catch (e) {
+    return parsePing(e?.stdout ?? "");
+  }
 }
 
 function nextDownSince(prevDownSince, up, nowIso) {
@@ -78,7 +100,14 @@ for (const line of lines) {
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const body = await r.json();
-    sample = mapIcmp(body?.devices?.[0] ?? null);
+    const device = body?.devices?.[0] ?? null;
+    sample = mapIcmp(device);
+    // Fill in the numbers LibreNMS can't give us, from an actual ping.
+    const host = deviceHost(device);
+    if (sample.up !== null && host) {
+      const m = await measure(host);
+      sample = { up: sample.up, latencyMs: sample.latencyMs ?? m.latencyMs, lossPct: sample.lossPct ?? m.lossPct };
+    }
   } catch (e) {
     failed++;
     console.error(`${line.label}: ${e.message}`);

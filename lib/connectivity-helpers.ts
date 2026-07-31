@@ -55,20 +55,38 @@ const posOrNull = (v: unknown): number | null => {
   return n != null && n > 0 ? n : null;
 };
 
-/** LibreNMS device payload → ICMP sample. Never throws; unknown on malformed.
- *  Latency comes from `last_ping_timetaken` (ms) on /devices/{id}; `ping_avg`
- *  is preferred when present. Packet loss is not exposed on the device payload
- *  (it lives in device_perf), so lossPct is usually null. */
+/** LibreNMS device payload → up/down (its authoritative signal) plus latency
+ *  when the deployment actually provides it.
+ *
+ *  Deliberately does NOT read `last_ping_timetaken`: that field is how long the
+ *  poller took to run, not the round-trip time — reading it as latency reports
+ *  0.2 ms for a link that really sits at 53 ms. True RTT lives in RRD behind
+ *  rrdcached and isn't exposed by the API, so the pull measures it directly
+ *  with `ping` (see parsePing) and only falls back to LibreNMS's `ping_avg`
+ *  where a deployment populates it. Never throws. */
 export function mapIcmp(device: unknown): IcmpSample {
   if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
   const rec = device as Record<string, unknown>;
   const s = rec.status;
   const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
   if (up === null) return { up: null, latencyMs: null, lossPct: null };
+  return { up, latencyMs: posOrNull(rec.ping_avg), lossPct: numOrNull(rec.ping_loss) };
+}
+
+/** The hostname/IP LibreNMS knows a device by, so the pull can ping it. */
+export function deviceHost(device: unknown): string | null {
+  if (!device || typeof device !== "object") return null;
+  const h = (device as Record<string, unknown>).hostname;
+  return typeof h === "string" && h.trim() ? h.trim() : null;
+}
+
+/** Parse `ping -c N` output (BSD or Linux) into real RTT and loss. */
+export function parsePing(stdout: string): { latencyMs: number | null; lossPct: number | null } {
+  const loss = stdout.match(/([\d.]+)%\s*packet loss/);
+  const avg = stdout.match(/=\s*[\d.]+\/([\d.]+)\//);
   return {
-    up,
-    latencyMs: posOrNull(rec.ping_avg) ?? posOrNull(rec.last_ping_timetaken),
-    lossPct: numOrNull(rec.ping_loss),
+    latencyMs: avg ? posOrNull(avg[1]) : null,
+    lossPct: loss ? numOrNull(loss[1]) : null,
   };
 }
 

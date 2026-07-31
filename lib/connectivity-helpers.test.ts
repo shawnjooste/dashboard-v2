@@ -7,6 +7,8 @@ import {
   nextDownSince,
   isStale,
   CONN_TYPE_LABELS,
+  deviceHost,
+  parsePing,
 } from "./connectivity-helpers";
 
 describe("speedLabel", () => {
@@ -60,10 +62,12 @@ describe("mapIcmp", () => {
     expect(mapIcmp(null)).toEqual({ up: null, latencyMs: null, lossPct: null });
     expect(mapIcmp({ nope: 1 })).toEqual({ up: null, latencyMs: null, lossPct: null });
   });
-  it("reads the real LibreNMS shape: boolean status + last_ping_timetaken", () => {
+  it("reads the real LibreNMS shape: boolean status, no usable latency", () => {
+    // last_ping_timetaken is poller runtime, NOT round-trip time — ignoring it
+    // is the point: reading it would report 0.4ms for a 53ms link.
     expect(mapIcmp({ status: true, last_ping_timetaken: 0.442, ping_avg: null, ping_loss: null })).toEqual({
       up: true,
-      latencyMs: 0.442,
+      latencyMs: null,
       lossPct: null,
     });
     expect(mapIcmp({ status: false, last_ping_timetaken: 0 })).toEqual({ up: false, latencyMs: null, lossPct: null });
@@ -105,5 +109,37 @@ describe("CONN_TYPE_LABELS", () => {
     expect(CONN_TYPE_LABELS.pppoe).toBe("PPPoE");
     expect(CONN_TYPE_LABELS.static).toBe("Static IP");
     expect(CONN_TYPE_LABELS.dhcp).toBe("Automatic (DHCP)");
+  });
+});
+
+describe("deviceHost", () => {
+  it("returns the hostname LibreNMS monitors", () => {
+    expect(deviceHost({ hostname: "102.176.237.94" })).toBe("102.176.237.94");
+  });
+  it("null when absent or malformed", () => {
+    expect(deviceHost({})).toBeNull();
+    expect(deviceHost(null)).toBeNull();
+    expect(deviceHost({ hostname: "  " })).toBeNull();
+  });
+});
+
+describe("parsePing", () => {
+  const bsd = `3 packets transmitted, 3 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 53.102/53.712/54.521/0.596 ms`;
+  const linux = `3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 3.683/3.792/3.917/0.096 ms`;
+  const dead = `3 packets transmitted, 0 packets received, 100.0% packet loss`;
+
+  it("parses BSD (macOS) output", () => {
+    expect(parsePing(bsd)).toEqual({ latencyMs: 53.712, lossPct: 0 });
+  });
+  it("parses Linux output", () => {
+    expect(parsePing(linux)).toEqual({ latencyMs: 3.792, lossPct: 0 });
+  });
+  it("handles a dead host: loss without timings", () => {
+    expect(parsePing(dead)).toEqual({ latencyMs: null, lossPct: 100 });
+  });
+  it("handles junk", () => {
+    expect(parsePing("")).toEqual({ latencyMs: null, lossPct: null });
   });
 });
