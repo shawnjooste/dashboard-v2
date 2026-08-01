@@ -9,6 +9,13 @@ export function slotLabel(iso: string): string {
   return `${DAY[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]}, ${String(d.getUTCHours()).padStart(2, "0")}:00`;
 }
 
+/** "2026-08-03" — the SAST calendar day a slot falls on. Used to group slots
+ *  into a month grid; must agree with slotLabel's day or the calendar and the
+ *  time list disagree about which day a late-afternoon slot belongs to. */
+export function slotDayKey(iso: string): string {
+  return new Date(new Date(iso).getTime() + 2 * 3_600_000).toISOString().slice(0, 10);
+}
+
 /** Calendly event_type_available_times → the portal's slot shape.
  *  Available only, ISO-normalized, deduped, ascending. */
 export function normalizeCalendlySlots(

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { chunkWindows, normalizeCalendlySlots, slotLabel } from "./calendly-helpers";
+import { chunkWindows, normalizeCalendlySlots, slotDayKey, slotLabel } from "./calendly-helpers";
+
+describe("slotDayKey", () => {
+  it("uses the SAST calendar day", () => {
+    expect(slotDayKey("2026-08-03T06:00:00.000Z")).toBe("2026-08-03"); // 08:00 SAST
+  });
+  it("keeps a late-afternoon slot on the same SAST day", () => {
+    expect(slotDayKey("2026-08-03T14:00:00.000Z")).toBe("2026-08-03"); // 16:00 SAST
+  });
+  it("rolls over when UTC is still the previous day", () => {
+    expect(slotDayKey("2026-08-02T22:30:00.000Z")).toBe("2026-08-03"); // 00:30 SAST
+  });
+});
 
 describe("slotLabel", () => {
   it("renders SAST from a stored UTC slot", () => {

@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { createBooking, type CreateBookingResult } from "@/lib/actions/bookings";
 import { fmtRands, totalCents } from "@/lib/booking-helpers";
+import { slotDayKey } from "@/lib/calendly-helpers";
 import type { BookingService } from "@/lib/views/bookings";
 
 /** One line of plain English per service, keyed by the service key so it
@@ -12,7 +13,14 @@ const BLURB: Record<string, string> = {
   onsite: "One of our engineers comes to your office.",
 };
 
-const DAYS_SHOWN = 3; // more are a click away — keeps the card scannable
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** Monday-first column index for a JS day number (0 = Sunday). */
+const mondayIndex = (jsDay: number) => (jsDay + 6) % 7;
 
 export function BookSession({
   services,
@@ -23,7 +31,8 @@ export function BookSession({
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [slotIso, setSlotIso] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [dayKey, setDayKey] = useState("");
+  const [monthOffset, setMonthOffset] = useState(0);
   const [state, formAction, pending] = useActionState<CreateBookingResult | null, FormData>(
     async (prev, fd) => {
       const result = await createBooking(prev, fd);
@@ -36,22 +45,42 @@ export function BookSession({
   const selected = services.find((s) => s.id === serviceId);
   const slots = slotsByService[serviceId] ?? [];
 
-  // "Mon 3 Aug, 08:00" → { day: "Mon 3 Aug", time: "08:00" }, grouped in order.
+  /** dayKey → times, in order. */
   const byDay = useMemo(() => {
-    const groups = new Map<string, { iso: string; time: string }[]>();
+    const m = new Map<string, { iso: string; time: string }[]>();
     for (const s of slots) {
-      const [day, time] = s.label.split(", ");
-      if (!groups.has(day)) groups.set(day, []);
-      groups.get(day)!.push({ iso: s.iso, time: time ?? s.label });
+      const k = slotDayKey(s.iso);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push({ iso: s.iso, time: s.label.split(", ")[1] ?? s.label });
     }
-    return [...groups.entries()];
+    return m;
   }, [slots]);
 
-  const visibleDays = expanded ? byDay : byDay.slice(0, DAYS_SHOWN);
+  // The month shown: the first month containing availability, plus any paging.
+  const baseMonth = useMemo(() => {
+    const first = [...byDay.keys()].sort()[0];
+    const d = first ? new Date(`${first}T00:00:00Z`) : new Date();
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+  }, [byDay]);
+
+  const month = new Date(Date.UTC(baseMonth.getUTCFullYear(), baseMonth.getUTCMonth() + monthOffset, 1));
+  const daysInMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate();
+  const leading = mondayIndex(month.getUTCDay());
+  const monthPrefix = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}`;
+  const hasLaterMonth = [...byDay.keys()].some((k) => k.slice(0, 7) > monthPrefix);
+
+  const times = dayKey ? (byDay.get(dayKey) ?? []) : [];
 
   const pickService = (id: string) => {
     setServiceId(id);
-    setSlotIso(""); // availability differs per service
+    setSlotIso("");
+    setDayKey("");
+    setMonthOffset(0);
+  };
+
+  const pickDay = (key: string) => {
+    setDayKey(key);
+    setSlotIso("");
   };
 
   return (
@@ -75,53 +104,113 @@ export function BookSession({
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm font-semibold text-ink">{s.name}</span>
                 <span className={`text-[13px] font-semibold ${on ? "text-brand" : "text-ink-2"}`}>
-                  {fmtRands(totalCents(s.priceCents))}
+                  {fmtRands(s.priceCents)} <span className="font-normal text-muted">ex VAT</span>
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-muted">{BLURB[s.key] ?? "One hour, incl VAT."}</p>
+              <p className="mt-0.5 text-xs text-muted">{BLURB[s.key] ?? "Charged per session."}</p>
             </button>
           );
         })}
       </div>
 
-      {byDay.length === 0 ? (
+      {byDay.size === 0 ? (
         <p className="text-[13px] text-muted">
           No times are open at the moment — raise a ticket and we&apos;ll sort something out.
         </p>
       ) : (
-        <div className="space-y-2">
-          {visibleDays.map(([day, times]) => (
-            <div key={day} className="flex flex-wrap items-center gap-1.5">
-              <span className="w-24 shrink-0 text-xs font-medium text-ink-3">{day}</span>
-              {times.map((t) => {
-                const on = t.iso === slotIso;
+        <div className="grid gap-4 sm:grid-cols-[260px_1fr]">
+          {/* Month grid */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setMonthOffset((v) => v - 1)}
+                disabled={monthOffset === 0}
+                className="rounded px-2 py-0.5 text-sm text-muted hover:bg-line-soft hover:text-ink disabled:opacity-30"
+                aria-label="Previous month"
+              >
+                ‹
+              </button>
+              <span className="text-[13px] font-semibold text-ink">
+                {MONTHS[month.getUTCMonth()]} {month.getUTCFullYear()}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMonthOffset((v) => v + 1)}
+                disabled={!hasLaterMonth}
+                className="rounded px-2 py-0.5 text-sm text-muted hover:bg-line-soft hover:text-ink disabled:opacity-30"
+                aria-label="Next month"
+              >
+                ›
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {WEEKDAYS.map((d) => (
+                <span key={d} className="py-1 text-[11px] font-medium text-faint">
+                  {d[0]}
+                </span>
+              ))}
+              {Array.from({ length: leading }).map((_, i) => (
+                <span key={`b${i}`} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const key = `${monthPrefix}-${String(i + 1).padStart(2, "0")}`;
+                const open = byDay.has(key);
+                const on = key === dayKey;
                 return (
                   <button
-                    key={t.iso}
+                    key={key}
                     type="button"
-                    onClick={() => setSlotIso(t.iso)}
+                    disabled={!open}
+                    onClick={() => pickDay(key)}
                     aria-pressed={on}
-                    className={`rounded-md border px-2.5 py-1 text-[13px] transition-colors ${
+                    className={`aspect-square rounded-full text-[13px] transition-colors ${
                       on
-                        ? "border-brand bg-brand text-white"
-                        : "border-line text-ink-2 hover:border-faint hover:bg-canvas"
+                        ? "bg-brand font-semibold text-white"
+                        : open
+                          ? "bg-brand-tint font-semibold text-brand hover:brightness-95"
+                          : "text-faint"
                     }`}
                   >
-                    {t.time}
+                    {i + 1}
                   </button>
                 );
               })}
             </div>
-          ))}
-          {byDay.length > DAYS_SHOWN && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="text-xs font-semibold text-muted hover:text-ink"
-            >
-              {expanded ? "Show fewer days" : `More times (${byDay.length - DAYS_SHOWN} more days)`}
-            </button>
-          )}
+          </div>
+
+          {/* Times for the chosen day */}
+          <div>
+            {dayKey ? (
+              <>
+                <p className="mb-2 text-[13px] font-semibold text-ink">
+                  {new Date(`${dayKey}T00:00:00Z`).toUTCString().slice(0, 11)}
+                </p>
+                <div className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto pr-1">
+                  {times.map((t) => {
+                    const on = t.iso === slotIso;
+                    return (
+                      <button
+                        key={t.iso}
+                        type="button"
+                        onClick={() => setSlotIso(t.iso)}
+                        aria-pressed={on}
+                        className={`rounded-md border px-3 py-1.5 text-[13px] transition-colors ${
+                          on
+                            ? "border-brand bg-brand text-white"
+                            : "border-line text-ink-2 hover:border-brand hover:text-brand"
+                        }`}
+                      >
+                        {t.time}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-[13px] text-muted">Pick a highlighted day to see available times.</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -138,7 +227,7 @@ export function BookSession({
         >
           {pending
             ? "Starting payment…"
-            : `Book & pay${selected ? ` ${fmtRands(totalCents(selected.priceCents))}` : ""}`}
+            : `Book & pay${selected ? ` ${fmtRands(totalCents(selected.priceCents))} incl VAT` : ""}`}
         </button>
         <span className="text-xs text-muted">
           {slotIso
