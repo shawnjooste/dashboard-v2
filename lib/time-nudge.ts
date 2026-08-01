@@ -16,7 +16,13 @@ export type NudgeTicket = {
 export type Nudge = { email: string; subject: string; tickets: NudgeTicket[] };
 
 /** Tickets touched within the window that carry no logged time, newest first.
- *  Closed tickets count — work happened even if the thread is finished. */
+ *  Closed tickets count — work happened even if the thread is finished.
+ *
+ *  Tickets with no client are skipped deliberately: the helpdesk also receives
+ *  backup reports, cron output and supplier invoices, none of which are client
+ *  work, and a time entry needs a client to belong to. Chasing those would
+ *  bury the real ones (86 outstanding on the first live run, nearly all
+ *  robots) and teach everyone to ignore the email. */
 export function ticketsNeedingTime(
   tickets: NudgeTicket[],
   now: Date,
@@ -24,7 +30,9 @@ export function ticketsNeedingTime(
 ): NudgeTicket[] {
   const cutoff = now.getTime() - windowDays * 86_400_000;
   return tickets
-    .filter((t) => t.loggedMinutes === 0 && new Date(t.updatedAt).getTime() >= cutoff)
+    .filter(
+      (t) => t.clientName !== null && t.loggedMinutes === 0 && new Date(t.updatedAt).getTime() >= cutoff,
+    )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
@@ -40,8 +48,12 @@ export function buildNudges(recipients: string[], outstanding: NudgeTicket[]): N
 }
 
 /** Plain-English body. Kept here (not in the route) so the wording is testable. */
+const MAX_LISTED = 25;
+
 export function nudgeHtml(tickets: NudgeTicket[], portalUrl: string): string {
-  const rows = tickets
+  const shown = tickets.slice(0, MAX_LISTED);
+  const overflow = tickets.length - shown.length;
+  const rows = shown
     .map(
       (t) =>
         `<li style="margin:0 0 6px;"><a href="${portalUrl}/admin/tickets/${t.id}">#${t.id} — ${t.subject}</a>` +
@@ -56,6 +68,7 @@ export function nudgeHtml(tickets: NudgeTicket[], portalUrl: string): string {
         hours honest — and it's what our retainer meters are built on.
       </p>
       <ul style="padding-left:18px;margin:0 0 16px;">${rows}</ul>
+      ${overflow > 0 ? `<p style="color:#666;margin:0 0 16px;">…and ${overflow} more in the portal.</p>` : ""}
       <a href="${portalUrl}/admin/tickets" style="display:inline-block;background:#D7141C;color:#fff;text-decoration:none;font-weight:600;padding:10px 20px;border-radius:8px;">Open tickets</a>
     </div>`;
 }

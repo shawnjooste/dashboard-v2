@@ -20,6 +20,9 @@ describe("ticketsNeedingTime", () => {
   it("excludes tickets older than the window", () => {
     expect(ticketsNeedingTime([mk({ updatedAt: "2026-07-20T10:00:00Z" })], NOW)).toHaveLength(0);
   });
+  it("skips tickets with no client — backups, cron output, supplier invoices", () => {
+    expect(ticketsNeedingTime([mk({ clientName: null })], NOW)).toHaveLength(0);
+  });
   it("sorts newest first", () => {
     const out = ticketsNeedingTime(
       [mk({ id: 1, updatedAt: "2026-08-02T10:00:00Z" }), mk({ id: 2, updatedAt: "2026-08-06T10:00:00Z" })],
@@ -50,7 +53,10 @@ describe("nudgeHtml", () => {
     expect(html).toContain("Printer down");
     expect(html).toContain("GSR Law");
   });
-  it("names an unmatched client rather than leaving it blank", () => {
-    expect(nudgeHtml([mk({ clientName: null })], "https://x")).toContain("unmatched client");
+  it("caps the list and says how many more there are", () => {
+    const many = Array.from({ length: 30 }, (_, i) => mk({ id: i + 1 }));
+    const html = nudgeHtml(many, "https://x");
+    expect(html).toContain("and 5 more");
+    expect(html).not.toContain("/admin/tickets/30");
   });
 });
