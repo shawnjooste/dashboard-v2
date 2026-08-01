@@ -187,6 +187,25 @@ export async function createTicket(opts: {
   return id;
 }
 
+/** Internal (staff-only) note on a conversation — records a paid session
+ *  against the ticket it belongs to, so there's no duplicate thread. */
+export async function addTicketNote(conversationId: number, text: string): Promise<void> {
+  const res = await fsFetch(`/conversations/${conversationId}/threads`, {
+    method: "POST",
+    body: JSON.stringify({ type: "note", text, user: 1 }),
+  });
+  if (!res.ok) throw new Error(`FreeScout note failed (${res.status})`);
+}
+
+/** Reopen a closed conversation — a paid session means it's live work again. */
+export async function reopenTicket(conversationId: number): Promise<void> {
+  const res = await fsFetch(`/conversations/${conversationId}`, {
+    method: "PUT",
+    body: JSON.stringify({ status: "active", byUser: 1 }),
+  });
+  if (!res.ok) throw new Error(`FreeScout reopen failed (${res.status})`);
+}
+
 export async function replyToTicket(id: number, email: string, message: string): Promise<void> {
   const res = await fsFetch(`/conversations/${id}/threads`, {
     method: "POST",
