@@ -2743,6 +2743,7 @@ export type Database = {
           id: string
           note: string | null
           paid_at: string | null
+          payment_method: string
           paystack_reference: string
           service_id: string
           slot_end: string
@@ -2761,6 +2762,7 @@ export type Database = {
           id?: string
           note?: string | null
           paid_at?: string | null
+          payment_method?: string
           paystack_reference: string
           service_id: string
           slot_end: string
@@ -2779,6 +2781,7 @@ export type Database = {
           id?: string
           note?: string | null
           paid_at?: string | null
+          payment_method?: string
           paystack_reference?: string
           service_id?: string
           slot_end?: string

@@ -27,6 +27,7 @@ export function BookSession({
   slotsByService,
   embedded = false,
   ticketNumber,
+  covered = false,
 }: {
   services: BookingService[];
   slotsByService: Record<string, { iso: string; label: string }[]>;
@@ -35,6 +36,8 @@ export function BookSession({
   embedded?: boolean;
   /** The ticket this session belongs to — every session is anchored to one. */
   ticketNumber?: number;
+  /** Client is on a plan that covers sessions: no payment step, no prices. */
+  covered?: boolean;
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [slotIso, setSlotIso] = useState("");
@@ -113,7 +116,13 @@ export function BookSession({
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm font-semibold text-ink">{s.name}</span>
                 <span className={`text-[13px] font-semibold ${on ? "text-brand" : "text-ink-2"}`}>
-                  {fmtRands(s.priceCents)} <span className="font-normal text-muted">ex VAT</span>
+                  {covered ? (
+                    <span className="font-normal text-muted">included</span>
+                  ) : (
+                    <>
+                      {fmtRands(s.priceCents)} <span className="font-normal text-muted">ex VAT</span>
+                    </>
+                  )}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-muted">
@@ -275,9 +284,11 @@ export function BookSession({
           <>
             {picker}
             <p className="text-xs text-muted">
-              {slotIso && selected
-                ? `You'll pay ${fmtRands(totalCents(selected.priceCents))} incl VAT securely on Paystack after this step.`
-                : "Pick a time — you'll pay on the next step."}
+              {covered
+                ? "Covered by your support plan — no payment needed."
+                : slotIso && selected
+                  ? `You'll pay ${fmtRands(totalCents(selected.priceCents))} incl VAT securely on Paystack after this step.`
+                  : "Pick a time — you'll pay on the next step."}
             </p>
           </>
         )}
@@ -295,13 +306,19 @@ export function BookSession({
           className="rounded-lg bg-brand px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
         >
           {pending
-            ? "Starting payment…"
-            : `Book & pay${selected ? ` ${fmtRands(totalCents(selected.priceCents))} incl VAT` : ""}`}
+            ? covered
+              ? "Booking…"
+              : "Starting payment…"
+            : covered
+              ? "Book this session"
+              : `Book & pay${selected ? ` ${fmtRands(totalCents(selected.priceCents))} incl VAT` : ""}`}
         </button>
         <span className="text-xs text-muted">
-          {slotIso
-            ? "You'll pay securely on Paystack; the slot is confirmed once payment goes through."
-            : "Pick a time to continue."}
+          {!slotIso
+            ? "Pick a time to continue."
+            : covered
+              ? "Covered by your support plan — we'll confirm it straight away."
+              : "You'll pay securely on Paystack; the slot is confirmed once payment goes through."}
         </span>
       </div>
 

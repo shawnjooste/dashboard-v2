@@ -4,6 +4,8 @@ import { canAccessConversation, htmlToText } from "@/lib/freescout-scope";
 import { ReplyForm } from "./ReplyForm";
 import { BookSession } from "@/components/BookSession";
 import { getActiveServices, getOpenSlotsByService } from "@/lib/views/bookings";
+import { getSupportStatus } from "@/lib/views/support-packages";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import {
   PageHeader,
   SecondaryLink,
@@ -32,8 +34,13 @@ export default async function TicketPage({
     unavailable = true;
   }
 
+  const me = await getCurrentProfile();
   const services = await getActiveServices();
-  const slotsByService = await getOpenSlotsByService(services);
+  const [slotsByService, supportStatus] = await Promise.all([
+    getOpenSlotsByService(services),
+    me.authenticated && me.profile.client_id ? getSupportStatus(me.profile.client_id) : null,
+  ]);
+  const covered = !!supportStatus?.pkg && !supportStatus.pkg.isDefault;
 
   if (unavailable) {
     return (
@@ -103,7 +110,12 @@ export default async function TicketPage({
             <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
               Book a remote or onsite session for this ticket. Everything stays on this conversation.
             </p>
-            <BookSession services={services} slotsByService={slotsByService} ticketNumber={ticket.id} />
+            <BookSession
+              services={services}
+              slotsByService={slotsByService}
+              ticketNumber={ticket.id}
+              covered={covered}
+            />
           </Card>
           </div>
         </div>

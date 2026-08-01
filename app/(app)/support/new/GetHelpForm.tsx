@@ -26,9 +26,11 @@ function SubmitButton() {
 function Form({
   services,
   slotsByService,
+  covered,
 }: {
   services: BookingService[];
   slotsByService: Record<string, { iso: string; label: string }[]>;
+  covered: boolean;
 }) {
   const [state, action] = useActionState(createTicketAction, initial);
   // Prefill from links like /support/new?subject=Line%20problem:%20Main%20fibre
@@ -72,7 +74,7 @@ function Form({
             />
           </div>
 
-          <BookSession embedded services={services} slotsByService={slotsByService} />
+          <BookSession embedded covered={covered} services={services} slotsByService={slotsByService} />
 
           {state.error && <p className="text-[13px] text-brand">{state.error}</p>}
           <SubmitButton />
@@ -85,6 +87,7 @@ function Form({
 export function GetHelpForm(props: {
   services: BookingService[];
   slotsByService: Record<string, { iso: string; label: string }[]>;
+  covered: boolean;
 }) {
   return (
     <Suspense>

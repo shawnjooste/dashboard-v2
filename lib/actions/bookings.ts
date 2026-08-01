@@ -11,6 +11,8 @@ import { initializeTransaction } from "@/lib/paystack";
 import { cancelCalendlyEvent } from "@/lib/calendly-availability";
 import { addTicketNote, getConversation, getSupportScope } from "@/lib/freescout";
 import { canAccessConversation } from "@/lib/freescout-scope";
+import { getSupportStatus } from "@/lib/views/support-packages";
+import { confirmBooking } from "@/lib/booking-confirm";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
@@ -79,6 +81,19 @@ export async function createBooking(
     ticketNumber = n;
   }
 
+  // Care/Partner clients never touch Paystack: the session is covered by their
+  // plan. Within the allowance it draws down included hours; beyond it, they
+  // keep booking and we invoice the overflow (Shawn, 2026-08-01) — being told
+  // "no" mid-incident is a worse experience than a line on an invoice.
+  const status = await getSupportStatus(me.profile.client_id);
+  const onPaidTier = !!status.pkg && !status.pkg.isDefault;
+  const remaining = (status.pkg?.includedMinutes ?? 0) - status.usedMinutes;
+  const paymentMethod = !onPaidTier
+    ? "paystack"
+    : remaining >= svc.duration_minutes
+      ? "included"
+      : "invoice";
+
   const reference = `bk_${crypto.randomUUID()}`;
   const slotEnd = new Date(Date.parse(slotIso) + svc.duration_minutes * 60_000).toISOString();
   const supabase = await createClient(); // RLS: insert allowed for own client, pending only
@@ -95,10 +110,20 @@ export async function createBooking(
       booked_by: me.profile.id,
       note,
       ticket_number: ticketNumber,
+      payment_method: paymentMethod,
     })
     .select("id")
     .single();
   if (insErr || !booking) return { ok: false, error: "Couldn't hold that slot — try again." };
+
+  if (paymentMethod !== "paystack") {
+    // Covered by their plan — confirm it straight away. Reusing confirmBooking
+    // means the ticket note, Calendly event and confirmation email are the
+    // exact same code path a paid booking takes; only the money differs.
+    await confirmBooking(reference, totalCents(svc.price_cents));
+    revalidatePath("/support");
+    return { ok: true, url: `${APP_URL}/support/bookings/${booking.id}` };
+  }
 
   try {
     const url = await initializeTransaction({
@@ -117,10 +142,40 @@ export async function createBooking(
 }
 
 export async function markBookingCompleted(id: string) {
-  await staff();
+  const me = await staff();
   const service = createServiceClient();
-  await service.from("support_bookings").update({ status: "completed" }).eq("id", id).eq("status", "paid");
+  // Only the transition paid → completed logs time; the .eq("status","paid")
+  // filter makes this idempotent, so marking twice can't double-count.
+  const { data: done } = await service
+    .from("support_bookings")
+    .update({ status: "completed" })
+    .eq("id", id)
+    .eq("status", "paid")
+    .select("client_id, ticket_number, note, support_services(key, name, duration_minutes)")
+    .maybeSingle();
+
+  if (done) {
+    const svc = done.support_services as unknown as {
+      key: string;
+      name: string;
+      duration_minutes: number;
+    } | null;
+    // A completed session IS time spent — log it automatically so the ledger
+    // doesn't depend on anyone remembering after the fact.
+    const { error } = await service.from("support_time_entries").insert({
+      client_id: done.client_id,
+      minutes: svc?.duration_minutes ?? 60,
+      work_type: svc?.key === "onsite" ? "onsite" : "remote",
+      note: `${svc?.name ?? "Support session"}${done.note ? ` — ${done.note}` : ""}`,
+      freescout_number: done.ticket_number,
+      entered_by: me.id,
+    });
+    if (error) console.error("auto time-log failed for booking", id, error.message);
+  }
+
   revalidatePath("/admin/support-packages");
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/tickets");
 }
 
 export async function cancelBooking(id: string) {
