@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { listRecentConversations } from "@/lib/freescout";
 import { clientIdForEmail, minutesByTicket, type DomainRow } from "@/lib/ticket-client-map";
-import { buildNudges, nudgeHtml, ticketsNeedingTime, type NudgeTicket } from "@/lib/time-nudge";
+import {
+  buildNudges,
+  nudgeHtml,
+  nudgeRecipients,
+  ticketsNeedingTime,
+  type NudgeTicket,
+} from "@/lib/time-nudge";
 import { sendJobDigest } from "@/lib/job-emails";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
@@ -63,7 +69,7 @@ async function runNudge(req: Request) {
   });
 
   const outstanding = ticketsNeedingTime(rows, new Date());
-  const recipients = (staff ?? []).map((s) => s.email);
+  const recipients = nudgeRecipients((staff ?? []).map((s) => s.email));
   const nudges = buildNudges(recipients, outstanding);
 
   if (dry) {

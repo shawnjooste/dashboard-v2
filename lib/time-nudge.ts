@@ -15,6 +15,18 @@ export type NudgeTicket = {
 
 export type Nudge = { email: string; subject: string; tickets: NudgeTicket[] };
 
+/** Who gets chased: the people who actually work tickets (Shawn, 2026-08-01).
+ *  Everyone else on staff would just learn to ignore it. Add an address here
+ *  when someone joins the support rotation. */
+export const TIME_LOGGING_STAFF = ["tim@rocking.one", "gareth@rocking.one", "andre@rocking.one"];
+
+/** Narrow a staff list to the support rotation, preserving whatever the
+ *  directory holds (so a departed member simply stops matching). */
+export function nudgeRecipients(staffEmails: string[]): string[] {
+  const wanted = new Set(TIME_LOGGING_STAFF.map((e) => e.toLowerCase()));
+  return staffEmails.filter((e) => wanted.has(e.toLowerCase()));
+}
+
 /** Tickets touched within the window that carry no logged time, newest first.
  *  Closed tickets count — work happened even if the thread is finished.
  *

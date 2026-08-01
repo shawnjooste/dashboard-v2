@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNudges, nudgeHtml, ticketsNeedingTime, type NudgeTicket } from "./time-nudge";
+import { buildNudges, nudgeHtml, nudgeRecipients, ticketsNeedingTime, type NudgeTicket } from "./time-nudge";
 
 const NOW = new Date("2026-08-07T09:00:00Z");
 const mk = (o: Partial<NudgeTicket> = {}): NudgeTicket => ({
@@ -29,6 +29,29 @@ describe("ticketsNeedingTime", () => {
       NOW,
     );
     expect(out.map((t) => t.id)).toEqual([2, 1]);
+  });
+});
+
+describe("nudgeRecipients", () => {
+  const staff = [
+    "randall@rocking.one",
+    "andre@rocking.one",
+    "nathan@rocking.one",
+    "shawn@rocking.one",
+    "tim@rocking.one",
+    "gareth@rocking.one",
+    "kelle@rocking.one",
+  ];
+  it("chases only the support rotation", () => {
+    expect(nudgeRecipients(staff).sort()).toEqual(
+      ["andre@rocking.one", "gareth@rocking.one", "tim@rocking.one"].sort(),
+    );
+  });
+  it("is case insensitive", () => {
+    expect(nudgeRecipients(["Tim@Rocking.One"])).toHaveLength(1);
+  });
+  it("drops anyone no longer in the directory", () => {
+    expect(nudgeRecipients(["tim@rocking.one"])).toEqual(["tim@rocking.one"]);
   });
 });
 
