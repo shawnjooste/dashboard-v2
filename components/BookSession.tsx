@@ -28,6 +28,7 @@ export function BookSession({
   embedded = false,
   ticketNumber,
   covered = false,
+  compact = false,
 }: {
   services: BookingService[];
   slotsByService: Record<string, { iso: string; label: string }[]>;
@@ -38,6 +39,9 @@ export function BookSession({
   ticketNumber?: number;
   /** Client is on a plan that covers sessions: no payment step, no prices. */
   covered?: boolean;
+  /** Narrow container (e.g. a sidebar): stack everything in one column
+   *  instead of sitting the times beside the calendar. */
+  compact?: boolean;
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [slotIso, setSlotIso] = useState("");
@@ -100,7 +104,7 @@ export function BookSession({
       <input type="hidden" name="slot_iso" value={slotIso} />
       {ticketNumber != null && <input type="hidden" name="ticket_number" value={ticketNumber} />}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={`grid gap-2 ${compact ? "" : "sm:grid-cols-2"}`}>
         {services.map((s) => {
           const on = s.id === serviceId;
           return (
@@ -138,7 +142,7 @@ export function BookSession({
           No times are open at the moment — raise a ticket and we&apos;ll sort something out.
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-[260px_1fr]">
+        <div className={`grid gap-4 ${compact ? "" : "sm:grid-cols-[260px_1fr]"}`}>
           {/* Month grid */}
           <div>
             <div className="mb-2 flex items-center justify-between">

@@ -104,7 +104,7 @@ export default async function SupportPage() {
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-0 hover:bg-canvas"
+              className="group flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-0 hover:bg-canvas"
             >
               <StatusPill tone={STATUS_TONE[t.status] ?? "warn"} label={STATUS_LABEL[t.status] ?? t.status} />
               <div className="min-w-0">
@@ -117,7 +117,9 @@ export default async function SupportPage() {
               </div>
               <span className="ml-auto shrink-0 text-xs text-faint">{t.updatedAt.slice(0, 10)}</span>
               {t.status !== "closed" && (
-                <span className="shrink-0 text-xs font-semibold text-muted hover:text-brand">Book support →</span>
+                <span className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors group-hover:border-brand group-hover:bg-brand-tint group-hover:text-brand">
+                  Book support
+                </span>
               )}
             </Link>
           ))}

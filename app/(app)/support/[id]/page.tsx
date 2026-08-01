@@ -103,24 +103,9 @@ export default async function TicketPage({
           })}
 
           <ReplyForm ticketId={ticket.id} closed={closed} />
-
-          <div id="book">
-          <Card>
-            <CardHeader title="Need hands-on help with this?" />
-            <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
-              Book a remote or onsite session for this ticket. Everything stays on this conversation.
-            </p>
-            <BookSession
-              services={services}
-              slotsByService={slotsByService}
-              ticketNumber={ticket.id}
-              covered={covered}
-            />
-          </Card>
-          </div>
         </div>
 
-        <div>
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           <Card>
             <CardHeader title="Details" />
             <dl className="divide-y divide-line-soft">
@@ -142,6 +127,22 @@ export default async function TicketPage({
               )}
             </dl>
           </Card>
+
+          <div id="book">
+            <Card>
+              <CardHeader title="Need hands-on help?" />
+              <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
+                Book a session for this ticket — it stays on this conversation.
+              </p>
+              <BookSession
+                compact
+                services={services}
+                slotsByService={slotsByService}
+                ticketNumber={ticket.id}
+                covered={covered}
+              />
+            </Card>
+          </div>
         </div>
       </div>
     </div>
