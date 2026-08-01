@@ -55,8 +55,27 @@ export async function getCalendlySlots(
   return normalizeCalendlySlots(collected);
 }
 
+/** Location kinds where Calendly expects the invitee to supply the detail
+ *  (an address, a number). Verified empirically: the booking is rejected with
+ *  "invalid location choice" unless `location.location` accompanies the kind. */
+const LOCATION_NEEDS_DETAIL = new Set(["ask_invitee", "invitee_specified", "outbound_call"]);
+
+/** The location kind an event type is configured for. Calendly rejects a
+ *  booking that doesn't declare it, so we read it rather than guess. */
+async function eventTypeLocation(eventTypeUri: string): Promise<{ kind: string } | null> {
+  const uuid = eventTypeUri.split("/").pop();
+  if (!uuid) return null;
+  const json = await cget(`/event_types/${uuid}`);
+  const loc = (json?.resource as { locations?: { kind?: string }[] } | undefined)?.locations?.[0];
+  return loc?.kind ? { kind: loc.kind } : null;
+}
+
 /** Books the meeting in Calendly (Scheduling API). Calendly invites the
- *  client AND Tim, and blocks his calendar. Null = failed (log only). */
+ *  client AND Tim, and blocks his calendar. Null = failed (log only).
+ *
+ *  NOTE: the payload's location field is `location: { kind }` — NOT
+ *  `location_configuration`, which is only what Calendly's error path names.
+ *  Getting that wrong 400s every booking, so don't "tidy" it. */
 export async function createCalendlyBooking(opts: {
   eventTypeUri: string;
   startIso: string;
@@ -66,6 +85,15 @@ export async function createCalendlyBooking(opts: {
   const t = token();
   if (!t) return null;
   try {
+    const loc = await eventTypeLocation(opts.eventTypeUri);
+    const location = loc
+      ? {
+          kind: loc.kind,
+          ...(LOCATION_NEEDS_DETAIL.has(loc.kind)
+            ? { location: opts.note?.slice(0, 200) || "Details to follow — see the linked ticket" }
+            : {}),
+        }
+      : undefined;
     const res = await fetch("https://api.calendly.com/invitees", {
       method: "POST",
       headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
@@ -77,6 +105,7 @@ export async function createCalendlyBooking(opts: {
           email: opts.invitee.email,
           timezone: "Africa/Johannesburg",
         },
+        ...(location ? { location } : {}),
       }),
     });
     if (!res.ok) {
