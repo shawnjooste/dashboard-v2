@@ -16,8 +16,7 @@ import {
 } from "@/components/ui";
 import { SupportPageHeader } from "@/components/SupportPageHeader";
 import { SupportEscalation } from "@/components/SupportEscalation";
-import { BookSession } from "@/components/BookSession";
-import { getActiveServices, getOpenSlotsByService, getClientBookings } from "@/lib/views/bookings";
+import { getClientBookings } from "@/lib/views/bookings";
 import { fmtRands } from "@/lib/booking-helpers";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -52,11 +51,9 @@ export default async function SupportPage() {
     unavailable = true;
   }
 
-  const services = await getActiveServices();
-  const [slotsByService, bookings] = await Promise.all([
-    getOpenSlotsByService(services),
-    getClientBookings(),
-  ]);
+  // Availability is fetched by the pages that actually offer booking
+  // (/support/new and a ticket) — this page just lists what exists.
+  const bookings = await getClientBookings();
 
   return (
     <div className="space-y-6">
