@@ -7,15 +7,24 @@ import { canAccessConversation } from "@/lib/freescout-scope";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getSupportStatus } from "@/lib/views/support-packages";
 import { trackAction } from "@/lib/track";
+import { createBooking } from "@/lib/actions/bookings";
 
 export type SupportActionState = { error?: string };
 
+/**
+ * "Get help": the ticket is always created first — an abandoned payment must
+ * never lose the client's description of the problem. When they asked for a
+ * session (mode=session), a booking is then anchored to that ticket and they
+ * go to Paystack; the session is recorded on this ticket rather than opening
+ * a second thread about the same issue.
+ */
 export async function createTicketAction(
   _prev: SupportActionState,
   formData: FormData,
 ): Promise<SupportActionState> {
   const subject = String(formData.get("subject") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
+  const mode = String(formData.get("mode") ?? "reply");
   if (!subject || !message) return { error: "Subject and message are both required." };
 
   const scope = await getSupportScope();
@@ -42,6 +51,20 @@ export async function createTicketAction(
       subject,
     );
   }
+
+  if (mode === "session") {
+    const bookingForm = new FormData();
+    bookingForm.set("service_id", String(formData.get("service_id") ?? ""));
+    bookingForm.set("slot_iso", String(formData.get("slot_iso") ?? ""));
+    bookingForm.set("note", subject);
+    bookingForm.set("ticket_number", String(id));
+    const booked = await createBooking(null, bookingForm);
+    // The ticket exists either way — say so, so a payment hiccup doesn't read
+    // as "nothing happened".
+    if (!booked.ok) return { error: `${booked.error} Your ticket (#${id}) was logged — we'll pick it up.` };
+    redirect(booked.url);
+  }
+
   redirect(`/support/${id}`);
 }
 

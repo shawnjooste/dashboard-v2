@@ -5,8 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { slotTaken, totalCents, vatCents, type SlotBlocker } from "@/lib/booking-helpers";
+import { slotLabel } from "@/lib/calendly-helpers";
+import { bookingCancelledNoteText } from "@/lib/booking-note";
 import { initializeTransaction } from "@/lib/paystack";
 import { cancelCalendlyEvent } from "@/lib/calendly-availability";
+import { addTicketNote, getConversation, getSupportScope } from "@/lib/freescout";
+import { canAccessConversation } from "@/lib/freescout-scope";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
@@ -59,6 +63,22 @@ export async function createBooking(
     return { ok: false, error: "That slot was just taken — pick another." };
   }
 
+  // The ticket this session belongs to. A client must not be able to anchor a
+  // booking onto someone else's conversation, so check it against their own
+  // support scope — the same guard the ticket pages use.
+  const ticketRaw = String(formData.get("ticket_number") ?? "").trim();
+  let ticketNumber: number | null = null;
+  if (ticketRaw) {
+    const n = Number(ticketRaw);
+    if (!Number.isInteger(n) || n <= 0) return { ok: false, error: "That ticket doesn't look right." };
+    const scope = await getSupportScope();
+    const ticket = scope ? await getConversation(n) : null;
+    if (!scope || !ticket || !canAccessConversation(ticket.customerEmail, scope.email, scope.clientDomains)) {
+      return { ok: false, error: "That ticket isn't yours to book against." };
+    }
+    ticketNumber = n;
+  }
+
   const reference = `bk_${crypto.randomUUID()}`;
   const slotEnd = new Date(Date.parse(slotIso) + svc.duration_minutes * 60_000).toISOString();
   const supabase = await createClient(); // RLS: insert allowed for own client, pending only
@@ -74,6 +94,7 @@ export async function createBooking(
       paystack_reference: reference,
       booked_by: me.profile.id,
       note,
+      ticket_number: ticketNumber,
     })
     .select("id")
     .single();
@@ -110,14 +131,28 @@ export async function cancelBooking(id: string) {
     .update({ status: "cancelled" })
     .eq("id", id)
     .in("status", ["pending_payment", "paid"]);
-  // Free Tim's calendar too — best-effort, the portal cancellation stands regardless.
+  // Free Tim's calendar and tell the ticket — both best-effort, the portal
+  // cancellation stands regardless.
   const { data: b } = await service
     .from("support_bookings")
-    .select("calendly_event_uri")
+    .select("calendly_event_uri, ticket_number, slot_start, support_services(name)")
     .eq("id", id)
     .maybeSingle();
   if (b?.calendly_event_uri) {
     await cancelCalendlyEvent(b.calendly_event_uri, "Cancelled via the Rocking portal");
+  }
+  if (b?.ticket_number) {
+    try {
+      await addTicketNote(
+        b.ticket_number,
+        bookingCancelledNoteText({
+          serviceName: (b.support_services as unknown as { name: string } | null)?.name ?? "session",
+          slotLabel: slotLabel(b.slot_start),
+        }),
+      );
+    } catch (e) {
+      console.error("cancel note failed:", e);
+    }
   }
   revalidatePath("/admin/support-packages");
   revalidatePath("/admin/bookings");

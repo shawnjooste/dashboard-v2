@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { createTicket } from "@/lib/freescout";
+import { addTicketNote, createTicket, reopenTicket } from "@/lib/freescout";
+import { bookingNoteText } from "@/lib/booking-note";
 import { sendBookingConfirmation } from "@/lib/notify";
 import { slotLabel } from "@/lib/calendly-helpers";
 import { createCalendlyBooking } from "@/lib/calendly-availability";
@@ -15,7 +16,7 @@ export async function confirmBooking(
   const { data: b } = await service
     .from("support_bookings")
     .select(
-      "id, client_id, slot_start, amount_cents, vat_cents, status, note, booked_by, support_services(key, name, calendly_event_type_uri), clients(name)",
+      "id, client_id, slot_start, amount_cents, vat_cents, status, note, booked_by, ticket_number, support_services(key, name, calendly_event_type_uri), clients(name)",
     )
     .eq("paystack_reference", reference)
     .maybeSingle();
@@ -60,13 +61,35 @@ export async function confirmBooking(
         .eq("id", b.client_id)
         .maybeSingle();
       const tierKey = (pkgRow?.support_packages as unknown as { key: string } | null)?.key ?? "free";
-      const ticketId = await createTicket({
-        email,
-        subject: `Paid ${svc?.name ?? "support session"}: ${label} — ${clientName}`,
-        message: `Paid booking confirmed (ref ${reference}).\n\nService: ${svc?.name}\nSlot: ${label}\nClient: ${clientName}\n\nClient's note:\n${b.note ?? "—"}`,
-        tags: ["booking", `tier:${tierKey}`],
-      });
-      await service.from("support_bookings").update({ freescout_number: ticketId }).eq("id", b.id);
+      if (b.ticket_number) {
+        // Anchored: the session belongs to a ticket the client already has —
+        // note it there and bring the ticket back to life, rather than
+        // opening a second thread about the same problem.
+        await reopenTicket(b.ticket_number);
+        await addTicketNote(
+          b.ticket_number,
+          bookingNoteText({
+            serviceName: svc?.name ?? "Support session",
+            slotLabel: label,
+            totalCents: due,
+            reference,
+            note: b.note,
+          }),
+        );
+        await service
+          .from("support_bookings")
+          .update({ freescout_number: b.ticket_number })
+          .eq("id", b.id);
+      } else {
+        // Legacy path: bookings made before sessions were ticket-anchored.
+        const ticketId = await createTicket({
+          email,
+          subject: `Paid ${svc?.name ?? "support session"}: ${label} — ${clientName}`,
+          message: `Paid booking confirmed (ref ${reference}).\n\nService: ${svc?.name}\nSlot: ${label}\nClient: ${clientName}\n\nClient's note:\n${b.note ?? "—"}`,
+          tags: ["booking", `tier:${tierKey}`],
+        });
+        await service.from("support_bookings").update({ freescout_number: ticketId }).eq("id", b.id);
+      }
       await sendBookingConfirmation({
         to: email,
         serviceName: svc?.name ?? "Support session",
