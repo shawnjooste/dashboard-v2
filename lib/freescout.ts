@@ -197,13 +197,21 @@ export async function addTicketNote(conversationId: number, text: string): Promi
   if (!res.ok) throw new Error(`FreeScout note failed (${res.status})`);
 }
 
-/** Reopen a closed conversation — a paid session means it's live work again. */
-export async function reopenTicket(conversationId: number): Promise<void> {
+/** Set a conversation's status (active | pending | closed). */
+export async function setConversationStatus(
+  conversationId: number,
+  status: "active" | "pending" | "closed",
+): Promise<void> {
   const res = await fsFetch(`/conversations/${conversationId}`, {
     method: "PUT",
-    body: JSON.stringify({ status: "active", byUser: 1 }),
+    body: JSON.stringify({ status, byUser: 1 }),
   });
-  if (!res.ok) throw new Error(`FreeScout reopen failed (${res.status})`);
+  if (!res.ok) throw new Error(`FreeScout status change failed (${res.status})`);
+}
+
+/** Reopen a closed conversation — a paid session means it's live work again. */
+export async function reopenTicket(conversationId: number): Promise<void> {
+  await setConversationStatus(conversationId, "active");
 }
 
 export async function replyToTicket(id: number, email: string, message: string): Promise<void> {
