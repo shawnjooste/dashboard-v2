@@ -25,14 +25,22 @@ const mondayIndex = (jsDay: number) => (jsDay + 6) % 7;
 export function BookSession({
   services,
   slotsByService,
+  embedded = false,
+  ticketNumber,
 }: {
   services: BookingService[];
   slotsByService: Record<string, { iso: string; label: string }[]>;
+  /** Embedded: render inside a parent form (no <form>, no submit of our own),
+   *  with a free-vs-session choice up front. Used by the "get help" flow. */
+  embedded?: boolean;
+  /** The ticket this session belongs to — every session is anchored to one. */
+  ticketNumber?: number;
 }) {
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [slotIso, setSlotIso] = useState("");
   const [dayKey, setDayKey] = useState("");
   const [monthOffset, setMonthOffset] = useState(0);
+  const [mode, setMode] = useState<"reply" | "session">("reply");
   const [state, formAction, pending] = useActionState<CreateBookingResult | null, FormData>(
     async (prev, fd) => {
       const result = await createBooking(prev, fd);
@@ -83,10 +91,11 @@ export function BookSession({
     setSlotIso("");
   };
 
-  return (
-    <form action={formAction} className="space-y-4 px-4 py-3.5">
+  const picker = (
+    <>
       <input type="hidden" name="service_id" value={serviceId} />
       <input type="hidden" name="slot_iso" value={slotIso} />
+      {ticketNumber != null && <input type="hidden" name="ticket_number" value={ticketNumber} />}
 
       <div className="grid gap-2 sm:grid-cols-2">
         {services.map((s) => {
@@ -216,11 +225,69 @@ export function BookSession({
         </div>
       )}
 
-      <input
-        name="note"
-        placeholder="What do you need help with? (optional)"
-        className="w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint"
-      />
+      {!embedded && (
+        <input
+          name="note"
+          placeholder="Anything else we should know? (optional)"
+          className="w-full rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint"
+        />
+      )}
+    </>
+  );
+
+  // Embedded: the parent form owns submission. We contribute the free-vs-session
+  // choice, and the picker only once a session is actually wanted.
+  if (embedded) {
+    return (
+      <div className="space-y-4">
+        <input type="hidden" name="mode" value={mode} />
+        <fieldset className="space-y-2">
+          <legend className="mb-1 text-[13px] font-semibold text-ink-2">How would you like this handled?</legend>
+          {(
+            [
+              ["reply", "We'll reply on the ticket", "Included — no charge."],
+              ["session", "Book a session", "Remote or onsite, at a time you pick."],
+            ] as const
+          ).map(([value, title, sub]) => (
+            <label
+              key={value}
+              className={`flex cursor-pointer items-start gap-2.5 rounded-lg border p-3 transition-colors ${
+                mode === value ? "border-brand bg-brand-tint" : "border-line hover:bg-canvas"
+              }`}
+            >
+              <input
+                type="radio"
+                name="handling"
+                value={value}
+                checked={mode === value}
+                onChange={() => setMode(value)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-ink">{title}</span>
+                <span className="block text-xs text-muted">{sub}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+
+        {mode === "session" && (
+          <>
+            {picker}
+            <p className="text-xs text-muted">
+              {slotIso && selected
+                ? `You'll pay ${fmtRands(totalCents(selected.priceCents))} incl VAT securely on Paystack after this step.`
+                : "Pick a time — you'll pay on the next step."}
+            </p>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-4 px-4 py-3.5">
+      {picker}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

@@ -64,14 +64,6 @@ export default async function SupportPage() {
 
       <SupportEscalation />
 
-      <Card>
-        <CardHeader title="Book a session" />
-        <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
-          Need hands-on help? Pick what you need and a time that suits — paid online, booked straight into our diary.
-        </p>
-        <BookSession services={services} slotsByService={slotsByService} />
-      </Card>
-
       {bookings.length > 0 && (
         <Card>
           <CardHeader title="Your bookings" count={bookings.length} />
@@ -127,6 +119,9 @@ export default async function SupportPage() {
                 </div>
               </div>
               <span className="ml-auto shrink-0 text-xs text-faint">{t.updatedAt.slice(0, 10)}</span>
+              {t.status !== "closed" && (
+                <span className="shrink-0 text-xs font-semibold text-muted hover:text-brand">Book support →</span>
+              )}
             </Link>
           ))}
         </Card>

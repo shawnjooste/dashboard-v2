@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getConversation, getSupportScope } from "@/lib/freescout";
 import { canAccessConversation, htmlToText } from "@/lib/freescout-scope";
 import { ReplyForm } from "./ReplyForm";
+import { BookSession } from "@/components/BookSession";
+import { getActiveServices, getOpenSlotsByService } from "@/lib/views/bookings";
 import {
   PageHeader,
   SecondaryLink,
@@ -29,6 +31,9 @@ export default async function TicketPage({
   } catch {
     unavailable = true;
   }
+
+  const services = await getActiveServices();
+  const slotsByService = await getOpenSlotsByService(services);
 
   if (unavailable) {
     return (
@@ -91,6 +96,16 @@ export default async function TicketPage({
           })}
 
           <ReplyForm ticketId={ticket.id} closed={closed} />
+
+          <div id="book">
+          <Card>
+            <CardHeader title="Need hands-on help with this?" />
+            <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
+              Book a remote or onsite session for this ticket. Everything stays on this conversation.
+            </p>
+            <BookSession services={services} slotsByService={slotsByService} ticketNumber={ticket.id} />
+          </Card>
+          </div>
         </div>
 
         <div>
