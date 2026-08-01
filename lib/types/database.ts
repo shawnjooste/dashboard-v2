@@ -2748,6 +2748,7 @@ export type Database = {
           slot_end: string
           slot_start: string
           status: string
+          ticket_number: number | null
           vat_cents: number
         }
         Insert: {
@@ -2765,6 +2766,7 @@ export type Database = {
           slot_end: string
           slot_start: string
           status?: string
+          ticket_number?: number | null
           vat_cents: number
         }
         Update: {
@@ -2782,6 +2784,7 @@ export type Database = {
           slot_end?: string
           slot_start?: string
           status?: string
+          ticket_number?: number | null
           vat_cents?: number
         }
         Relationships: [
