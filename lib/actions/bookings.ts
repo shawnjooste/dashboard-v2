@@ -40,22 +40,27 @@ export async function createBooking(
   const service = createServiceClient();
   const { data: svc } = await service
     .from("support_services")
-    .select("id, name, price_cents, active")
+    .select("id, name, price_cents, duration_minutes, active")
     .eq("id", serviceId)
     .maybeSingle();
   if (!svc?.active) return { ok: false, error: "That service isn't available." };
 
-  // Re-check the slot against ALL clients' bookings (global capacity).
+  // Re-check against ALL clients' bookings (capacity is global). Durations
+  // differ per service, so fetch anything that could overlap and compare
+  // intervals rather than looking for an identical start time.
+  const windowStart = new Date(Date.parse(slotIso) - 4 * 3_600_000).toISOString();
+  const windowEnd = new Date(Date.parse(slotIso) + 4 * 3_600_000).toISOString();
   const { data: blockers } = await service
     .from("support_bookings")
-    .select("slot_start, status, created_at")
-    .eq("slot_start", slotIso);
-  if (slotTaken(slotIso, (blockers ?? []) as SlotBlocker[], new Date())) {
+    .select("slot_start, slot_end, status, created_at")
+    .gte("slot_start", windowStart)
+    .lte("slot_start", windowEnd);
+  if (slotTaken(slotIso, svc.duration_minutes, (blockers ?? []) as SlotBlocker[], new Date())) {
     return { ok: false, error: "That slot was just taken — pick another." };
   }
 
   const reference = `bk_${crypto.randomUUID()}`;
-  const slotEnd = new Date(Date.parse(slotIso) + 3_600_000).toISOString();
+  const slotEnd = new Date(Date.parse(slotIso) + svc.duration_minutes * 60_000).toISOString();
   const supabase = await createClient(); // RLS: insert allowed for own client, pending only
   const { data: booking, error: insErr } = await supabase
     .from("support_bookings")

@@ -11,6 +11,7 @@ export type BookingService = {
   key: string;
   name: string;
   priceCents: number;
+  durationMinutes: number;
   calendlyEventTypeUri: string | null;
 };
 
@@ -35,7 +36,7 @@ export async function getActiveServices(): Promise<BookingService[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("support_services")
-    .select("id, key, name, price_cents, calendly_event_type_uri")
+    .select("id, key, name, price_cents, duration_minutes, calendly_event_type_uri")
     .eq("active", true)
     .order("key");
   return (data ?? []).map((s) => ({
@@ -43,6 +44,7 @@ export async function getActiveServices(): Promise<BookingService[]> {
     key: s.key,
     name: s.name,
     priceCents: s.price_cents,
+    durationMinutes: s.duration_minutes,
     calendlyEventTypeUri: s.calendly_event_type_uri,
   }));
 }
@@ -59,20 +61,22 @@ export async function getOpenSlotsByService(
   const service = createServiceClient();
   const { data } = await service
     .from("support_bookings")
-    .select("slot_start, status, created_at")
-    .gte("slot_start", new Date().toISOString());
+    .select("slot_start, slot_end, status, created_at")
+    .gte("slot_end", new Date().toISOString());
   const blockers = (data ?? []) as SlotBlocker[];
   const now = new Date();
-  const internal = openSlots({ now, businessDays: 10, blockers });
 
   const out: Record<string, { iso: string; label: string }[]> = {};
   for (const svc of services) {
     let slots: { iso: string; label: string }[] | null = null;
     if (svc.calendlyEventTypeUri) {
       slots = await getCalendlySlots(svc.calendlyEventTypeUri);
-      if (slots) slots = slots.filter((s) => !slotTaken(s.iso, blockers, now));
     }
-    out[svc.id] = slots ?? internal;
+    // Whether the times came from Calendly or the internal grid, subtract our
+    // own live bookings — durations differ, so this is an overlap check.
+    out[svc.id] =
+      slots?.filter((s) => !slotTaken(s.iso, svc.durationMinutes, blockers, now)) ??
+      openSlots({ now, businessDays: 10, blockers, durationMinutes: svc.durationMinutes });
   }
   return out;
 }

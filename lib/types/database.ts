@@ -2848,6 +2848,7 @@ export type Database = {
         Row: {
           active: boolean
           calendly_event_type_uri: string | null
+          duration_minutes: number
           id: string
           key: string
           name: string
@@ -2856,6 +2857,7 @@ export type Database = {
         Insert: {
           active?: boolean
           calendly_event_type_uri?: string | null
+          duration_minutes?: number
           id?: string
           key: string
           name: string
@@ -2864,6 +2866,7 @@ export type Database = {
         Update: {
           active?: boolean
           calendly_event_type_uri?: string | null
+          duration_minutes?: number
           id?: string
           key?: string
           name?: string

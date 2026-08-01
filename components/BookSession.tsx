@@ -107,7 +107,9 @@ export function BookSession({
                   {fmtRands(s.priceCents)} <span className="font-normal text-muted">ex VAT</span>
                 </span>
               </div>
-              <p className="mt-0.5 text-xs text-muted">{BLURB[s.key] ?? "Charged per session."}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {s.durationMinutes} min · {BLURB[s.key] ?? "Charged per session."}
+              </p>
             </button>
           );
         })}

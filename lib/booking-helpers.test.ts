@@ -14,6 +14,7 @@ import {
 const NOW = new Date("2026-07-24T08:00:00Z");
 const mk = (o: Partial<SlotBlocker> = {}): SlotBlocker => ({
   slot_start: o.slot_start ?? "2026-07-27T06:00:00.000Z", // Mon 08:00 SAST
+  slot_end: o.slot_end ?? "2026-07-27T07:00:00.000Z", // 60 min by default
   status: o.status ?? "paid",
   created_at: o.created_at ?? "2026-07-24T07:00:00Z",
 });
@@ -21,22 +22,33 @@ const mk = (o: Partial<SlotBlocker> = {}): SlotBlocker => ({
 describe("slotTaken", () => {
   const slot = "2026-07-27T06:00:00.000Z";
   it("paid booking blocks the slot", () => {
-    expect(slotTaken(slot, [mk({ status: "paid" })], NOW)).toBe(true);
+    expect(slotTaken(slot, 60, [mk({ status: "paid" })], NOW)).toBe(true);
   });
   it("completed booking blocks the slot", () => {
-    expect(slotTaken(slot, [mk({ status: "completed" })], NOW)).toBe(true);
+    expect(slotTaken(slot, 60, [mk({ status: "completed" })], NOW)).toBe(true);
   });
   it("cancelled booking frees the slot", () => {
-    expect(slotTaken(slot, [mk({ status: "cancelled" })], NOW)).toBe(false);
+    expect(slotTaken(slot, 60, [mk({ status: "cancelled" })], NOW)).toBe(false);
   });
   it("fresh pending hold blocks the slot", () => {
-    expect(slotTaken(slot, [mk({ status: "pending_payment", created_at: "2026-07-24T07:50:00Z" })], NOW)).toBe(true);
+    expect(slotTaken(slot, 60, [mk({ status: "pending_payment", created_at: "2026-07-24T07:50:00Z" })], NOW)).toBe(true);
   });
   it("stale pending hold (>30 min) frees the slot", () => {
-    expect(slotTaken(slot, [mk({ status: "pending_payment", created_at: "2026-07-24T07:20:00Z" })], NOW)).toBe(false);
+    expect(slotTaken(slot, 60, [mk({ status: "pending_payment", created_at: "2026-07-24T07:20:00Z" })], NOW)).toBe(false);
   });
-  it("a different slot does not block", () => {
-    expect(slotTaken("2026-07-27T07:00:00.000Z", [mk()], NOW)).toBe(false);
+  it("a non-overlapping slot does not block", () => {
+    expect(slotTaken("2026-07-27T07:00:00.000Z", 60, [mk()], NOW)).toBe(false);
+  });
+  // Mixed durations: a 30-min remote must not be sold inside a 60-min onsite.
+  it("a 30-min slot starting mid-way through a 60-min booking is blocked", () => {
+    expect(slotTaken("2026-07-27T06:30:00.000Z", 30, [mk()], NOW)).toBe(true);
+  });
+  it("a 30-min slot immediately after a 60-min booking is free", () => {
+    expect(slotTaken("2026-07-27T07:00:00.000Z", 30, [mk()], NOW)).toBe(false);
+  });
+  it("a 60-min slot swallowing a 30-min booking is blocked", () => {
+    const short = mk({ slot_start: "2026-07-27T06:30:00.000Z", slot_end: "2026-07-27T07:00:00.000Z" });
+    expect(slotTaken("2026-07-27T06:00:00.000Z", 60, [short], NOW)).toBe(true);
   });
 });
 

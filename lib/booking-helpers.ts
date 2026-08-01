@@ -7,25 +7,48 @@ const SAST_OFFSET_H = 2;
 const FIRST_HOUR_SAST = 8; // 08:00 first slot start
 const LAST_HOUR_SAST = 16; // 16:00 last slot start (ends 17:00)
 
-export type SlotBlocker = { slot_start: string; status: string; created_at: string };
+export type SlotBlocker = { slot_start: string; slot_end: string; status: string; created_at: string };
 
-/** A slot is taken by a paid/completed booking, or a pending one younger
- *  than the hold window. Cancelled and lapsed-pending bookings free it. */
-export function slotTaken(slotStartIso: string, blockers: SlotBlocker[], now: Date): boolean {
-  const t = new Date(slotStartIso).getTime();
+/** Is this booking still holding its time? Paid/completed always; pending only
+ *  inside the hold window. Cancelled and lapsed-pending free it. */
+function isLive(b: SlotBlocker, now: Date): boolean {
+  if (b.status === "paid" || b.status === "completed") return true;
+  if (b.status !== "pending_payment") return false;
+  return now.getTime() - new Date(b.created_at).getTime() < PENDING_HOLD_MINUTES * 60_000;
+}
+
+/** True when [start, start+duration) overlaps a live booking. Services have
+ *  different durations (30-min remote, 60-min onsite), so this compares
+ *  intervals — matching start times alone would happily sell a half-hour
+ *  slot in the middle of an hour-long one. */
+export function slotTaken(
+  slotStartIso: string,
+  durationMinutes: number,
+  blockers: SlotBlocker[],
+  now: Date,
+): boolean {
+  const start = new Date(slotStartIso).getTime();
+  const end = start + durationMinutes * 60_000;
   return blockers.some((b) => {
-    if (new Date(b.slot_start).getTime() !== t) return false;
-    if (b.status === "paid" || b.status === "completed") return true;
-    if (b.status !== "pending_payment") return false;
-    return now.getTime() - new Date(b.created_at).getTime() < PENDING_HOLD_MINUTES * 60_000;
+    if (!isLive(b, now)) return false;
+    const bStart = new Date(b.slot_start).getTime();
+    const bEnd = new Date(b.slot_end).getTime();
+    return start < bEnd && bStart < end;
   });
 }
 
 const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Open slots for the next N business days starting TOMORROW (SAST). */
-export function openSlots(opts: { now: Date; businessDays: number; blockers: SlotBlocker[] }): { iso: string; label: string }[] {
+/** Open slots for the next N business days starting TOMORROW (SAST). The
+ *  fallback grid is hourly regardless of duration; duration only decides what
+ *  counts as a clash. */
+export function openSlots(opts: {
+  now: Date;
+  businessDays: number;
+  blockers: SlotBlocker[];
+  durationMinutes?: number;
+}): { iso: string; label: string }[] {
   const out: { iso: string; label: string }[] = [];
   // Walk days in SAST by shifting the clock +2h and using UTC accessors.
   const cursor = new Date(opts.now.getTime() + SAST_OFFSET_H * 3_600_000);
@@ -39,7 +62,7 @@ export function openSlots(opts: { now: Date; businessDays: number; blockers: Slo
     for (let h = FIRST_HOUR_SAST; h <= LAST_HOUR_SAST; h++) {
       const startUtcMs = cursor.getTime() + (h - SAST_OFFSET_H) * 3_600_000;
       const iso = new Date(startUtcMs).toISOString();
-      if (slotTaken(iso, opts.blockers, opts.now)) continue;
+      if (slotTaken(iso, opts.durationMinutes ?? 60, opts.blockers, opts.now)) continue;
       out.push({
         iso,
         label: `${DAY[dow]} ${cursor.getUTCDate()} ${MON[cursor.getUTCMonth()]}, ${String(h).padStart(2, "0")}:00`,

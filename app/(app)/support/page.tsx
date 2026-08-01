@@ -67,7 +67,7 @@ export default async function SupportPage() {
       <Card>
         <CardHeader title="Book a session" />
         <p className="border-b border-line-soft px-4 pb-3 pt-3.5 text-[13px] text-muted">
-          Need hands-on help? Pick what you need and a time that suits — one hour, paid online.
+          Need hands-on help? Pick what you need and a time that suits — paid online, booked straight into our diary.
         </p>
         <BookSession services={services} slotsByService={slotsByService} />
       </Card>
