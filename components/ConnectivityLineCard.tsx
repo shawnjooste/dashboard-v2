@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ConnectivityLine } from "@/lib/views/connectivity";
-import { KIND_LABELS, CONN_TYPE_LABELS, isStale } from "@/lib/connectivity-helpers";
+import { KIND_LABELS, CONN_TYPE_LABELS, linkState } from "@/lib/connectivity-helpers";
 import { Card, StatusPill } from "@/components/ui";
 import { Sparkline } from "@/components/Sparkline";
 import { RevealSecret } from "@/components/RevealSecret";
@@ -29,7 +29,7 @@ function Setting({ label, value }: { label: string; value: ReactNode }) {
 /** One line: what it is, how it's configured, and how it's doing. */
 export function ConnectivityLineCard({ line }: { line: ConnectivityLine }) {
   const nowMs = Date.now();
-  const stale = isStale(line.lastCheckedAt, nowMs);
+  const state = linkState({ up: line.lastUp, lossPct: line.lossPct, lastCheckedAt: line.lastCheckedAt }, nowMs);
   const latencies = line.samples.map((s) => s.latencyMs).filter((n): n is number => n != null);
 
   return (
@@ -38,15 +38,20 @@ export function ConnectivityLineCard({ line }: { line: ConnectivityLine }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="font-semibold text-ink">{line.label}</span>
-            {line.librenmsDeviceId == null ? null : stale ? (
+            {line.librenmsDeviceId == null ? null : state === "stale" ? (
               <StatusPill
                 tone="warn"
                 label={line.lastCheckedAt ? `Last checked ${fmtWhen(line.lastCheckedAt)}` : "Not checked yet"}
               />
-            ) : line.lastUp === true ? (
+            ) : state === "up" ? (
               <StatusPill tone="good" label="Online" />
-            ) : line.lastUp === false ? (
-              <StatusPill tone="bad" label={line.downSince ? `Down since ${fmtWhen(line.downSince)}` : "Down"} />
+            ) : state === "degraded" ? (
+              <StatusPill tone="warn" label={`Degraded · ${line.lossPct}% packet loss`} />
+            ) : state === "down" ? (
+              <StatusPill
+                tone="bad"
+                label={line.downSince ? `Down since ${fmtWhen(line.downSince)}` : "Not responding"}
+              />
             ) : (
               <StatusPill tone="warn" label="Status unavailable" />
             )}
@@ -93,8 +98,13 @@ export function ConnectivityLineCard({ line }: { line: ConnectivityLine }) {
         {line.librenmsDeviceId != null && (
           <div className="space-y-1.5">
             <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-faint">Health</div>
-            <Setting label="Latency" value={line.latencyMs == null ? "—" : `${line.latencyMs.toFixed(1)} ms`} />
-            {line.lossPct != null && <Setting label="Packet loss" value={`${line.lossPct}%`} />}
+            <Setting
+              label="Latency"
+              value={line.latencyMs != null ? `${line.latencyMs.toFixed(1)} ms` : state === "down" ? "no response" : "—"}
+            />
+            {line.lossPct != null && line.lossPct > 0 && (
+              <Setting label="Packet loss" value={`${line.lossPct}%`} />
+            )}
             <Setting label="Checked" value={line.lastCheckedAt ? ago(line.lastCheckedAt, nowMs) : "—"} />
             {latencies.length >= 2 && (
               <div className="pt-1">

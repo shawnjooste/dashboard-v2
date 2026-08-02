@@ -153,3 +153,22 @@ export function firstBreakIndex(hops: PathHopStatus[]): number | null {
   const i = hops.findIndex((h) => h.monitored && h.up === false);
   return i === -1 ? null : i;
 }
+
+export type LinkState = "up" | "degraded" | "down" | "stale" | "unknown";
+
+/** What to *show* for a link, combining LibreNMS's up/down with what the ping
+ *  actually measured. 100% loss is down no matter what the poller's cached
+ *  status says — "Online · 100% packet loss" is a contradiction, not a status.
+ *  Partial loss is its own state: up, but visibly unhealthy. */
+export function linkState(
+  input: { up: boolean | null; lossPct: number | null; lastCheckedAt: string | null },
+  nowMs: number,
+): LinkState {
+  if (isStale(input.lastCheckedAt, nowMs)) return "stale";
+  if (input.up === false) return "down";
+  if (input.lossPct != null && input.lossPct >= 100) return "down";
+  if (input.up === true) {
+    return input.lossPct != null && input.lossPct > 0 ? "degraded" : "up";
+  }
+  return "unknown";
+}

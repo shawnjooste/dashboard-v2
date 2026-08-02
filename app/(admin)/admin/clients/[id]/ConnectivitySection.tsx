@@ -6,6 +6,7 @@ import {
   CONN_TYPE_LABELS,
   CONN_TYPES,
   isStale,
+  linkState,
   HOP_KINDS,
   HOP_KIND_LABELS,
   HOP_KIND_ICONS,
@@ -63,19 +64,14 @@ function LineFields({ line }: { line?: ConnectivityLine }) {
 function StatusBits({ line, nowMs }: { line: ConnectivityLine; nowMs: number }) {
   if (line.librenmsDeviceId == null)
     return <span className="rounded bg-line-soft px-1.5 py-0.5 text-[11px] text-ink-3">unmapped</span>;
-  if (isStale(line.lastCheckedAt, nowMs))
+  const state = linkState({ up: line.lastUp, lossPct: line.lossPct, lastCheckedAt: line.lastCheckedAt }, nowMs);
+  if (state === "stale")
     return <StatusPill tone="warn" label={line.lastCheckedAt ? `Last checked ${fmtWhen(line.lastCheckedAt)}` : "Not checked yet"} />;
-  if (line.lastUp === true)
-    return (
-      <StatusPill
-        tone="good"
-        label={`Online${line.latencyMs != null ? ` · ${line.latencyMs.toFixed(1)} ms` : ""}${
-          line.lossPct != null ? ` · ${line.lossPct}% loss` : ""
-        }`}
-      />
-    );
-  if (line.lastUp === false)
-    return <StatusPill tone="bad" label={line.downSince ? `Down since ${fmtWhen(line.downSince)}` : "Down"} />;
+  if (state === "up")
+    return <StatusPill tone="good" label={`Online${line.latencyMs != null ? ` · ${line.latencyMs.toFixed(1)} ms` : ""}`} />;
+  if (state === "degraded") return <StatusPill tone="warn" label={`Degraded · ${line.lossPct}% loss`} />;
+  if (state === "down")
+    return <StatusPill tone="bad" label={line.downSince ? `Down since ${fmtWhen(line.downSince)}` : "Not responding"} />;
   return <StatusPill tone="warn" label="Status unavailable" />;
 }
 

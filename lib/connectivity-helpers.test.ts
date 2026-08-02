@@ -14,6 +14,7 @@ import {
   HOP_KIND_ICONS,
   connectorBroken,
   firstBreakIndex,
+  linkState,
 } from "./connectivity-helpers";
 
 describe("speedLabel", () => {
@@ -178,5 +179,32 @@ describe("path hops", () => {
   it("no break when everything is up or unmonitored", () => {
     expect(firstBreakIndex([{ up: true, monitored: true }, { up: null, monitored: false }])).toBeNull();
     expect(firstBreakIndex([])).toBeNull();
+  });
+});
+
+describe("linkState", () => {
+  const NOW = Date.parse("2026-08-02T17:10:00.000Z");
+  const fresh = "2026-08-02T17:08:00.000Z";
+
+  it("up and clean is up", () => {
+    expect(linkState({ up: true, lossPct: 0, lastCheckedAt: fresh }, NOW)).toBe("up");
+    expect(linkState({ up: true, lossPct: null, lastCheckedAt: fresh }, NOW)).toBe("up");
+  });
+  it("total loss is down even when the poller says up", () => {
+    // the bug this exists to prevent: "Online · 100% packet loss"
+    expect(linkState({ up: true, lossPct: 100, lastCheckedAt: fresh }, NOW)).toBe("down");
+  });
+  it("partial loss is degraded, not silently fine", () => {
+    expect(linkState({ up: true, lossPct: 33, lastCheckedAt: fresh }, NOW)).toBe("degraded");
+  });
+  it("poller down is down", () => {
+    expect(linkState({ up: false, lossPct: null, lastCheckedAt: fresh }, NOW)).toBe("down");
+  });
+  it("no recent check is stale, whatever the last values were", () => {
+    expect(linkState({ up: true, lossPct: 0, lastCheckedAt: "2026-08-02T15:00:00.000Z" }, NOW)).toBe("stale");
+    expect(linkState({ up: true, lossPct: 0, lastCheckedAt: null }, NOW)).toBe("stale");
+  });
+  it("unknown when we have a check but no verdict", () => {
+    expect(linkState({ up: null, lossPct: null, lastCheckedAt: fresh }, NOW)).toBe("unknown");
   });
 });
