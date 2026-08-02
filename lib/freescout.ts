@@ -123,6 +123,28 @@ export const listConversationsByEmail = (email: string) =>
  */
 export const listRecentConversations = () => listConversations({});
 
+/**
+ * Every conversation created on/after `sinceIso`, paging past the 100-row
+ * window the other listers accept. Used where a count has to be right —
+ * "how many tickets has this client raised this month" is a commercial
+ * signal, and a truncated list would silently undercount the busiest clients.
+ * Capped at 20 pages (2000 conversations) so a runaway can't hang a job.
+ */
+export async function listConversationsSince(sinceIso: string): Promise<TicketSummary[]> {
+  const out: TicketSummary[] = [];
+  const since = new Date(sinceIso).getTime();
+  for (let page = 1; page <= 20; page++) {
+    const batch = await listConversations({ page: String(page) });
+    out.push(...batch);
+    // Sorted by updatedAt desc, so once a whole page predates the window
+    // there's nothing newer further back.
+    if (batch.length < 100) break;
+    const oldest = batch[batch.length - 1];
+    if (oldest && new Date(oldest.updatedAt).getTime() < since) break;
+  }
+  return out.filter((c) => new Date(c.updatedAt).getTime() >= since);
+}
+
 export async function getConversation(id: number): Promise<TicketDetail | null> {
   const res = await fsFetch(`/conversations/${id}?embed=threads`);
   if (res.status === 404) return null;

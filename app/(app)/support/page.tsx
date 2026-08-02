@@ -55,9 +55,16 @@ export default async function SupportPage() {
   // (/support/new and a ticket) — this page just lists what exists.
   const bookings = await getClientBookings();
 
+  // Volume drives the upsell wording, nothing else — there are no caps.
+  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const ticketsThisMonth = tickets.filter((t) => t.updatedAt.startsWith(monthPrefix)).length;
+
   return (
     <div className="space-y-6">
-      <SupportPageHeader action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>} />
+      <SupportPageHeader
+        ticketsThisMonth={ticketsThisMonth}
+        action={<PrimaryLink href="/support/new">+ Raise a ticket</PrimaryLink>}
+      />
 
       <SupportEscalation />
 
