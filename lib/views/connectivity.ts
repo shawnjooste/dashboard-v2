@@ -3,6 +3,18 @@ import { speedLabel } from "@/lib/connectivity-helpers";
 
 export type ConnectivitySample = { at: string; latencyMs: number | null };
 
+/** One step in the path a client's connectivity takes. */
+export type PathHop = {
+  id: string;
+  position: number;
+  label: string;
+  kind: string;
+  librenmsDeviceId: number | null;
+  lastUp: boolean | null;
+  latencyMs: number | null;
+  lastCheckedAt: string | null;
+};
+
 export type ConnectivityLine = {
   id: string;
   label: string;
@@ -31,6 +43,7 @@ export type ConnectivityLine = {
   lastCheckedAt: string | null;
   downSince: string | null;
   samples: ConnectivitySample[];
+  hops: PathHop[];
 };
 
 /** A client's lines with the status the pull last wrote, plus 24h of samples.
@@ -63,6 +76,30 @@ export async function getConnectivityLines(
     )
     .gte("at", since)
     .order("at");
+  const { data: hopRows } = await supabase
+    .from("connectivity_path_hops")
+    .select("id, service_id, position, label, kind, librenms_device_id, last_up, latency_ms, last_checked_at")
+    .in(
+      "service_id",
+      rows.map((r) => r.id),
+    )
+    .order("position");
+  const hopsByService = new Map<string, PathHop[]>();
+  for (const h of hopRows ?? []) {
+    const list = hopsByService.get(h.service_id) ?? [];
+    list.push({
+      id: h.id,
+      position: h.position,
+      label: h.label,
+      kind: h.kind,
+      librenmsDeviceId: h.librenms_device_id,
+      lastUp: h.last_up,
+      latencyMs: h.latency_ms == null ? null : Number(h.latency_ms),
+      lastCheckedAt: h.last_checked_at,
+    });
+    hopsByService.set(h.service_id, list);
+  }
+
   const byService = new Map<string, ConnectivitySample[]>();
   for (const s of sampleRows ?? []) {
     const list = byService.get(s.service_id) ?? [];
@@ -96,6 +133,7 @@ export async function getConnectivityLines(
     lastCheckedAt: r.last_checked_at,
     downSince: r.down_since,
     samples: byService.get(r.id) ?? [],
+    hops: hopsByService.get(r.id) ?? [],
   }));
 }
 

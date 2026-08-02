@@ -103,3 +103,53 @@ export function isStale(lastCheckedAt: string | null, nowMs: number): boolean {
   if (!lastCheckedAt) return true;
   return nowMs - Date.parse(lastCheckedAt) > 20 * 60 * 1000;
 }
+
+export const HOP_KINDS = [
+  "internet",
+  "core",
+  "distribution",
+  "wireless",
+  "tower",
+  "cpe",
+  "site",
+  "other",
+] as const;
+
+export const HOP_KIND_LABELS: Record<string, string> = {
+  internet: "Internet",
+  core: "Core router",
+  distribution: "Distribution",
+  wireless: "Wireless link",
+  tower: "Tower",
+  cpe: "Router / CPE",
+  site: "Your site",
+  other: "Hop",
+};
+
+/** Glyph per hop type — plain text so it renders identically everywhere. */
+export const HOP_KIND_ICONS: Record<string, string> = {
+  internet: "☁",
+  core: "◈",
+  distribution: "◆",
+  wireless: "((·))",
+  tower: "▲",
+  cpe: "▣",
+  site: "⌂",
+  other: "●",
+};
+
+export type PathHopStatus = { up: boolean | null; monitored: boolean };
+
+/** How a connector between two hops should read: a break is only meaningful
+ *  when we actually know the next hop is down. Unmonitored hops never imply
+ *  a fault — they're labels, not measurements. */
+export function connectorBroken(next: PathHopStatus): boolean {
+  return next.monitored && next.up === false;
+}
+
+/** The first hop that is known-down, i.e. where the path breaks. Null when
+ *  everything monitored is up (or nothing is monitored). */
+export function firstBreakIndex(hops: PathHopStatus[]): number | null {
+  const i = hops.findIndex((h) => h.monitored && h.up === false);
+  return i === -1 ? null : i;
+}

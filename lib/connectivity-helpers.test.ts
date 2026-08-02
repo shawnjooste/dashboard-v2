@@ -9,6 +9,11 @@ import {
   CONN_TYPE_LABELS,
   deviceHost,
   parsePing,
+  HOP_KINDS,
+  HOP_KIND_LABELS,
+  HOP_KIND_ICONS,
+  connectorBroken,
+  firstBreakIndex,
 } from "./connectivity-helpers";
 
 describe("speedLabel", () => {
@@ -141,5 +146,37 @@ rtt min/avg/max/mdev = 3.683/3.792/3.917/0.096 ms`;
   });
   it("handles junk", () => {
     expect(parsePing("")).toEqual({ latencyMs: null, lossPct: null });
+  });
+});
+
+describe("path hops", () => {
+  it("labels and icons every hop kind", () => {
+    for (const k of HOP_KINDS) {
+      expect(HOP_KIND_LABELS[k]).toBeTruthy();
+      expect(HOP_KIND_ICONS[k]).toBeTruthy();
+    }
+  });
+
+  it("a connector only breaks for a monitored hop that is down", () => {
+    expect(connectorBroken({ up: false, monitored: true })).toBe(true);
+    expect(connectorBroken({ up: true, monitored: true })).toBe(false);
+    expect(connectorBroken({ up: null, monitored: true })).toBe(false);
+    // an unmonitored hop is a label, never evidence of a fault
+    expect(connectorBroken({ up: false, monitored: false })).toBe(false);
+  });
+
+  it("finds where the path breaks", () => {
+    const hops = [
+      { up: true, monitored: true },
+      { up: true, monitored: true },
+      { up: false, monitored: true },
+      { up: false, monitored: true },
+    ];
+    expect(firstBreakIndex(hops)).toBe(2);
+  });
+
+  it("no break when everything is up or unmonitored", () => {
+    expect(firstBreakIndex([{ up: true, monitored: true }, { up: null, monitored: false }])).toBeNull();
+    expect(firstBreakIndex([])).toBeNull();
   });
 });

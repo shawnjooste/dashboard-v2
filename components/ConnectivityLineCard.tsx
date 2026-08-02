@@ -5,6 +5,7 @@ import { KIND_LABELS, CONN_TYPE_LABELS, isStale } from "@/lib/connectivity-helpe
 import { Card, StatusPill } from "@/components/ui";
 import { Sparkline } from "@/components/Sparkline";
 import { RevealSecret } from "@/components/RevealSecret";
+import { ConnectivityPath } from "@/components/ConnectivityPath";
 
 const fmtWhen = (iso: string) => iso.replace("T", " ").slice(0, 16);
 
@@ -65,6 +66,8 @@ export function ConnectivityLineCard({ line }: { line: ConnectivityLine }) {
       {line.description && (
         <p className="border-b border-line-soft px-4 py-3 text-[13px] text-ink-2">{line.description}</p>
       )}
+
+      <ConnectivityPath hops={line.hops} />
 
       <div className="grid gap-4 px-4 py-3.5 sm:grid-cols-2">
         <div className="space-y-1.5">

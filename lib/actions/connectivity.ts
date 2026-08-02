@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { canAccess, toOverrides } from "@/lib/feature-access";
 import { connectivityKey, decryptSecret, encryptSecret, type Sealed } from "@/lib/secrets";
+import { HOP_KINDS } from "@/lib/connectivity-helpers";
 
 const KINDS = ["fibre", "wireless", "lte", "other"];
 const CONN_TYPES = ["pppoe", "static", "dhcp"];
@@ -137,4 +138,61 @@ export async function revealPppoeSecret(
   } catch {
     return { ok: false, error: "Could not decrypt — check CONNECTIVITY_ENC_KEY." };
   }
+}
+
+
+/** Staff-only: add a hop to a line's path. Position defaults to the end. */
+export async function addHop(serviceId: string, clientId: string, formData: FormData) {
+  await staff();
+  const label = str(formData, "hop_label");
+  if (!label) throw new Error("a hop needs a label");
+  const kind = String(formData.get("hop_kind") ?? "other");
+  const supabase = await createClient();
+  const { data: last } = await supabase
+    .from("connectivity_path_hops")
+    .select("position")
+    .eq("service_id", serviceId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const { error } = await supabase.from("connectivity_path_hops").insert({
+    service_id: serviceId,
+    label,
+    kind: HOP_KINDS.includes(kind as (typeof HOP_KINDS)[number]) ? kind : "other",
+    librenms_device_id: num(formData, "hop_librenms_device_id"),
+    position: (last?.[0]?.position ?? -1) + 1,
+  });
+  if (error) throw new Error(error.message);
+  revalidate(clientId);
+}
+
+export async function deleteHop(hopId: string, clientId: string) {
+  await staff();
+  const supabase = await createClient();
+  await supabase.from("connectivity_path_hops").delete().eq("id", hopId);
+  revalidate(clientId);
+}
+
+/** Nudge a hop one place along the path. */
+export async function moveHop(hopId: string, clientId: string, direction: "up" | "down") {
+  await staff();
+  const supabase = await createClient();
+  const { data: hop } = await supabase
+    .from("connectivity_path_hops")
+    .select("id, service_id, position")
+    .eq("id", hopId)
+    .maybeSingle();
+  if (!hop) return;
+  const { data: neighbours } = await supabase
+    .from("connectivity_path_hops")
+    .select("id, position")
+    .eq("service_id", hop.service_id)
+    .order("position");
+  const list = neighbours ?? [];
+  const i = list.findIndex((h) => h.id === hopId);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i === -1 || j < 0 || j >= list.length) return;
+  // Swap positions with the neighbour.
+  await supabase.from("connectivity_path_hops").update({ position: list[j].position }).eq("id", list[i].id);
+  await supabase.from("connectivity_path_hops").update({ position: list[i].position }).eq("id", list[j].id);
+  revalidate(clientId);
 }

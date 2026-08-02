@@ -143,4 +143,43 @@ for (const line of lines) {
   await rest(`connectivity_samples?service_id=eq.${line.id}&at=lt.${cutoff}`, { method: "DELETE" });
 }
 
-console.log(`connectivity pull: ${ok} ok, ${failed} failed, ${lines.length} lines @ ${nowIso}`);
+// --- path hops: same treatment, so each step of the path has live status ---
+const hops = await (
+  await rest("connectivity_path_hops?librenms_device_id=not.is.null&select=id,label,librenms_device_id")
+).json();
+
+let hopOk = 0;
+let hopFailed = 0;
+
+for (const hop of hops) {
+  let sample = { up: null, latencyMs: null, lossPct: null };
+  try {
+    const r = await fetch(`${conf.librenmsUrl.replace(/\/$/, "")}/api/v0/devices/${hop.librenms_device_id}`, {
+      headers: { "X-Auth-Token": conf.librenmsKey },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const body = await r.json();
+    const device = body?.devices?.[0] ?? null;
+    sample = mapIcmp(device);
+    const host = deviceHost(device);
+    if (sample.up !== null && host) {
+      const m = await measure(host);
+      sample = { up: sample.up, latencyMs: sample.latencyMs ?? m.latencyMs, lossPct: sample.lossPct ?? m.lossPct };
+    }
+  } catch (e) {
+    hopFailed++;
+    console.error(`hop ${hop.label}: ${e.message}`);
+  }
+
+  const patch =
+    sample.up === null
+      ? { last_checked_at: nowIso }
+      : { last_up: sample.up, latency_ms: sample.latencyMs, last_checked_at: nowIso };
+  await rest(`connectivity_path_hops?id=eq.${hop.id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  if (sample.up !== null) hopOk++;
+}
+
+console.log(
+  `connectivity pull: ${ok} ok, ${failed} failed, ${lines.length} lines | ${hopOk} ok, ${hopFailed} failed, ${hops.length} hops @ ${nowIso}`,
+);

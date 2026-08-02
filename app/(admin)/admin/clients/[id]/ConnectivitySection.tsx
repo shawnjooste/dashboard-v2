@@ -1,7 +1,15 @@
 import type { ConnectivityLine } from "@/lib/views/connectivity";
 import { getConnectivityLines } from "@/lib/views/connectivity";
-import { addLine, updateLine, setLineActive, deleteLine } from "@/lib/actions/connectivity";
-import { KIND_LABELS, CONN_TYPE_LABELS, CONN_TYPES, isStale } from "@/lib/connectivity-helpers";
+import { addLine, updateLine, setLineActive, deleteLine, addHop, deleteHop, moveHop } from "@/lib/actions/connectivity";
+import {
+  KIND_LABELS,
+  CONN_TYPE_LABELS,
+  CONN_TYPES,
+  isStale,
+  HOP_KINDS,
+  HOP_KIND_LABELS,
+  HOP_KIND_ICONS,
+} from "@/lib/connectivity-helpers";
 import { Card, CardHeader, StatusPill } from "@/components/ui";
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
@@ -71,6 +79,82 @@ function StatusBits({ line, nowMs }: { line: ConnectivityLine; nowMs: number }) 
   return <StatusPill tone="warn" label="Status unavailable" />;
 }
 
+/** The ordered hops that make up a line's path, editable in place. Hops with
+ *  an NMS id are polled by the same 5-minute pull as the lines themselves. */
+function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientId: string; nowMs: number }) {
+  const add = addHop.bind(null, line.id, clientId);
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-xs font-semibold text-faint hover:text-ink">
+        Path ({line.hops.length} hop{line.hops.length === 1 ? "" : "s"})
+      </summary>
+
+      {line.hops.length > 0 && (
+        <ol className="mt-2 space-y-1">
+          {line.hops.map((h, i) => {
+            const up = moveHop.bind(null, h.id, clientId, "up");
+            const down = moveHop.bind(null, h.id, clientId, "down");
+            const remove = deleteHop.bind(null, h.id, clientId);
+            const live =
+              h.librenmsDeviceId == null
+                ? "unmonitored"
+                : isStale(h.lastCheckedAt, nowMs)
+                  ? "no reading"
+                  : h.lastUp === true
+                    ? `up${h.latencyMs != null ? ` · ${h.latencyMs.toFixed(1)} ms` : ""}`
+                    : h.lastUp === false
+                      ? "DOWN"
+                      : "no reading";
+            return (
+              <li key={h.id} className="flex items-center gap-2 text-[13px]">
+                <span className="w-5 shrink-0 text-right text-faint">{i + 1}.</span>
+                <span className="shrink-0">{HOP_KIND_ICONS[h.kind] ?? "●"}</span>
+                <span className="font-medium text-ink">{h.label}</span>
+                <span className="text-muted">
+                  {HOP_KIND_LABELS[h.kind] ?? h.kind}
+                  {h.librenmsDeviceId ? ` · NMS ${h.librenmsDeviceId}` : ""} · {live}
+                </span>
+                <span className="ml-auto flex shrink-0 items-center gap-2">
+                  <form action={up}>
+                    <button className="text-xs text-faint hover:text-ink" title="Move earlier">
+                      ↑
+                    </button>
+                  </form>
+                  <form action={down}>
+                    <button className="text-xs text-faint hover:text-ink" title="Move later">
+                      ↓
+                    </button>
+                  </form>
+                  <form action={remove}>
+                    <button className="text-xs text-faint hover:text-brand" title="Remove hop">
+                      ✕
+                    </button>
+                  </form>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <form action={add} className="mt-2 flex flex-wrap items-center gap-2">
+        <input name="hop_label" required placeholder="Hop label, e.g. Silverberg edge" className={`${FIELD} w-52`} />
+        <select name="hop_kind" defaultValue="core" className={FIELD}>
+          {HOP_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {HOP_KIND_LABELS[k]}
+            </option>
+          ))}
+        </select>
+        <input name="hop_librenms_device_id" type="number" min="1" placeholder="NMS id" className={`${FIELD} w-24`} />
+        <button className="rounded-lg border border-line px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:bg-line-soft">
+          Add hop
+        </button>
+      </form>
+    </details>
+  );
+}
+
 /** Staff-only: the client's connectivity lines — the portal is the source of
  *  record. Live status comes from the 5-minute pull running on Vision. */
 export async function ConnectivitySection({ clientId }: { clientId: string }) {
@@ -133,6 +217,7 @@ export async function ConnectivitySection({ clientId }: { clientId: string }) {
                     )}
                   </span>
                 </div>
+                <PathEditor line={l} clientId={clientId} nowMs={nowMs} />
                 <details className="mt-2">
                   <summary className="cursor-pointer text-xs font-semibold text-faint hover:text-ink">Edit</summary>
                   <form action={edit} className="mt-2 flex flex-wrap items-center gap-2">

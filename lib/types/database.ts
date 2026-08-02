@@ -344,6 +344,53 @@ export type Database = {
           },
         ]
       }
+      connectivity_path_hops: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          last_checked_at: string | null
+          last_up: boolean | null
+          latency_ms: number | null
+          librenms_device_id: number | null
+          position: number
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label: string
+          last_checked_at?: string | null
+          last_up?: boolean | null
+          latency_ms?: number | null
+          librenms_device_id?: number | null
+          position?: number
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          last_checked_at?: string | null
+          last_up?: boolean | null
+          latency_ms?: number | null
+          librenms_device_id?: number | null
+          position?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connectivity_path_hops_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "connectivity_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connectivity_samples: {
         Row: {
           at: string
