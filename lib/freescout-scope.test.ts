@@ -29,6 +29,18 @@ describe("freescout scope", () => {
     expect(htmlToText("a &amp; b &lt;c&gt;")).toBe("a & b <c>");
   });
 
+  it("collapses the empty-paragraph padding Outlook leaves behind", () => {
+    // <p>&nbsp;</p> spacers decode to lines containing a space, so a naive
+    // blank-line collapse never matches them — the reason tickets rendered
+    // with huge vertical gaps.
+    const outlook = "<p>Hi Tim,</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>Thanks</p>";
+    expect(htmlToText(outlook)).toBe("Hi Tim,\n\nThanks");
+  });
+
+  it("strips trailing whitespace but keeps indentation", () => {
+    expect(htmlToText("line one   <br>   indented<br>")).toBe("line one\n   indented");
+  });
+
   it("filters and dedupes conversation lists", () => {
     const list = [
       { id: 1, customerEmail: "me@x.com" },

@@ -11,6 +11,13 @@ export function htmlToText(html: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;/g, "'")
+    .replace(/\r/g, "")
+    // Mail clients pad with <p>&nbsp;</p>, which decodes to a line holding a
+    // single space — so a plain blank-line collapse never matched it and
+    // tickets rendered with huge vertical gaps. Clear trailing whitespace on
+    // every line first (which empties those spacer lines), then collapse.
+    // Leading whitespace survives, so indented content keeps its shape.
+    .replace(/[^\S\n]+$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
