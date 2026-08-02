@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -42,6 +43,14 @@ export default async function SupportPackagesPage() {
       <PageHeader
         title="Support packages"
         subtitle="The tiers clients can be on, and who's burning hours this month. Allowances here are data — edit freely."
+        action={
+          <Link
+            href="/admin/support-packages/assign"
+            className="inline-flex items-center rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
+          >
+            Assign tiers →
+          </Link>
+        }
       />
 
       <Card>

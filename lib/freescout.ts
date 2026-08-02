@@ -189,12 +189,60 @@ export async function createTicket(opts: {
 
 /** Internal (staff-only) note on a conversation — records a paid session
  *  against the ticket it belongs to, so there's no duplicate thread. */
-export async function addTicketNote(conversationId: number, text: string): Promise<void> {
+export async function addTicketNote(
+  conversationId: number,
+  text: string,
+  authorEmail?: string,
+): Promise<void> {
+  const user = (authorEmail ? await freescoutUserId(authorEmail) : null) ?? 1;
   const res = await fsFetch(`/conversations/${conversationId}/threads`, {
     method: "POST",
-    body: JSON.stringify({ type: "note", text, user: 1 }),
+    body: JSON.stringify({ type: "note", text, user }),
   });
   if (!res.ok) throw new Error(`FreeScout note failed (${res.status})`);
+}
+
+/** Staff reply to the customer, attributed to the staff member when we can
+ *  match them to a FreeScout account. */
+export async function replyAsStaff(
+  conversationId: number,
+  text: string,
+  authorEmail: string,
+): Promise<void> {
+  const user = (await freescoutUserId(authorEmail)) ?? 1;
+  const res = await fsFetch(`/conversations/${conversationId}/threads`, {
+    method: "POST",
+    body: JSON.stringify({ type: "message", text, user }),
+  });
+  if (!res.ok) throw new Error(`FreeScout staff reply failed (${res.status})`);
+}
+
+/** FreeScout user id for a staff email, so replies and notes are attributed to
+ *  the person who actually wrote them rather than a generic agent. Cached per
+ *  lambda instance — the user list changes about once a year. Null when the
+ *  address has no FreeScout account; callers fall back to the default agent. */
+let fsUserCache: Map<string, number> | null = null;
+export async function freescoutUserId(email: string): Promise<number | null> {
+  if (!fsUserCache) {
+    try {
+      const res = await fsFetch(`/users?pageSize=100`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const users: { id: number; email?: string }[] = data?._embedded?.users ?? [];
+      // Deleted accounts linger with a mangled address
+      // ("tim@rocking.one_deleted20250812143755") — skip them, or a tombstone
+      // could shadow the live user and misattribute their replies.
+      fsUserCache = new Map(
+        users
+          .filter((u) => u.email && !u.email.includes("_deleted"))
+          .map((u) => [u.email!.toLowerCase(), u.id]),
+      );
+    } catch (e) {
+      console.error("FreeScout user lookup failed:", e);
+      return null;
+    }
+  }
+  return fsUserCache.get(email.toLowerCase()) ?? null;
 }
 
 /** Set a conversation's status (active | pending | closed). */

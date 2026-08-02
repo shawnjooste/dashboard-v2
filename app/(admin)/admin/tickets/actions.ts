@@ -3,13 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import {
-  addTicketNote,
-  getConversation,
-  reopenTicket,
-  replyToTicket,
-  setConversationStatus,
-} from "@/lib/freescout";
+import { addTicketNote, reopenTicket, replyAsStaff, setConversationStatus } from "@/lib/freescout";
 
 async function staff() {
   const me = await getCurrentProfile();
@@ -22,23 +16,21 @@ const str = (fd: FormData, k: string) => {
   return v || null;
 };
 
-/** Staff reply to the customer, from the portal rather than FreeScout's UI. */
+/** Staff reply to the customer, attributed to whoever is signed in. */
 export async function replyToTicketAction(ticketId: number, formData: FormData) {
-  await staff();
+  const me = await staff();
   const message = str(formData, "message");
   if (!message) throw new Error("write a message first");
-  const ticket = await getConversation(ticketId);
-  if (!ticket?.customerEmail) throw new Error("ticket has no customer");
-  await replyToTicket(ticketId, ticket.customerEmail, message);
+  await replyAsStaff(ticketId, message, me.email);
   revalidatePath(`/admin/tickets/${ticketId}`);
 }
 
 /** Internal note — never shown to the client. */
 export async function addNoteAction(ticketId: number, formData: FormData) {
-  await staff();
+  const me = await staff();
   const note = str(formData, "note");
   if (!note) throw new Error("write a note first");
-  await addTicketNote(ticketId, note);
+  await addTicketNote(ticketId, note, me.email);
   revalidatePath(`/admin/tickets/${ticketId}`);
 }
 

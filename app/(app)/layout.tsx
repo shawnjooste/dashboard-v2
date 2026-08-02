@@ -7,6 +7,8 @@ import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-acces
 import { hasConnectivity } from "@/lib/views/connectivity";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { CrispChat } from "@/components/CrispChat";
+import { getSupportStatus } from "@/lib/views/support-packages";
 import { MARKER_COOKIE, decodeMarker } from "@/lib/impersonation";
 
 export default async function AppLayout({
@@ -52,6 +54,18 @@ export default async function AppLayout({
   // Connectivity shows only for clients who actually have lines (billing pattern).
   if (!connectivityEnabled) allowed.delete("connectivity");
 
+  // Live chat is a tier perk: only mount it for packages that include it, and
+  // never while impersonating (a staff member shouldn't open a chat as the
+  // client). Identity is passed through so nobody is asked for their email.
+  const crispId = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
+  let chat: { tier: string; name: string | null } | null = null;
+  if (crispId && !marker && me.profile.client_id) {
+    const status = await getSupportStatus(me.profile.client_id);
+    if (status.pkg?.hasChat) {
+      chat = { tier: status.planLabel ?? status.pkg.name, name: null };
+    }
+  }
+
   return (
     <AppShell
       email={me.profile.email}
@@ -62,6 +76,15 @@ export default async function AppLayout({
       allowedHrefs={[...allowed].map((f) => FEATURE_HREFS[f])}
     >
       {children}
+      {chat && crispId && (
+        <CrispChat
+          websiteId={crispId}
+          email={me.profile.email}
+          name={chat.name}
+          company={accountName}
+          tier={chat.tier}
+        />
+      )}
     </AppShell>
   );
 }

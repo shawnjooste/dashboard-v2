@@ -54,6 +54,39 @@ export async function assignClientPackage(clientId: string, formData: FormData) 
   revalidatePath("/support");
 }
 
+/**
+ * Bulk tier assignment: one pass over every client. Only rows that actually
+ * changed are written — with ~180 clients, updating all of them on every save
+ * would be slow and would churn rows nobody touched.
+ */
+export async function bulkAssignPackages(formData: FormData) {
+  await staff();
+  const service = createServiceClient();
+  const { data: current } = await service
+    .from("clients")
+    .select("id, support_package_id, support_plan_label");
+
+  let changed = 0;
+  for (const c of current ?? []) {
+    const rawPkg = formData.get(`pkg_${c.id}`);
+    if (rawPkg == null) continue; // client wasn't on the submitted page
+    const nextPkg = String(rawPkg) || null;
+    const nextLabel = String(formData.get(`label_${c.id}`) ?? "").trim() || null;
+    if (nextPkg === c.support_package_id && nextLabel === c.support_plan_label) continue;
+    const { error } = await service
+      .from("clients")
+      .update({ support_package_id: nextPkg, support_plan_label: nextLabel })
+      .eq("id", c.id);
+    if (error) throw new Error(`${c.id}: ${error.message}`);
+    changed++;
+  }
+
+  if (changed) console.log(`bulk tier assignment: ${changed} client(s) updated`);
+  revalidatePath("/admin/support-packages");
+  revalidatePath("/admin/support-packages/assign");
+  revalidatePath("/support");
+}
+
 export async function addTimeEntry(clientId: string, formData: FormData) {
   const me = await staff();
   const minutes = Number(formData.get("minutes"));
