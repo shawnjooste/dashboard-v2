@@ -16,6 +16,10 @@ export type AdminTicketDetail = {
   entries: { id: string; minutes: number; workType: string; note: string | null; author: string | null; occurredOn: string }[];
   bookings: { id: string; serviceName: string; slotLabel: string; status: string }[];
   clients: { id: string; name: string }[];
+  /** Neighbours in the ticket list, so you can work straight through the
+   *  queue instead of bouncing back to the index between each one. */
+  prev: { id: number; subject: string } | null;
+  next: { id: number; subject: string } | null;
 };
 
 /** Client lookup tables — the service client is right here: staff see every
@@ -58,7 +62,7 @@ export async function getAdminTicket(id: number): Promise<AdminTicketDetail | nu
   const { domains, nameById, clients } = await clientLookup();
   const clientId = clientIdForEmail(ticket.customerEmail, domains);
 
-  const [{ data: entryRows }, { data: bookingRows }, { data: profiles }] = await Promise.all([
+  const [{ data: entryRows }, { data: bookingRows }, { data: profiles }, neighbours] = await Promise.all([
     service
       .from("support_time_entries")
       .select("id, minutes, work_type, note, entered_by, occurred_on")
@@ -70,7 +74,16 @@ export async function getAdminTicket(id: number): Promise<AdminTicketDetail | nu
       .eq("ticket_number", id)
       .order("slot_start", { ascending: false }),
     service.from("profiles").select("id, email"),
+    listRecentConversations().catch(() => [] as TicketSummary[]),
   ]);
+
+  // Same order as the list page (most recently updated first), so "next"
+  // means what it looks like it means on screen.
+  const at = neighbours.findIndex((t) => t.id === id);
+  const nb = (i: number) => {
+    const t = at >= 0 ? neighbours[i] : undefined;
+    return t ? { id: t.id, subject: t.subject } : null;
+  };
 
   const email = new Map((profiles ?? []).map((p) => [p.id, p.email]));
   const label = (pid: string | null) => {
@@ -99,5 +112,7 @@ export async function getAdminTicket(id: number): Promise<AdminTicketDetail | nu
       status: b.status,
     })),
     clients,
+    prev: nb(at - 1),
+    next: nb(at + 1),
   };
 }

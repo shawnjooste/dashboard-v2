@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -66,12 +67,21 @@ export async function bulkAssignPackages(formData: FormData) {
     .from("clients")
     .select("id, support_package_id, support_plan_label");
 
+  const { data: pkgs } = await service.from("support_packages").select("id, is_default");
+  const validPkgIds = new Set((pkgs ?? []).map((p) => p.id));
+  const defaultPkgId = (pkgs ?? []).find((p) => p.is_default)?.id ?? null;
+
   let changed = 0;
+  let paid = 0;
   for (const c of current ?? []) {
     const rawPkg = formData.get(`pkg_${c.id}`);
     if (rawPkg == null) continue; // client wasn't on the submitted page
-    const nextPkg = String(rawPkg) || null;
+    const submitted = String(rawPkg);
+    // Guard against a stale or malformed id silently demoting someone to the
+    // default tier — the failure mode we hit was "everything became Standard".
+    const nextPkg = validPkgIds.has(submitted) ? submitted : c.support_package_id;
     const nextLabel = String(formData.get(`label_${c.id}`) ?? "").trim() || null;
+    if (nextPkg && nextPkg !== defaultPkgId) paid++;
     if (nextPkg === c.support_package_id && nextLabel === c.support_plan_label) continue;
     const { error } = await service
       .from("clients")
@@ -81,10 +91,13 @@ export async function bulkAssignPackages(formData: FormData) {
     changed++;
   }
 
-  if (changed) console.log(`bulk tier assignment: ${changed} client(s) updated`);
+  console.log(`bulk tier assignment: ${changed} changed, ${paid} on a paid tier`);
   revalidatePath("/admin/support-packages");
   revalidatePath("/admin/support-packages/assign");
   revalidatePath("/support");
+  // Redirect with the outcome so the result is unmistakable — the previous
+  // version gave no feedback at all, which is why a working save read as broken.
+  redirect(`/admin/support-packages/assign?changed=${changed}&paid=${paid}`);
 }
 
 export async function addTimeEntry(clientId: string, formData: FormData) {

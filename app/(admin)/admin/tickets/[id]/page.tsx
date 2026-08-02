@@ -34,7 +34,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
     );
   }
 
-  const { ticket, clientId, clientName, loggedMinutes, entries, bookings, clients } = data;
+  const { ticket, clientId, clientName, loggedMinutes, entries, bookings, clients, prev, next } = data;
   const closed = ticket.status === "closed";
   const reply = replyToTicketAction.bind(null, ticketId);
   const note = addNoteAction.bind(null, ticketId);
@@ -48,11 +48,34 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
         title={ticket.subject}
         subtitle={`#${ticketId} · ${clientName ?? ticket.customerEmail ?? "unknown client"}`}
         action={
-          <form action={toggle}>
-            <button className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line-soft">
-              {closed ? "Reopen" : "Close ticket"}
-            </button>
-          </form>
+          <div className="flex items-center gap-2">
+            {/* Work straight through the queue — same order as the list. */}
+            <Link
+              href={prev ? `/admin/tickets/${prev.id}` : "#"}
+              aria-disabled={!prev}
+              title={prev?.subject ?? "No newer ticket"}
+              className={`rounded-lg border border-line px-2.5 py-2 text-[13px] font-semibold ${
+                prev ? "text-ink-2 hover:bg-line-soft" : "pointer-events-none text-faint opacity-50"
+              }`}
+            >
+              ←
+            </Link>
+            <Link
+              href={next ? `/admin/tickets/${next.id}` : "#"}
+              aria-disabled={!next}
+              title={next?.subject ?? "No older ticket"}
+              className={`rounded-lg border border-line px-2.5 py-2 text-[13px] font-semibold ${
+                next ? "text-ink-2 hover:bg-line-soft" : "pointer-events-none text-faint opacity-50"
+              }`}
+            >
+              →
+            </Link>
+            <form action={toggle}>
+              <button className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line-soft">
+                {closed ? "Reopen" : "Close ticket"}
+              </button>
+            </form>
+          </div>
         }
       />
 

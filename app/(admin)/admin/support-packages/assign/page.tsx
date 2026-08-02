@@ -11,9 +11,14 @@ const FIELD = "rounded-lg border border-line bg-canvas px-2.5 py-1 text-[13px] t
 /** One pass over every client to set their support tier. Deliberately a plain
  *  form with a single Save: the job is "go through all my customers", not
  *  "edit one client", and a save-per-row would mean 180 round trips. */
-export default async function AssignTiersPage() {
+export default async function AssignTiersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ changed?: string; paid?: string }>;
+}) {
   const me = await getCurrentProfile();
   if (!me.authenticated || me.profile.role !== "rocking_staff") redirect("/");
+  const saved = await searchParams;
 
   const service = createServiceClient();
   const [packages, { data: clients }] = await Promise.all([
@@ -41,6 +46,13 @@ export default async function AssignTiersPage() {
         title="Assign support tiers"
         subtitle="Set every client's tier in one pass. Unassigned clients sit on the default tier until you change them."
       />
+
+      {saved.changed != null && (
+        <div className="rounded-lg bg-warn-tint px-4 py-3 text-[13px] text-warn-ink">
+          Saved — <strong>{saved.changed}</strong> client{saved.changed === "1" ? "" : "s"} updated,{" "}
+          <strong>{saved.paid ?? 0}</strong> now on a paid tier. The tiers below are what&apos;s stored.
+        </div>
+      )}
 
       <form action={bulkAssignPackages}>
         <Card>
