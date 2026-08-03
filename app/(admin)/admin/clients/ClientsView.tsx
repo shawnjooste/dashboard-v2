@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { clientColor, clientInitials } from "@/lib/ui/client-avatar";
+import { applyArchived } from "@/lib/ui/archive-overrides";
 import { setClientArchived } from "./actions";
 
 export type ClientRow = {
@@ -21,9 +22,15 @@ export function ClientsView({ clients }: { clients: ClientRow[] }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Archive/restore results applied locally. Working through a long list is
+  // the whole job here, so a status change must never cost the reader their
+  // place — see lib/ui/archive-overrides.ts.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const active = useMemo(() => clients.filter((c) => !c.archived), [clients]);
-  const archived = useMemo(() => clients.filter((c) => c.archived), [clients]);
+  const merged = useMemo(() => applyArchived(clients, overrides), [clients, overrides]);
+  const active = useMemo(() => merged.filter((c) => !c.archived), [merged]);
+  const archived = useMemo(() => merged.filter((c) => c.archived), [merged]);
 
   const counts = useMemo(
     () => ({
@@ -80,6 +87,12 @@ export function ClientsView({ clients }: { clients: ClientRow[] }) {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-line bg-brand-tint px-4 py-2.5 text-[13px] font-medium text-brand">
+          {error}
+        </div>
+      )}
 
       {/* Search */}
       <div className="mt-6 flex items-center gap-[11px] rounded-xl border border-line bg-card px-[18px] py-3.5 shadow-[0_1px_2px_rgba(24,24,27,0.03)]">
@@ -194,7 +207,11 @@ export function ClientsView({ clients }: { clients: ClientRow[] }) {
             </div>
             {/* Archive / restore */}
             <div className="flex justify-end">
-              <RowActions client={c} />
+              <RowActions
+                client={c}
+                onChanged={(id, archived) => setOverrides((o) => ({ ...o, [id]: archived }))}
+                onError={setError}
+              />
             </div>
           </div>
         ))}
@@ -227,8 +244,18 @@ export function ClientsView({ clients }: { clients: ClientRow[] }) {
   );
 }
 
-/** Per-row archive (with a confirm step) / restore control. */
-function RowActions({ client }: { client: ClientRow }) {
+/** Per-row archive (with a confirm step) / restore control. The row is
+ *  updated locally on success rather than by revalidating the route, which
+ *  would re-render all ~180 rows and lose the reader's scroll position. */
+function RowActions({
+  client,
+  onChanged,
+  onError,
+}: {
+  client: ClientRow;
+  onChanged: (id: string, archived: boolean) => void;
+  onError: (message: string | null) => void;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -236,8 +263,16 @@ function RowActions({ client }: { client: ClientRow }) {
     const fd = new FormData();
     fd.set("client_id", client.id);
     fd.set("archived", String(archived));
+    onError(null);
     startTransition(async () => {
-      await setClientArchived(fd);
+      try {
+        await setClientArchived(fd);
+        onChanged(client.id, archived);
+        setConfirming(false);
+      } catch (e) {
+        // The row stays as it was — never show a change that didn't persist.
+        onError(e instanceof Error ? e.message : `Could not ${archived ? "archive" : "restore"} ${client.name}`);
+      }
     });
   };
 
