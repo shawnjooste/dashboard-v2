@@ -10,6 +10,8 @@ export type PathHop = {
   label: string;
   kind: string;
   detail: string | null;
+  /** Shares an upstream with the hop before it — same step, redundant leg. */
+  parallelWithPrevious: boolean;
   librenmsDeviceId: number | null;
   lastUp: boolean | null;
   latencyMs: number | null;
@@ -79,7 +81,7 @@ export async function getConnectivityLines(
     .order("at");
   const { data: hopRows } = await supabase
     .from("connectivity_path_hops")
-    .select("id, service_id, position, label, kind, detail, librenms_device_id, last_up, latency_ms, last_checked_at")
+    .select("id, service_id, position, label, kind, detail, parallel_with_previous, librenms_device_id, last_up, latency_ms, last_checked_at")
     .in(
       "service_id",
       rows.map((r) => r.id),
@@ -94,6 +96,7 @@ export async function getConnectivityLines(
       label: h.label,
       kind: h.kind,
       detail: h.detail,
+      parallelWithPrevious: h.parallel_with_previous,
       librenmsDeviceId: h.librenms_device_id,
       lastUp: h.last_up,
       latencyMs: h.latency_ms == null ? null : Number(h.latency_ms),

@@ -16,6 +16,8 @@ import {
   firstBreakIndex,
   linkState,
   pathSummary,
+  groupHops,
+  groupStateOf,
   hopStateOf,
   HOP_STATUS_WORD,
   type HopLike,
@@ -266,5 +268,90 @@ describe("pathSummary", () => {
     expect(s.allOperational).toBe(false);
     expect(s.faultIndex).toBeNull();
     expect(s.e2eLatencyMs).toBeNull();
+  });
+
+  // --- parallel legs: two devices hanging off one upstream are ONE step ---
+
+  it("does not call a step down while one of its legs still answers", () => {
+    const s = pathSummary(
+      [
+        hop({ label: "Mikrotik" }),
+        hop({ label: "Downstream 1", lastUp: false, latencyMs: null }),
+        hop({ label: "Downstream 2", parallelWithPrevious: true }),
+      ],
+      NOW,
+    );
+    expect(s.faultIndex).toBeNull();
+    expect(s.degradedLabels).toEqual(["Downstream 1"]);
+    expect(s.allOperational).toBe(false);
+  });
+
+  it("calls the step down only when every leg is down", () => {
+    const s = pathSummary(
+      [
+        hop({ label: "Mikrotik" }),
+        hop({ label: "Downstream 1", lastUp: false, latencyMs: null }),
+        hop({ label: "Downstream 2", lastUp: false, latencyMs: null, parallelWithPrevious: true }),
+      ],
+      NOW,
+    );
+    expect(s.faultIndex).toBe(1); // step index, not hop index
+    expect(s.faultLabel).toBe("Downstream 1 + Downstream 2");
+    expect(s.upstreamPassing).toBe(true);
+    expect(s.faultSince).toBe(fresh);
+  });
+
+  it("gives no end-to-end figure when the path ends in parallel legs", () => {
+    const s = pathSummary([hop({ label: "A" }), hop({ label: "B" }), hop({ label: "C", parallelWithPrevious: true })], NOW);
+    expect(s.allOperational).toBe(true);
+    expect(s.e2eLatencyMs).toBeNull(); // no single "end" to measure to
+  });
+
+  it("an idle leg alongside an up leg leaves the step passing", () => {
+    const s = pathSummary(
+      [hop({ label: "A" }), hop({ label: "B" }), hop({ label: "C", librenmsDeviceId: null, parallelWithPrevious: true })],
+      NOW,
+    );
+    expect(s.faultIndex).toBeNull();
+    expect(s.degradedLabels).toEqual([]); // unmonitored is not a lost leg
+    expect(s.allOperational).toBe(false);
+  });
+});
+
+describe("groupHops", () => {
+  const h = (label: string, parallelWithPrevious = false) => ({ label, parallelWithPrevious });
+
+  it("keeps a plain chain as one hop per step", () => {
+    expect(groupHops([h("A"), h("B"), h("C")]).map((g) => g.map((x) => x.label))).toEqual([["A"], ["B"], ["C"]]);
+  });
+
+  it("joins flagged hops to the step before them", () => {
+    const g = groupHops([h("A"), h("B"), h("C", true), h("D", true), h("E")]);
+    expect(g.map((s) => s.map((x) => x.label))).toEqual([["A"], ["B", "C", "D"], ["E"]]);
+  });
+
+  it("never lets the first hop be parallel with nothing", () => {
+    expect(groupHops([h("A", true), h("B")]).map((g) => g.map((x) => x.label))).toEqual([["A"], ["B"]]);
+  });
+
+  it("handles an empty list", () => {
+    expect(groupHops([])).toEqual([]);
+  });
+});
+
+describe("groupStateOf", () => {
+  it("passes when any leg is up", () => {
+    expect(groupStateOf(["up"])).toBe("up");
+    expect(groupStateOf(["up", "idle"])).toBe("up");
+  });
+  it("is degraded when a leg is lost but another holds", () => {
+    expect(groupStateOf(["up", "down"])).toBe("degraded");
+  });
+  it("is down only when every leg is down", () => {
+    expect(groupStateOf(["down", "down"])).toBe("down");
+  });
+  it("is idle with nothing to go on", () => {
+    expect(groupStateOf(["idle", "idle"])).toBe("idle");
+    expect(groupStateOf([])).toBe("idle");
   });
 });

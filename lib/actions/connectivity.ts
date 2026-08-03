@@ -160,9 +160,19 @@ export async function addHop(serviceId: string, clientId: string, formData: Form
     kind: HOP_KINDS.includes(kind as (typeof HOP_KINDS)[number]) ? kind : "other",
     librenms_device_id: num(formData, "hop_librenms_device_id"),
     detail: str(formData, "hop_detail"),
+    parallel_with_previous: formData.get("hop_parallel") === "on",
     position: (last?.[0]?.position ?? -1) + 1,
   });
   if (error) throw new Error(error.message);
+  revalidate(clientId);
+}
+
+/** Toggle whether a hop is a redundant leg of the step before it, or the next
+ *  step along. Editable after the fact — path shapes get corrected. */
+export async function setHopParallel(hopId: string, clientId: string, parallel: boolean) {
+  await staff();
+  const supabase = await createClient();
+  await supabase.from("connectivity_path_hops").update({ parallel_with_previous: parallel }).eq("id", hopId);
   revalidate(clientId);
 }
 

@@ -1,6 +1,15 @@
 import type { ConnectivityLine } from "@/lib/views/connectivity";
 import { getConnectivityLines } from "@/lib/views/connectivity";
-import { addLine, updateLine, setLineActive, deleteLine, addHop, deleteHop, moveHop } from "@/lib/actions/connectivity";
+import {
+  addLine,
+  updateLine,
+  setLineActive,
+  deleteLine,
+  addHop,
+  deleteHop,
+  moveHop,
+  setHopParallel,
+} from "@/lib/actions/connectivity";
 import {
   KIND_LABELS,
   CONN_TYPE_LABELS,
@@ -92,6 +101,7 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
             const up = moveHop.bind(null, h.id, clientId, "up");
             const down = moveHop.bind(null, h.id, clientId, "down");
             const remove = deleteHop.bind(null, h.id, clientId);
+            const toggleParallel = setHopParallel.bind(null, h.id, clientId, !h.parallelWithPrevious);
             const live =
               h.librenmsDeviceId == null
                 ? "unmonitored"
@@ -104,11 +114,12 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
                       : "no reading";
             return (
               <li key={h.id} className="flex items-center gap-2 text-[13px]">
-                <span className="w-5 shrink-0 text-right text-faint">{i + 1}.</span>
+                <span className="w-5 shrink-0 text-right text-faint">{h.parallelWithPrevious ? "↳" : `${i + 1}.`}</span>
                 <span className="shrink-0">{HOP_KIND_ICONS[h.kind] ?? "●"}</span>
                 <span className="font-medium text-ink">{h.label}</span>
                 <span className="text-muted">
                   {HOP_KIND_LABELS[h.kind] ?? h.kind}
+                  {h.parallelWithPrevious ? " · parallel leg" : ""}
                   {h.detail ? ` · ${h.detail}` : ""}
                   {h.librenmsDeviceId ? ` · NMS ${h.librenmsDeviceId}` : ""} · {live}
                 </span>
@@ -121,6 +132,19 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
                   <form action={down}>
                     <button className="text-xs text-faint hover:text-ink" title="Move later">
                       ↓
+                    </button>
+                  </form>
+                  <form action={toggleParallel}>
+                    <button
+                      className={`text-xs ${h.parallelWithPrevious ? "text-ink" : "text-faint"} hover:text-ink`}
+                      title={
+                        h.parallelWithPrevious
+                          ? "Make this its own step (in series)"
+                          : "Make this a parallel leg of the step above"
+                      }
+                      disabled={i === 0}
+                    >
+                      ⇄
                     </button>
                   </form>
                   <form action={remove}>
@@ -146,6 +170,10 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
         </select>
         <input name="hop_librenms_device_id" type="number" min="1" placeholder="NMS id" className={`${FIELD} w-24`} />
         <input name="hop_detail" placeholder="Detail, e.g. MZB-EDGE-04 · sector B3" className={`${FIELD} min-w-0 flex-1`} />
+        <label className="flex shrink-0 items-center gap-1.5 text-[13px] text-ink-2" title="Hangs off the same upstream as the hop above, rather than following it">
+          <input name="hop_parallel" type="checkbox" className="accent-ink" />
+          Parallel leg
+        </label>
         <button className="rounded-lg border border-line px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:bg-line-soft">
           Add hop
         </button>

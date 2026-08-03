@@ -355,6 +355,7 @@ export type Database = {
           last_up: boolean | null
           latency_ms: number | null
           librenms_device_id: number | null
+          parallel_with_previous: boolean
           position: number
           service_id: string
         }
@@ -368,6 +369,7 @@ export type Database = {
           last_up?: boolean | null
           latency_ms?: number | null
           librenms_device_id?: number | null
+          parallel_with_previous?: boolean
           position?: number
           service_id: string
         }
@@ -381,6 +383,7 @@ export type Database = {
           last_up?: boolean | null
           latency_ms?: number | null
           librenms_device_id?: number | null
+          parallel_with_previous?: boolean
           position?: number
           service_id?: string
         }

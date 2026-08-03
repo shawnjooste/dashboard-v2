@@ -181,6 +181,9 @@ export type HopLike = {
   lastUp: boolean | null;
   latencyMs: number | null;
   lastCheckedAt: string | null;
+  /** True when this hop hangs off the same upstream as the one before it —
+   *  a redundant leg of the same step, not the next step along. */
+  parallelWithPrevious?: boolean;
 };
 
 /** A hop we don't monitor, or haven't heard from recently, is "idle" — drawn
@@ -199,29 +202,76 @@ export const HOP_STATUS_WORD: Record<HopState, string> = {
   idle: "NO DATA",
 };
 
+/** Split a flat hop list into steps. Hops flagged parallel join the step
+ *  before them, so one step can hold several devices sharing an upstream. The
+ *  first hop always starts a step — there is nothing before it to be parallel
+ *  with, whatever the flag says. */
+export function groupHops<T extends { parallelWithPrevious?: boolean }>(hops: T[]): T[][] {
+  const steps: T[][] = [];
+  for (const hop of hops) {
+    if (steps.length === 0 || !hop.parallelWithPrevious) steps.push([hop]);
+    else steps[steps.length - 1].push(hop);
+  }
+  return steps;
+}
+
+export type GroupState = "up" | "degraded" | "down" | "idle";
+
+/** A step passes if *any* of its legs answers — that is the whole point of
+ *  running two. "degraded" is the honest middle: still passing, but a leg
+ *  short, which is a warning rather than an outage. */
+export function groupStateOf(states: HopState[]): GroupState {
+  const up = states.some((s) => s === "up");
+  const down = states.some((s) => s === "down");
+  if (up && down) return "degraded";
+  if (up) return "up";
+  if (down) return "down";
+  return "idle";
+}
+
 export type PathSummary = {
-  /** Index of the first hop known to be down — where the path breaks. */
+  /** Index of the first *step* that lost every leg — where the path breaks.
+   *  Indexes groupHops(hops), not the flat hop list. */
   faultIndex: number | null;
   faultLabel: string | null;
-  /** True when every hop before the fault is confirmed up. */
+  /** When the fault step was last heard from, for "stopped responding N ago". */
+  faultSince: string | null;
+  /** Legs lost in steps that still pass on another leg — worth saying, but
+   *  not an outage. */
+  degradedLabels: string[];
+  /** True when every step before the fault is confirmed up. */
   upstreamPassing: boolean;
   /** Round trip to the final hop: genuinely end-to-end from our network to
    *  them. Deliberately NOT a sum of per-hop figures — those are each measured
-   *  from the same probe, so adding them would invent a number. */
+   *  from the same probe, so adding them would invent a number. Null when the
+   *  path ends in parallel legs: there is no single "end" to measure to. */
   e2eLatencyMs: number | null;
   allOperational: boolean;
 };
 
 export function pathSummary(hops: HopLike[], nowMs: number): PathSummary {
-  const states = hops.map((h) => hopStateOf(h, nowMs));
-  const faultIndex = states.findIndex((s) => s === "down");
-  const last = hops[hops.length - 1];
-  const lastState = states[states.length - 1];
+  const steps = groupHops(hops).map((legs) => ({ legs, states: legs.map((l) => hopStateOf(l, nowMs)) }));
+  const stepStates = steps.map((s) => groupStateOf(s.states));
+
+  const faultIndex = stepStates.findIndex((s) => s === "down");
+  const fault = faultIndex === -1 ? null : steps[faultIndex];
+  const faultSince = fault
+    ? fault.legs.map((l) => l.lastCheckedAt).filter((t): t is string => t != null).sort().at(-1) ?? null
+    : null;
+
+  const degradedLabels = steps.flatMap((step, i) =>
+    stepStates[i] === "degraded" ? step.legs.filter((_, j) => step.states[j] === "down").map((l) => l.label) : [],
+  );
+
+  const last = steps[steps.length - 1];
   return {
     faultIndex: faultIndex === -1 ? null : faultIndex,
-    faultLabel: faultIndex === -1 ? null : hops[faultIndex].label,
-    upstreamPassing: faultIndex <= 0 ? false : states.slice(0, faultIndex).every((s) => s === "up"),
-    e2eLatencyMs: lastState === "up" && last ? last.latencyMs : null,
-    allOperational: hops.length > 0 && states.every((s) => s === "up"),
+    faultLabel: fault ? fault.legs.map((l) => l.label).join(" + ") : null,
+    faultSince,
+    degradedLabels,
+    upstreamPassing: faultIndex <= 0 ? false : stepStates.slice(0, faultIndex).every((s) => s === "up"),
+    // One leg's RTT is not the path's; only an unambiguous final hop qualifies.
+    e2eLatencyMs: last && last.legs.length === 1 && last.states[0] === "up" ? last.legs[0].latencyMs : null,
+    allOperational: hops.length > 0 && steps.every((s) => s.states.every((x) => x === "up")),
   };
 }
