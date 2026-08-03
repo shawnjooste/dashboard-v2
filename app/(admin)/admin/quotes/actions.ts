@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { notifyQuoteSent } from "@/lib/quote-emails";
 import { fmtMoney } from "@/lib/quotes/doc";
+import { runSubscriptionCharge } from "@/lib/subscriptions/run-charge";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -157,4 +158,63 @@ export async function adminDecideQuote(
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath("/admin/quotes");
   return { ok: true };
+}
+
+/**
+ * Staff-only: stop recurring billing on a quote's subscription. The cron
+ * only touches 'active' rows, so this is the complete off-switch. The
+ * subscription row itself (cancelled_at/by) is the audit record.
+ */
+export async function stopSubscription(quoteId: string): Promise<AdminDecisionResult> {
+  const me = await getCurrentProfile();
+  if (!me.authenticated || me.profile.role !== "rocking_staff") {
+    return { ok: false, error: "only rocking staff may stop billing" };
+  }
+  const service = createServiceClient();
+  const { data: sub } = await service
+    .from("quote_subscriptions")
+    .select("id, status")
+    .eq("quote_id", quoteId)
+    .maybeSingle();
+  if (!sub) return { ok: false, error: "no subscription on this quote" };
+  const { data: flipped } = await service
+    .from("quote_subscriptions")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: me.profile.id })
+    .eq("id", sub.id)
+    .in("status", ["active", "failed"])
+    .select("id")
+    .maybeSingle();
+  if (!flipped) return { ok: false, error: `subscription is ${sub.status} — nothing to stop` };
+  revalidatePath(`/admin/quotes/${quoteId}`);
+  return { ok: true };
+}
+
+/**
+ * Staff-only: run the charge routine for this subscription right now (the
+ * same code path as the daily cron, so behaviour cannot diverge). A 'failed'
+ * subscription is reset to active first so the schedule can act on it.
+ */
+export async function chargeSubscriptionNow(
+  quoteId: string,
+): Promise<{ ok: true; result: string } | { ok: false; error: string }> {
+  const me = await getCurrentProfile();
+  if (!me.authenticated || me.profile.role !== "rocking_staff") {
+    return { ok: false, error: "only rocking staff may charge" };
+  }
+  const service = createServiceClient();
+  const { data: sub } = await service
+    .from("quote_subscriptions")
+    .select("id, status")
+    .eq("quote_id", quoteId)
+    .maybeSingle();
+  if (!sub) return { ok: false, error: "no subscription on this quote" };
+  if (sub.status === "cancelled" || sub.status === "pending_payment") {
+    return { ok: false, error: `subscription is ${sub.status}` };
+  }
+  if (sub.status === "failed") {
+    await service.from("quote_subscriptions").update({ status: "active" }).eq("id", sub.id).eq("status", "failed");
+  }
+  const result = await runSubscriptionCharge(sub.id);
+  revalidatePath(`/admin/quotes/${quoteId}`);
+  return { ok: true, result };
 }

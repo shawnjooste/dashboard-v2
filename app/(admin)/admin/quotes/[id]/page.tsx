@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getQuoteAdminDetail } from "@/lib/views/quotes";
+import { getSubscriptionAdminDetail } from "@/lib/views/subscriptions";
 import { computeTotals, fmtMoney } from "@/lib/quotes/doc";
 import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { AdminQuoteDecision } from "./AdminQuoteDecision";
+import { SubscriptionCard } from "./SubscriptionCard";
 import { ApproveAndSendQuote } from "./ApproveAndSendQuote";
 import { PrintQuoteButton } from "./PrintQuoteButton";
 import { CreateJobFromQuote } from "./CreateJobFromQuote";
@@ -26,6 +28,8 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
       </div>
     );
   }
+
+  const subscription = quote.checkoutEnabled ? await getSubscriptionAdminDetail(quote.id) : null;
 
   const supabase = await createClient();
   const { data: client } = await supabase
@@ -75,6 +79,24 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
 
           {/* Built by the automated pipeline, not sent yet — approve to send */}
           {quote.rawStatus === "pending_review" && <ApproveAndSendQuote quoteId={quote.id} />}
+
+          {/* Recurring billing, for checkout quotes */}
+          {subscription && (
+            <SubscriptionCard
+              quoteId={quote.id}
+              status={subscription.status}
+              monthlyIncl={fmtMoney(subscription.monthlyInclCents / 100)}
+              nextChargeDate={subscription.nextChargeDate}
+              charges={subscription.charges.map((c) => ({
+                period: c.period.slice(0, 7),
+                attempt: c.attempt,
+                amount: fmtMoney(c.amountInclCents / 100),
+                status: c.status,
+                failureReason: c.failureReason,
+                at: (c.chargedAt ?? c.createdAt).slice(0, 10),
+              }))}
+            />
+          )}
 
           {/* Purchase order, captured at accept */}
           {quote.poNumber && (
