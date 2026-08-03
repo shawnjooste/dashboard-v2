@@ -6,10 +6,11 @@ import { RfqStatusControl } from "./RfqStatusControl";
 import { LinkQuote } from "./LinkQuote";
 import { RfqThread } from "./RfqThread";
 import { SupplierPicker } from "./SupplierPicker";
+import { fmtDateTime } from "@/lib/time";
 
 const LABEL = "text-[11px] font-semibold uppercase tracking-[0.3px] text-faint";
 const FIELD = "mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-faint";
-const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmtTs = fmtDateTime;
 const KIND_LABEL: Record<string, string> = {
   created: "Created",
   status: "Stage change",

@@ -12,10 +12,11 @@ import {
   HOP_KIND_ICONS,
 } from "@/lib/connectivity-helpers";
 import { Card, CardHeader, StatusPill } from "@/components/ui";
+import { fmtDateTime } from "@/lib/time";
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 const KINDS = ["fibre", "wireless", "lte", "other"] as const;
-const fmtWhen = (iso: string) => iso.replace("T", " ").slice(0, 16);
+const fmtWhen = fmtDateTime;
 
 /** The settings inputs shared by the add and edit forms. `line` prefills them
  *  on edit; the password is always blank (blank = keep the stored one). */

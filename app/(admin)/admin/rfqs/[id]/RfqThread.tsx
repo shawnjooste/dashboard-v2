@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import type { RfqMessage } from "@/lib/views/rfqs";
+import { fmtDate, fmtTime } from "@/lib/time";
 
 const fmt = (ts: string) => {
-  const [d, t] = ts.replace("T", " ").split(" ");
+  const [d, t] = [fmtDate(ts), fmtTime(ts)];
   return `${d} ${t.slice(0, 5)}`;
 };
 

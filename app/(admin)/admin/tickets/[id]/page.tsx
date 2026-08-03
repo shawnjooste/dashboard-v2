@@ -12,6 +12,7 @@ import {
   setTicketStatusAction,
 } from "../actions";
 import { Card, CardHeader, PageHeader, SecondaryLink, StatusBadge } from "@/components/ui";
+import { fmtDateTime } from "@/lib/time";
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 const WORK_TYPES = ["ticket", "remote", "onsite", "other"] as const;
@@ -86,7 +87,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
             {ticket.threads.map((t) => (
               <div key={t.id} className="border-b border-line-soft px-4 py-3 last:border-0">
                 <p className="text-xs text-faint">
-                  {t.authorName} · {t.createdAt.slice(0, 16).replace("T", " ")}
+                  {t.authorName} · {fmtDateTime(t.createdAt)}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{htmlToText(t.body)}</p>
               </div>

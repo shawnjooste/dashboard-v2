@@ -3,8 +3,9 @@ import { DeviceHealthCard } from "./DeviceHealthCard";
 import { DeviceAlerts } from "./DeviceAlerts";
 import { Sparkline } from "./Sparkline";
 import { Card, CardHeader } from "./ui/Card";
+import { fmtDateTime } from "@/lib/time";
 
-const fmt = (ts: string | null) => (ts ? ts.replace("T", " ").slice(0, 16) : "—");
+const fmt = fmtDateTime;
 
 export function DeviceDetailView({ detail }: { detail: DeviceDetail }) {
   const { health, meta, drives, alerts, trend } = detail;

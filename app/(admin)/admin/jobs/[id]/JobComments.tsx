@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addJobComment, deleteJobComment } from "../actions";
 import type { JobComment } from "@/lib/views/jobs";
+import { fmtDateTime } from "@/lib/time";
 
-const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmtTs = fmtDateTime;
 
 /** Internal staff discussion. Never emailed, never shown to a client. */
 export function JobComments({ jobId, comments }: { jobId: string; comments: JobComment[] }) {

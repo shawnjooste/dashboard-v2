@@ -15,6 +15,7 @@ import {
   Avatar,
   type Health,
 } from "@/components/ui";
+import { fmtDateTime } from "@/lib/time";
 
 export default async function TicketPage({
   params,
@@ -92,7 +93,7 @@ export default async function TicketPage({
                     <div className="text-[11.5px] text-muted">{isStaff ? "Support team" : "You"}</div>
                   </div>
                   <span className="ml-auto shrink-0 text-xs text-faint">
-                    {t.createdAt.slice(0, 16).replace("T", " ")}
+                    {fmtDateTime(t.createdAt)}
                   </span>
                 </div>
                 <p className="whitespace-pre-line px-4 py-3 text-[13.5px] leading-relaxed text-ink-2">

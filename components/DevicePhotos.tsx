@@ -2,8 +2,9 @@ import { getDevicePhotos } from "@/lib/views/device-photos";
 import { Card, CardHeader } from "@/components/ui";
 import { AddDevicePhotos } from "./AddDevicePhotos";
 import { DeleteDevicePhoto } from "./DeleteDevicePhoto";
+import { fmtDateTime } from "@/lib/time";
 
-const fmt = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmt = fmtDateTime;
 
 /** Photos of the device's physical state. Staff upload/delete; clients view. */
 export async function DevicePhotos({ deviceId, isStaff }: { deviceId: string; isStaff: boolean }) {

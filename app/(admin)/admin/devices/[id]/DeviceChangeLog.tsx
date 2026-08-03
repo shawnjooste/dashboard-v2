@@ -1,9 +1,10 @@
 import { getDeviceChanges } from "@/lib/views/devices";
 import { Card, CardHeader } from "@/components/ui";
 import { addDeviceChange, deleteDeviceChange } from "./actions";
+import { fmtDateTime } from "@/lib/time";
 
 const CATEGORIES = ["disk", "memory", "cpu", "hardware", "software", "config", "other"] as const;
-const fmt = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmt = fmtDateTime;
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 

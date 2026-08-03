@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { setDeviceDisposition } from "@/lib/actions/device-disposition";
 import { Card, CardHeader } from "@/components/ui";
 import { DispositionTag, DISPOSITION_LABELS } from "./DispositionTag";
+import { fmtDateTime } from "@/lib/time";
 
 const FIELD = "rounded-lg border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink outline-none focus:border-faint";
 
@@ -20,7 +21,7 @@ export async function DeviceDisposition({ deviceId, canEdit }: { deviceId: strin
   if (!canEdit && d.disposition === "in_use" && !d.disposition_note) return null;
 
   const save = setDeviceDisposition.bind(null, deviceId);
-  const updated = d.disposition_updated_at ? d.disposition_updated_at.replace("T", " ").slice(0, 16) : null;
+  const updated = d.disposition_updated_at ? fmtDateTime(d.disposition_updated_at) : null;
 
   return (
     <Card>

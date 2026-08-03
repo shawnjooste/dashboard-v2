@@ -9,8 +9,9 @@ import { AdminQuoteDecision } from "./AdminQuoteDecision";
 import { ApproveAndSendQuote } from "./ApproveAndSendQuote";
 import { PrintQuoteButton } from "./PrintQuoteButton";
 import { CreateJobFromQuote } from "./CreateJobFromQuote";
+import { fmtDateTime } from "@/lib/time";
 
-const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmtTs = fmtDateTime;
 
 export default async function AdminQuotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

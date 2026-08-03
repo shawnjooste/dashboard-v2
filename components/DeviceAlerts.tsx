@@ -3,8 +3,9 @@
 import { useState } from "react";
 import type { DeviceAlert } from "@/lib/views/devices";
 import { Card, CardHeader } from "./ui/Card";
+import { fmtDateTime } from "@/lib/time";
 
-const fmt = (ts: string | null) => (ts ? ts.replace("T", " ").slice(0, 16) : "—");
+const fmt = fmtDateTime;
 
 /** Pretty-print the raw Datto alert context into readable key/value rows. */
 function contextRows(ctx: Record<string, unknown> | null): { k: string; v: string }[] {

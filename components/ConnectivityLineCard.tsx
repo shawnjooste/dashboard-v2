@@ -6,8 +6,9 @@ import { Card, StatusPill } from "@/components/ui";
 import { Sparkline } from "@/components/Sparkline";
 import { RevealSecret } from "@/components/RevealSecret";
 import { ConnectivityPath } from "@/components/ConnectivityPath";
+import { fmtDateTime } from "@/lib/time";
 
-const fmtWhen = (iso: string) => iso.replace("T", " ").slice(0, 16);
+const fmtWhen = fmtDateTime;
 
 function ago(iso: string, nowMs: number): string {
   const mins = Math.max(0, Math.round((nowMs - Date.parse(iso)) / 60000));

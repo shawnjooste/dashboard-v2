@@ -10,8 +10,9 @@ import { PostUpdate } from "./PostUpdate";
 import { isClientUpdate, activityLabel } from "@/lib/job-activity";
 import { JobComments } from "./JobComments";
 import { JobPinControl } from "./JobPinControl";
+import { fmtDateTime } from "@/lib/time";
 
-const fmtTs = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmtTs = fmtDateTime;
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

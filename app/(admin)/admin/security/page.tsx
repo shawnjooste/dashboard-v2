@@ -5,6 +5,7 @@ import { getSecurityEvents, getSecurityOverview } from "@/lib/views/security";
 import { SEVERITY_ORDER } from "@/lib/security/rollup";
 import { setTriage } from "@/lib/actions/security";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
+import { fmtDateTime } from "@/lib/time";
 
 const SEVERITIES = ["critical", "high", "medium", "low", "info"] as const;
 const KINDS = ["activity", "posture"] as const;
@@ -19,7 +20,7 @@ const SEV_TONE: Record<string, string> = {
   info: "bg-line-soft text-faint",
 };
 
-const fmt = (ts: string) => ts.replace("T", " ").slice(0, 16);
+const fmt = fmtDateTime;
 
 export default async function SecurityPage({
   searchParams,
