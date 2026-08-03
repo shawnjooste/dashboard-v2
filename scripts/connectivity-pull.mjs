@@ -12,7 +12,7 @@
 //   }
 // Override the path with ROCKING_CONN_CONF. Run by hand to test:
 //   ROCKING_CONN_CONF=./conn-pull.json node scripts/connectivity-pull.mjs
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const run = promisify(execFile);
@@ -31,18 +31,6 @@ const posOrNull = (v) => {
   return n != null && n > 0 ? n : null;
 };
 
-// LibreNMS is authoritative for up/down. It does NOT expose round-trip time:
-// last_ping_timetaken is the poller's own runtime (0.4ms for a 53ms link), and
-// the real RTT lives in RRD behind rrdcached. So we ping the host ourselves —
-// same vantage point LibreNMS uses, since this runs on that box.
-function mapIcmp(device) {
-  if (!device || typeof device !== "object") return { up: null, latencyMs: null, lossPct: null };
-  const s = device.status;
-  const up = s === 1 || s === true || s === "1" ? true : s === 0 || s === false || s === "0" ? false : null;
-  if (up === null) return { up: null, latencyMs: null, lossPct: null };
-  return { up, latencyMs: posOrNull(device.ping_avg), lossPct: numOrNull(device.ping_loss) };
-}
-
 function deviceHost(device) {
   const h = device && typeof device === "object" ? device.hostname : null;
   return typeof h === "string" && h.trim() ? h.trim() : null;
@@ -54,14 +42,40 @@ function parsePing(stdout) {
   return { latencyMs: avg ? posOrNull(avg[1]) : null, lossPct: loss ? numOrNull(loss[1]) : null };
 }
 
-/** Measure real RTT + loss. Never throws — ping exits non-zero on 100% loss. */
+// Absolute path on purpose: ping lives in /sbin on macOS, which is NOT on
+// cron's PATH. Resolving it by name worked when run by hand and silently
+// ENOENT'd under cron — every scheduled run then had no measurement at all.
+const PING_BIN = ["/sbin/ping", "/bin/ping", "/usr/bin/ping"].find((p) => existsSync(p)) ?? null;
+
+/** Measure real RTT + loss. Never throws — ping exits non-zero on 100% loss.
+ *  `verdict` is true only when ping actually produced a loss figure; without
+ *  one we have no evidence and must not guess. */
 async function measure(host) {
+  const none = { latencyMs: null, lossPct: null, verdict: false };
+  if (!PING_BIN) return none;
   try {
-    const { stdout } = await run("ping", ["-c", "3", "-t", "5", host], { timeout: 15_000 });
-    return parsePing(stdout);
+    const { stdout } = await run(PING_BIN, ["-c", "3", "-t", "5", host], { timeout: 15_000 });
+    const p = parsePing(stdout);
+    return { ...p, verdict: p.lossPct != null };
   } catch (e) {
-    return parsePing(e?.stdout ?? "");
+    const p = parsePing(String(e?.stdout ?? ""));
+    return { ...p, verdict: p.lossPct != null };
   }
+}
+
+/** What we actually believe about a host.
+ *
+ *  The ping we run here is authoritative, NOT LibreNMS's status: LibreNMS
+ *  polls from inside a colima container whose user-mode networking answers
+ *  ICMP for *every* address — it reports 0% loss to reserved TEST-NET ranges
+ *  that cannot exist, so its ping-only devices always read "up". If our own
+ *  ping can't reach a verdict we record unknown rather than inheriting that
+ *  false green. (Revisit if SNMP-polled devices are ever added: for those,
+ *  LibreNMS is the better authority.) */
+function verdictFrom(m) {
+  if (!m.verdict) return { up: null, latencyMs: null, lossPct: null };
+  const up = m.lossPct < 100;
+  return { up, latencyMs: up ? m.latencyMs : null, lossPct: m.lossPct };
 }
 
 function nextDownSince(prevDownSince, up, nowIso) {
@@ -79,6 +93,7 @@ const H = {
   "Content-Type": "application/json",
 };
 const nowIso = new Date().toISOString();
+if (!PING_BIN) console.error("WARNING: no ping binary found — every host will record as unknown");
 const rest = (path, init) =>
   fetch(`${conf.supabaseUrl}/rest/v1/${path}`, { ...init, headers: { ...H, ...(init?.headers ?? {}) } });
 
@@ -101,13 +116,9 @@ for (const line of lines) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const body = await r.json();
     const device = body?.devices?.[0] ?? null;
-    sample = mapIcmp(device);
-    // Fill in the numbers LibreNMS can't give us, from an actual ping.
     const host = deviceHost(device);
-    if (sample.up !== null && host) {
-      const m = await measure(host);
-      sample = { up: sample.up, latencyMs: sample.latencyMs ?? m.latencyMs, lossPct: sample.lossPct ?? m.lossPct };
-    }
+    // Our ping decides up/down; LibreNMS only tells us which host to ping.
+    sample = host ? verdictFrom(await measure(host)) : { up: null, latencyMs: null, lossPct: null };
   } catch (e) {
     failed++;
     console.error(`${line.label}: ${e.message}`);
@@ -161,12 +172,8 @@ for (const hop of hops) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const body = await r.json();
     const device = body?.devices?.[0] ?? null;
-    sample = mapIcmp(device);
     const host = deviceHost(device);
-    if (sample.up !== null && host) {
-      const m = await measure(host);
-      sample = { up: sample.up, latencyMs: sample.latencyMs ?? m.latencyMs, lossPct: sample.lossPct ?? m.lossPct };
-    }
+    sample = host ? verdictFrom(await measure(host)) : { up: null, latencyMs: null, lossPct: null };
   } catch (e) {
     hopFailed++;
     console.error(`hop ${hop.label}: ${e.message}`);

@@ -76,6 +76,39 @@ Expect: `connectivity pull: N ok, 0 failed, N lines @ <timestamp>`.
 scp scripts/connectivity-pull.mjs vision:~/rocking/connectivity-pull.mjs
 ```
 
+## Why the ping here is authoritative (important)
+
+LibreNMS runs in Docker under colima, and **colima's user-mode networking
+answers ICMP for every address**. From inside the container, `fping` reports
+0% loss at ~0.4 ms to `192.0.2.1`, `198.51.100.77` and `203.0.113.254` —
+reserved TEST-NET addresses that cannot exist. The practical consequence:
+
+> **Every ping-only device in LibreNMS reads "up", including ones that are
+> unreachable.** This affects LibreNMS's own alerting too, not just the portal.
+
+So this script does its own `ping` from the macOS host (which routes
+correctly) and that result decides up/down. LibreNMS is used only to look up
+which host an id refers to. When our ping can't produce a verdict we record
+**unknown**, never "up" — the portal would rather show "no reading" than a
+false green.
+
+If SNMP-polled devices are added later, revisit: for those LibreNMS is the
+better authority.
+
+## ping must be called by absolute path
+
+`ping` lives at **/sbin/ping** on macOS, which is *not* on cron's PATH
+(`/usr/bin:/bin`). Calling it by name worked when run by hand and silently
+failed with ENOENT under cron — so scheduled runs recorded no measurement and
+fell back to LibreNMS's false "up". The script now resolves an absolute path
+and shouts if it can't find one; the crontab also sets PATH. Test changes the
+way cron will run them:
+
+```bash
+env -i HOME=$HOME PATH=/usr/bin:/bin ROCKING_CONN_CONF=$HOME/.config/rocking/conn-pull.json \
+  /opt/homebrew/bin/node ~/rocking/connectivity-pull.mjs
+```
+
 ## What LibreNMS actually returns
 
 `GET /api/v0/devices/{id}` gives `status` (boolean), `last_ping_timetaken`
