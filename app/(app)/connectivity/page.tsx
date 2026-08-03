@@ -4,6 +4,7 @@ import { canAccess, toOverrides } from "@/lib/feature-access";
 import { getConnectivityLines } from "@/lib/views/connectivity";
 import { ConnectivityLineCard } from "@/components/ConnectivityLineCard";
 import { Card, PageHeader } from "@/components/ui";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 export default async function ConnectivityPage() {
   const me = await getCurrentProfile();
@@ -15,6 +16,8 @@ export default async function ConnectivityPage() {
 
   return (
     <div className="space-y-6">
+      {/* the pull writes every 5 minutes; keep an open tab in step with it */}
+      <AutoRefresh seconds={60} />
       <PageHeader
         title="Connectivity"
         subtitle="Your internet lines — how they're set up and whether they're up right now."
