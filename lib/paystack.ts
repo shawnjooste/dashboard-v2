@@ -22,12 +22,16 @@ async function ps(path: string, init?: RequestInit): Promise<{ status: boolean; 
   return json;
 }
 
-/** Start a hosted checkout; returns the URL to redirect the client to. */
+/** Start a hosted checkout; returns the URL to redirect the client to.
+ *  `channels: ["card"]` forces card-only — required when the payment must
+ *  yield a REUSABLE authorization (recurring quote checkouts); EFT and other
+ *  channels produce authorizations that cannot be charged again. */
 export async function initializeTransaction(opts: {
   email: string;
   amountCents: number;
   reference: string;
   callbackUrl: string;
+  channels?: string[];
 }): Promise<string> {
   const json = await ps("/transaction/initialize", {
     method: "POST",
@@ -37,6 +41,7 @@ export async function initializeTransaction(opts: {
       currency: "ZAR",
       reference: opts.reference,
       callback_url: opts.callbackUrl,
+      ...(opts.channels?.length ? { channels: opts.channels } : {}),
     }),
   });
   const url = json.data.authorization_url;
@@ -44,8 +49,46 @@ export async function initializeTransaction(opts: {
   return url;
 }
 
-/** Server-side fallback check (the webhook is the primary truth). */
-export async function verifyTransaction(reference: string): Promise<{ paid: boolean; amountCents: number }> {
+/** Server-side fallback check (the webhook is the primary truth). Also
+ *  surfaces the card authorization so subscription checkouts can store it. */
+export async function verifyTransaction(reference: string): Promise<{
+  paid: boolean;
+  amountCents: number;
+  authorizationCode: string | null;
+  customerCode: string | null;
+}> {
   const json = await ps(`/transaction/verify/${encodeURIComponent(reference)}`);
-  return { paid: json.data.status === "success", amountCents: Number(json.data.amount ?? 0) };
+  const auth = json.data.authorization as { authorization_code?: string; reusable?: boolean } | undefined;
+  const customer = json.data.customer as { customer_code?: string } | undefined;
+  return {
+    paid: json.data.status === "success",
+    amountCents: Number(json.data.amount ?? 0),
+    authorizationCode: auth?.authorization_code ?? null,
+    customerCode: customer?.customer_code ?? null,
+  };
+}
+
+/** Charge a stored (reusable) card authorization — the recurring engine.
+ *  Synchronous result. A DECLINE is HTTP 200 with data.status !== "success",
+ *  so it is returned, not thrown; only transport/API errors throw (callers
+ *  leave the attempt pending and retry on the next cron run). */
+export async function chargeAuthorization(opts: {
+  email: string;
+  amountCents: number;
+  reference: string;
+  authorizationCode: string;
+}): Promise<{ success: boolean; failureReason: string | null }> {
+  const json = await ps("/transaction/charge_authorization", {
+    method: "POST",
+    body: JSON.stringify({
+      email: opts.email,
+      amount: opts.amountCents,
+      currency: "ZAR",
+      reference: opts.reference,
+      authorization_code: opts.authorizationCode,
+    }),
+  });
+  const ok = json.data.status === "success";
+  const reason = (json.data.gateway_response ?? json.data.status) as string | undefined;
+  return { success: ok, failureReason: ok ? null : (reason ?? "declined") };
 }
