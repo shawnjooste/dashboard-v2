@@ -347,6 +347,7 @@ export type Database = {
       connectivity_path_hops: {
         Row: {
           created_at: string
+          detail: string | null
           id: string
           kind: string
           label: string
@@ -359,6 +360,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          detail?: string | null
           id?: string
           kind?: string
           label: string
@@ -371,6 +373,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          detail?: string | null
           id?: string
           kind?: string
           label?: string

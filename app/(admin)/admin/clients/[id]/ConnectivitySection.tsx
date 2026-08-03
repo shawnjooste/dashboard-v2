@@ -109,6 +109,7 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
                 <span className="font-medium text-ink">{h.label}</span>
                 <span className="text-muted">
                   {HOP_KIND_LABELS[h.kind] ?? h.kind}
+                  {h.detail ? ` · ${h.detail}` : ""}
                   {h.librenmsDeviceId ? ` · NMS ${h.librenmsDeviceId}` : ""} · {live}
                 </span>
                 <span className="ml-auto flex shrink-0 items-center gap-2">
@@ -144,6 +145,7 @@ function PathEditor({ line, clientId, nowMs }: { line: ConnectivityLine; clientI
           ))}
         </select>
         <input name="hop_librenms_device_id" type="number" min="1" placeholder="NMS id" className={`${FIELD} w-24`} />
+        <input name="hop_detail" placeholder="Detail, e.g. MZB-EDGE-04 · sector B3" className={`${FIELD} min-w-0 flex-1`} />
         <button className="rounded-lg border border-line px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:bg-line-soft">
           Add hop
         </button>

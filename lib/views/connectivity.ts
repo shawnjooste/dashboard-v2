@@ -9,6 +9,7 @@ export type PathHop = {
   position: number;
   label: string;
   kind: string;
+  detail: string | null;
   librenmsDeviceId: number | null;
   lastUp: boolean | null;
   latencyMs: number | null;
@@ -78,7 +79,7 @@ export async function getConnectivityLines(
     .order("at");
   const { data: hopRows } = await supabase
     .from("connectivity_path_hops")
-    .select("id, service_id, position, label, kind, librenms_device_id, last_up, latency_ms, last_checked_at")
+    .select("id, service_id, position, label, kind, detail, librenms_device_id, last_up, latency_ms, last_checked_at")
     .in(
       "service_id",
       rows.map((r) => r.id),
@@ -92,6 +93,7 @@ export async function getConnectivityLines(
       position: h.position,
       label: h.label,
       kind: h.kind,
+      detail: h.detail,
       librenmsDeviceId: h.librenms_device_id,
       lastUp: h.last_up,
       latencyMs: h.latency_ms == null ? null : Number(h.latency_ms),

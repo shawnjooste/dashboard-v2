@@ -15,6 +15,10 @@ import {
   connectorBroken,
   firstBreakIndex,
   linkState,
+  pathSummary,
+  hopStateOf,
+  HOP_STATUS_WORD,
+  type HopLike,
 } from "./connectivity-helpers";
 
 describe("speedLabel", () => {
@@ -206,5 +210,61 @@ describe("linkState", () => {
   });
   it("unknown when we have a check but no verdict", () => {
     expect(linkState({ up: null, lossPct: null, lastCheckedAt: fresh }, NOW)).toBe("unknown");
+  });
+});
+
+describe("pathSummary", () => {
+  const NOW = Date.parse("2026-08-03T10:00:00.000Z");
+  const fresh = "2026-08-03T09:58:00.000Z";
+  const hop = (over: Partial<HopLike> = {}): HopLike => ({
+    label: "Hop",
+    librenmsDeviceId: 1,
+    lastUp: true,
+    latencyMs: 5,
+    lastCheckedAt: fresh,
+    ...over,
+  });
+
+  it("reports all clear when every hop is up", () => {
+    const s = pathSummary([hop({ label: "A" }), hop({ label: "B", latencyMs: 9.1 })], NOW);
+    expect(s.allOperational).toBe(true);
+    expect(s.faultIndex).toBeNull();
+    expect(s.e2eLatencyMs).toBe(9.1);
+  });
+
+  it("isolates the first break and confirms upstream is passing", () => {
+    const s = pathSummary(
+      [hop({ label: "Internet" }), hop({ label: "Core" }), hop({ label: "Edge", lastUp: false, latencyMs: null }), hop({ label: "CPE", lastUp: false })],
+      NOW,
+    );
+    expect(s.faultIndex).toBe(2);
+    expect(s.faultLabel).toBe("Edge");
+    expect(s.upstreamPassing).toBe(true);
+    expect(s.allOperational).toBe(false);
+  });
+
+  it("does not claim upstream is passing when the very first hop is down", () => {
+    const s = pathSummary([hop({ label: "Internet", lastUp: false }), hop({ label: "Core" })], NOW);
+    expect(s.faultIndex).toBe(0);
+    expect(s.upstreamPassing).toBe(false);
+  });
+
+  it("has no end-to-end figure when the last hop isn't up", () => {
+    expect(pathSummary([hop(), hop({ lastUp: false, latencyMs: null })], NOW).e2eLatencyMs).toBeNull();
+    // unmonitored final hop: no reading, not a fault
+    expect(pathSummary([hop(), hop({ librenmsDeviceId: null })], NOW).e2eLatencyMs).toBeNull();
+  });
+
+  it("treats an unmonitored or stale hop as idle, never as a fault", () => {
+    const s = pathSummary([hop(), hop({ librenmsDeviceId: null }), hop({ lastCheckedAt: "2026-08-03T08:00:00.000Z" })], NOW);
+    expect(s.faultIndex).toBeNull();
+    expect(s.allOperational).toBe(false);
+  });
+
+  it("handles an empty path", () => {
+    const s = pathSummary([], NOW);
+    expect(s.allOperational).toBe(false);
+    expect(s.faultIndex).toBeNull();
+    expect(s.e2eLatencyMs).toBeNull();
   });
 });

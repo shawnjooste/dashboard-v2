@@ -172,3 +172,56 @@ export function linkState(
   }
   return "unknown";
 }
+
+export type HopState = "up" | "down" | "idle";
+
+export type HopLike = {
+  label: string;
+  librenmsDeviceId: number | null;
+  lastUp: boolean | null;
+  latencyMs: number | null;
+  lastCheckedAt: string | null;
+};
+
+/** A hop we don't monitor, or haven't heard from recently, is "idle" — drawn
+ *  neutral. It is never evidence of a fault. */
+export function hopStateOf(hop: HopLike, nowMs: number): HopState {
+  if (hop.librenmsDeviceId == null) return "idle";
+  if (isStale(hop.lastCheckedAt, nowMs)) return "idle";
+  if (hop.lastUp === true) return "up";
+  if (hop.lastUp === false) return "down";
+  return "idle";
+}
+
+export const HOP_STATUS_WORD: Record<HopState, string> = {
+  up: "OPERATIONAL",
+  down: "DOWN",
+  idle: "NO DATA",
+};
+
+export type PathSummary = {
+  /** Index of the first hop known to be down — where the path breaks. */
+  faultIndex: number | null;
+  faultLabel: string | null;
+  /** True when every hop before the fault is confirmed up. */
+  upstreamPassing: boolean;
+  /** Round trip to the final hop: genuinely end-to-end from our network to
+   *  them. Deliberately NOT a sum of per-hop figures — those are each measured
+   *  from the same probe, so adding them would invent a number. */
+  e2eLatencyMs: number | null;
+  allOperational: boolean;
+};
+
+export function pathSummary(hops: HopLike[], nowMs: number): PathSummary {
+  const states = hops.map((h) => hopStateOf(h, nowMs));
+  const faultIndex = states.findIndex((s) => s === "down");
+  const last = hops[hops.length - 1];
+  const lastState = states[states.length - 1];
+  return {
+    faultIndex: faultIndex === -1 ? null : faultIndex,
+    faultLabel: faultIndex === -1 ? null : hops[faultIndex].label,
+    upstreamPassing: faultIndex <= 0 ? false : states.slice(0, faultIndex).every((s) => s === "up"),
+    e2eLatencyMs: lastState === "up" && last ? last.latencyMs : null,
+    allOperational: hops.length > 0 && states.every((s) => s === "up"),
+  };
+}

@@ -159,6 +159,7 @@ export async function addHop(serviceId: string, clientId: string, formData: Form
     label,
     kind: HOP_KINDS.includes(kind as (typeof HOP_KINDS)[number]) ? kind : "other",
     librenms_device_id: num(formData, "hop_librenms_device_id"),
+    detail: str(formData, "hop_detail"),
     position: (last?.[0]?.position ?? -1) + 1,
   });
   if (error) throw new Error(error.message);
