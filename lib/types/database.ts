@@ -2251,6 +2251,129 @@ export type Database = {
           },
         ]
       }
+      quote_subscription_charges: {
+        Row: {
+          amount_cents: number
+          attempt_number: number
+          billing_period: string
+          charge_type: string
+          charged_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          paystack_reference: string
+          status: string
+          subscription_id: string
+          vat_cents: number
+        }
+        Insert: {
+          amount_cents: number
+          attempt_number?: number
+          billing_period: string
+          charge_type: string
+          charged_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paystack_reference: string
+          status?: string
+          subscription_id: string
+          vat_cents: number
+        }
+        Update: {
+          amount_cents?: number
+          attempt_number?: number
+          billing_period?: string
+          charge_type?: string
+          charged_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paystack_reference?: string
+          status?: string
+          subscription_id?: string
+          vat_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_subscription_charges_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "quote_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_subscriptions: {
+        Row: {
+          activated_at: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_id: string
+          created_at: string
+          id: string
+          monthly_amount_cents: number
+          next_charge_date: string | null
+          paystack_authorization_code: string | null
+          paystack_customer_code: string | null
+          quote_id: string
+          status: string
+          vat_cents: number
+        }
+        Insert: {
+          activated_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          monthly_amount_cents: number
+          next_charge_date?: string | null
+          paystack_authorization_code?: string | null
+          paystack_customer_code?: string | null
+          quote_id: string
+          status?: string
+          vat_cents: number
+        }
+        Update: {
+          activated_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          monthly_amount_cents?: number
+          next_charge_date?: string | null
+          paystack_authorization_code?: string | null
+          paystack_customer_code?: string | null
+          quote_id?: string
+          status?: string
+          vat_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_subscriptions_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_subscriptions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_versions: {
         Row: {
           created_at: string
@@ -2302,6 +2425,7 @@ export type Database = {
         Row: {
           booking_link_created_at: string | null
           booking_url: string | null
+          checkout_enabled: boolean
           client_id: string
           created_at: string
           created_by: string | null
@@ -2317,6 +2441,7 @@ export type Database = {
         Insert: {
           booking_link_created_at?: string | null
           booking_url?: string | null
+          checkout_enabled?: boolean
           client_id: string
           created_at?: string
           created_by?: string | null
@@ -2332,6 +2457,7 @@ export type Database = {
         Update: {
           booking_link_created_at?: string | null
           booking_url?: string | null
+          checkout_enabled?: boolean
           client_id?: string
           created_at?: string
           created_by?: string | null
