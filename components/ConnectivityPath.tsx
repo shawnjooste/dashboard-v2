@@ -33,7 +33,7 @@ const WORD: Record<HopState, string> = {
   idle: "text-faint",
 };
 const TILE: Record<HopState, string> = {
-  up: "bg-ink text-white border-ink",
+  up: "bg-good text-white border-good",
   down: "bg-brand text-white border-brand",
   idle: "bg-card text-faint border-line",
 };
@@ -85,7 +85,7 @@ export function ConnectivityPath({ hops }: { hops: PathHop[] }) {
           const state = states[i];
           const prev = i > 0 ? states[i - 1] : null;
           const connector =
-            state === "down" ? "bg-brand" : state === "idle" || prev === "idle" ? "bg-line" : "bg-ink";
+            state === "down" ? "bg-brand" : state === "idle" || prev === "idle" ? "bg-line" : "bg-good";
           const dashed = state === "idle" || prev === "idle";
 
           return (
