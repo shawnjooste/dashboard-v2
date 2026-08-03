@@ -1,72 +1,102 @@
 import type { PathHop } from "@/lib/views/connectivity";
-import { HOP_KIND_LABELS, HOP_KIND_ICONS, connectorBroken, isStale } from "@/lib/connectivity-helpers";
+import { HOP_KIND_LABELS, HOP_KIND_ICONS, isStale } from "@/lib/connectivity-helpers";
 
-/** Tone for a hop node: unmonitored hops are neutral (they're labels, not
- *  measurements), stale ones are muted rather than claiming to be live. */
-function hopTone(hop: PathHop, nowMs: number): "up" | "down" | "unknown" | "plain" {
-  if (hop.librenmsDeviceId == null) return "plain";
-  if (isStale(hop.lastCheckedAt, nowMs)) return "unknown";
+type HopState = "up" | "down" | "idle";
+
+/** Tile state. An unmonitored or stale hop is "idle" — drawn grey and dashed
+ *  rather than claiming a reading we don't have. */
+function hopState(hop: PathHop, nowMs: number): HopState {
+  if (hop.librenmsDeviceId == null) return "idle";
+  if (isStale(hop.lastCheckedAt, nowMs)) return "idle";
   if (hop.lastUp === true) return "up";
   if (hop.lastUp === false) return "down";
-  return "unknown";
+  return "idle";
 }
 
-const DOT: Record<string, string> = {
-  up: "bg-good",
+const TILE: Record<HopState, string> = {
+  up: "border-ink text-ink",
+  down: "border-brand text-brand",
+  idle: "border-line text-faint",
+};
+
+const DOT: Record<HopState, string | null> = {
+  up: "bg-good-dot",
   down: "bg-brand",
-  unknown: "bg-warn",
-  plain: "bg-line",
+  idle: null,
 };
 
 /**
- * The route a client's traffic takes, drawn as a chain: internet → core →
- * distribution → their site. Hops mapped to LibreNMS carry their own live
- * status, so an outage shows *where* it is rather than just that it exists.
+ * The route a client's traffic takes: internet → core → distribution → their
+ * device, as a chain of tiles. A hop mapped to LibreNMS carries its own live
+ * status, so an outage shows *where* it is. The connector into a hop goes
+ * dashed when that hop isn't live — a link waiting to be plugged in reads as
+ * pending, not broken.
  */
 export function ConnectivityPath({ hops }: { hops: PathHop[] }) {
   if (hops.length === 0) return null;
   const nowMs = Date.now();
-  const tones = hops.map((h) => hopTone(h, nowMs));
+  const states = hops.map((h) => hopState(h, nowMs));
 
   return (
-    <div className="border-b border-line-soft px-4 py-3.5">
+    <div className="border-b border-line-soft px-4 py-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-faint">Path</div>
-      <div className="mt-2.5 flex flex-col gap-1 sm:flex-row sm:items-start">
+
+      <div className="mt-3 flex flex-col items-stretch gap-0 sm:flex-row sm:items-start">
         {hops.map((hop, i) => {
-          const tone = tones[i];
-          const broken =
-            i > 0 &&
-            connectorBroken({
-              up: hop.lastUp,
-              monitored: hop.librenmsDeviceId != null && !isStale(hop.lastCheckedAt, nowMs),
-            });
+          const state = states[i];
+          const dot = DOT[state];
+          const connector =
+            state === "down" ? "border-brand" : state === "idle" ? "border-line" : "border-faint";
+          const dashed = state === "idle" ? "border-dashed" : "border-solid";
+
           return (
-            <div key={hop.id} className="flex items-start gap-1 sm:flex-1 sm:flex-col sm:items-stretch">
+            <div key={hop.id} className="flex items-center gap-0 sm:flex-1 sm:flex-col sm:items-center">
               {i > 0 && (
                 <>
-                  {/* connector: vertical on mobile, horizontal on desktop */}
+                  {/* vertical connector on mobile, horizontal on desktop */}
                   <span
                     aria-hidden
-                    className={`mx-auto my-0.5 h-4 w-px shrink-0 sm:hidden ${broken ? "bg-brand" : "bg-line"}`}
+                    className={`ml-[31px] h-6 shrink-0 border-l-[3px] ${connector} ${dashed} sm:hidden`}
                   />
                   <span
                     aria-hidden
-                    className={`hidden h-px w-full sm:block ${broken ? "bg-brand" : "bg-line"}`}
-                    style={{ marginTop: 22 }}
+                    className={`hidden w-full border-t-[3px] ${connector} ${dashed} sm:block`}
+                    style={{ marginTop: 31 }}
                   />
                 </>
               )}
-              <div className="min-w-0 flex-1 rounded-lg border border-line bg-canvas px-2.5 py-2 sm:-mt-[23px]">
-                <div className="flex items-center gap-1.5">
-                  <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${DOT[tone]}`} />
-                  <span className="shrink-0 text-[13px] leading-none text-ink-3">{HOP_KIND_ICONS[hop.kind] ?? "●"}</span>
-                  <span className="truncate text-[12.5px] font-semibold text-ink">{hop.label}</span>
+
+              <div className="flex items-center gap-3 sm:flex-col sm:gap-0 sm:text-center">
+                <div className="relative shrink-0 sm:-mt-[31px]">
+                  <div
+                    className={`flex h-16 w-16 items-center justify-center rounded-[10px] border-[3px] bg-card text-xl ${TILE[state]}`}
+                  >
+                    {HOP_KIND_ICONS[hop.kind] ?? "●"}
+                  </div>
+                  {dot && (
+                    <span
+                      aria-hidden
+                      className={`absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full border-[3px] border-card ${dot}`}
+                    />
+                  )}
                 </div>
-                <div className="mt-0.5 truncate text-[11px] text-muted">
-                  {HOP_KIND_LABELS[hop.kind] ?? "Hop"}
-                  {tone === "up" && hop.latencyMs != null ? ` · ${hop.latencyMs.toFixed(1)} ms` : ""}
-                  {tone === "down" ? " · down" : ""}
-                  {tone === "unknown" ? " · no reading" : ""}
+
+                <div className="min-w-0 sm:mt-2 sm:w-full sm:px-1">
+                  <div className="truncate text-[13px] font-semibold text-ink">{hop.label}</div>
+                  <div className="truncate text-[11.5px] text-muted">
+                    {HOP_KIND_LABELS[hop.kind] ?? "Hop"}
+                  </div>
+                  <div className="truncate text-[11.5px] text-faint">
+                    {state === "up"
+                      ? hop.latencyMs != null
+                        ? `${hop.latencyMs.toFixed(1)} ms`
+                        : "online"
+                      : state === "down"
+                        ? "not responding"
+                        : hop.librenmsDeviceId == null
+                          ? "not monitored"
+                          : "awaiting first check"}
+                  </div>
                 </div>
               </div>
             </div>
