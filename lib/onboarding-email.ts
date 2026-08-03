@@ -76,6 +76,60 @@ export function billingWelcomeContent(company: string): {
   };
 }
 
+/** Welcome copy for a connectivity client — someone whose line we monitor.
+ *  Deliberately promises only what the Connectivity section actually shows, so
+ *  a reader scoped to that one section isn't sold features they can't open. */
+export function connectivityWelcomeContent(company: string): {
+  preheader: string;
+  intro: string;
+  eyebrow: string;
+  features: OnboardingFeature[];
+} {
+  return {
+    preheader: "Your Rocking portal — see your line, live, whenever you want to.",
+    intro: `We&rsquo;ve set up a portal for ${esc(company)} where you can see your connection at any time &mdash; whether it&rsquo;s up, how it&rsquo;s performing, and exactly where a problem sits if one ever appears. No technical know-how needed.`,
+    eyebrow: "What you can do here",
+    features: [
+      { title: "See your line, live", body: "Whether it's up right now, its response time, and how it's behaved over the last 24 hours." },
+      { title: "See where a fault actually is", body: "Your connection is drawn hop by hop, so a problem shows up in one place instead of being a guess." },
+      { title: "Get help without the back-and-forth", body: "Raise a request in plain English and follow it through in the same place." },
+    ],
+  };
+}
+
+/** The "here's how to read your connectivity page" note. Sent after the
+ *  welcome, once there is something worth looking at. */
+export function connectivityExplainerContent(company: string): {
+  preheader: string;
+  headline: string;
+  intro: string;
+  eyebrow: string;
+  ctaLabel: string;
+  features: OnboardingFeature[];
+} {
+  return {
+    preheader: "How to read your connectivity page — what the colours mean.",
+    headline: "How to read your connectivity page",
+    intro: `Your line for ${esc(company)} is now being checked every five minutes from our network, and the results go straight onto your Connectivity page. Here&rsquo;s what you&rsquo;re looking at.`,
+    eyebrow: "The three things on the page",
+    ctaLabel: "Open Connectivity",
+    features: [
+      {
+        title: "Your line, at the top",
+        body: "Whether it's up, its current response time in milliseconds, and a 24-hour graph so you can see whether today looks like a normal day.",
+      },
+      {
+        title: "The path, hop by hop",
+        body: "Every step your traffic takes, from the open internet through to the equipment on your site. Green means that step answered on the last check; red means it didn't; grey means we aren't watching that one.",
+      },
+      {
+        title: "The line underneath, in plain English",
+        body: "Rather than leaving you to work it out, we say it: all clear, or exactly which step has stopped responding and whether everything before it is still fine.",
+      },
+    ],
+  };
+}
+
 /** SECURITY: `portalUrl` is normally a one-click passwordless sign-in link —
  *  possession of it authenticates as the invitee. Anything that persists or
  *  re-displays this HTML must render it with a harmless URL instead (see
