@@ -3,6 +3,10 @@
 //   node scripts/create-quote.mjs quote.json            # new quote, status sent
 //   node scripts/create-quote.mjs quote.json --amend <quoteId>   # new version
 //   ... --no-email                                      # import silently
+//   ... --checkout                                       # checkout-enabled: client PAYS the quote
+//                                                        #   (Paystack card checkout; once-off +
+//                                                        #   pro-rata now, monthly billed on the 1st)
+//                                                        #   instead of clicking Accept
 //   ... --pending-review                                # status pending_review, notify
 //                                                        #   shawn@/kelle@rocking.one instead of
 //                                                        #   emailing the client — for quotes built
@@ -60,6 +64,7 @@ const amendIdx = rest.indexOf("--amend");
 const amendId = amendIdx !== -1 ? rest[amendIdx + 1] : null;
 const noEmail = rest.includes("--no-email");
 const pendingReview = rest.includes("--pending-review");
+const checkoutEnabled = rest.includes("--checkout");
 const initialStatus = pendingReview ? "pending_review" : "sent";
 const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
@@ -99,7 +104,7 @@ if (amendId) {
   if (vErr) throw vErr;
   await insertInternal(v.id);
   const { error: uErr } = await sb.from("quotes")
-    .update({ current_version: version, status: initialStatus, title }).eq("id", quoteId);
+    .update({ current_version: version, status: initialStatus, title, ...(checkoutEnabled ? { checkout_enabled: true } : {}) }).eq("id", quoteId);
   if (uErr) throw uErr;
   await sb.from("quote_events").insert({ quote_id: quoteId, version, event: initialStatus });
 } else {
@@ -116,6 +121,7 @@ if (amendId) {
 
   const { data: q, error: qErr } = await sb.from("quotes").insert({
     client_id: clientId, quote_number: quoteNumber, title, status: initialStatus,
+    checkout_enabled: checkoutEnabled,
   }).select("id").single();
   if (qErr) throw qErr;
   quoteId = q.id;
@@ -295,5 +301,6 @@ if (noEmail) {
 }
 
 console.log(`${amendId ? "Amended" : "Created"} ${quoteNumber} v${version} — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)}/mo` : ""}`);
+if (checkoutEnabled) console.log("Checkout: ENABLED (client pays instead of accepting)");
 console.log(`Manager view: ${url}`);
 console.log(`Admin view:   ${APP_URL}/admin/quotes/${quoteId}`);
