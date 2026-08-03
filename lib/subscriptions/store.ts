@@ -133,6 +133,69 @@ export async function startCheckout(opts: {
 }
 
 /**
+ * Arrears recovery: hosted checkout (card-only) for the failed period's full
+ * monthly amount. Paying it clears that period, captures a fresh reusable
+ * authorization over the old one, and re-activates the subscription — any
+ * later unpaid periods are caught up by the daily cron, whose
+ * next_charge_date now lies in the past.
+ */
+export async function payArrears(opts: {
+  quoteId: string;
+  email: string;
+}): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const service = createServiceClient();
+  const { data: sub } = await service
+    .from("quote_subscriptions")
+    .select("id, status, monthly_amount_cents, vat_cents, next_charge_date")
+    .eq("quote_id", opts.quoteId)
+    .maybeSingle();
+  if (!sub || sub.status !== "failed" || !sub.next_charge_date) {
+    return { ok: false, error: "there's nothing outstanding on this quote" };
+  }
+  const period = sub.next_charge_date;
+
+  const { data: prior } = await service
+    .from("quote_subscription_charges")
+    .select("attempt_number")
+    .eq("subscription_id", sub.id)
+    .eq("billing_period", period)
+    .order("attempt_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const attempt = (prior?.attempt_number ?? 0) + 1;
+  const reference = chargeReference(sub.id, period, attempt);
+
+  const { error: chErr } = await service.from("quote_subscription_charges").insert({
+    subscription_id: sub.id,
+    charge_type: "recurring",
+    billing_period: period,
+    amount_cents: sub.monthly_amount_cents,
+    vat_cents: sub.vat_cents,
+    paystack_reference: reference,
+    attempt_number: attempt,
+  });
+  if (chErr) return { ok: false, error: chErr.message };
+
+  try {
+    const url = await initializeTransaction({
+      email: opts.email,
+      amountCents: sub.monthly_amount_cents + sub.vat_cents,
+      reference,
+      callbackUrl: `${APP_URL}/quotes/${opts.quoteId}`,
+      channels: ["card"],
+    });
+    return { ok: true, url };
+  } catch (e) {
+    await service
+      .from("quote_subscription_charges")
+      .update({ status: "failed", failure_reason: "paystack initialize failed" })
+      .eq("paystack_reference", reference);
+    console.error("payArrears initialize failed:", e);
+    return { ok: false, error: "could not start the payment — try again shortly" };
+  }
+}
+
+/**
  * Flip a charge to paid once verified. Idempotent: webhook, verify-fallback
  * and duplicate deliveries all land here safely. The paid-flip is the
  * critical write; every side-effect after it is best-effort.

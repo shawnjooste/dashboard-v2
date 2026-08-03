@@ -4,8 +4,12 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { canAccess, toOverrides } from "@/lib/feature-access";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getQuoteDetail } from "@/lib/views/quotes";
-import { fmtMoney, STATUS_LABEL } from "@/lib/quotes/doc";
+import { computeTotals, fmtMoney, STATUS_LABEL } from "@/lib/quotes/doc";
 import { notifyQuoteViewed } from "@/lib/quote-emails";
+import { computeInitialBreakdown } from "@/lib/subscriptions/billing";
+import { confirmSubscriptionCharge } from "@/lib/subscriptions/store";
+import { getSubscriptionForQuote } from "@/lib/views/subscriptions";
+import { verifyTransaction } from "@/lib/paystack";
 import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { PageHeader } from "@/components/ui";
@@ -33,12 +37,37 @@ async function logViewed(quoteId: string, version: number, profileId: string): P
   return true;
 }
 
-export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function QuotePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
   if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "quotes")) redirect("/");
   if (me.profile.role !== "client_manager") redirect("/");
+
+  // Landing back from Paystack: server-side verify fallback (the webhook is
+  // the primary truth; this covers a delayed or missed delivery so the page
+  // reflects the payment immediately).
+  const sp = await searchParams;
+  const ref = [sp.reference, sp.trxref].flat().find((r) => typeof r === "string" && r.startsWith("qs-"));
+  if (ref) {
+    try {
+      const v = await verifyTransaction(ref);
+      if (v.paid) {
+        await confirmSubscriptionCharge(ref, v.amountCents, {
+          authorizationCode: v.authorizationCode,
+          customerCode: v.customerCode,
+        });
+      }
+    } catch (e) {
+      console.error("checkout verify fallback failed:", e);
+    }
+  }
 
   const quote = await getQuoteDetail(id);
   if (!quote) {
@@ -67,7 +96,36 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  const subscription = quote.checkoutEnabled ? await getSubscriptionForQuote(quote.id) : null;
+
+  // Checkout breakdown, computed server-side at render. The action recomputes
+  // at click time — the only divergence window is a midnight boundary.
+  let checkout: {
+    onceOff: string; proRata: string; periodStart: string | null; periodEnd: string | null;
+    monthlyIncl: string; totalIncl: string;
+  } | null = null;
+  if (quote.checkoutEnabled && quote.status === "sent" && (!subscription || subscription.status === "pending_payment")) {
+    const totals = computeTotals(quote.doc);
+    const onceOffExCents = Math.round(totals.subtotal * 100);
+    const monthlyExCents = Math.round((totals.revenueExVat - totals.subtotal) * 100);
+    if (monthlyExCents > 0) {
+      const b = computeInitialBreakdown({
+        onceOffExCents, monthlyExCents, vatPercent: quote.doc.vatPercent, today: new Date(),
+      });
+      const monthlyIncl = monthlyExCents + Math.round((monthlyExCents * quote.doc.vatPercent) / 100);
+      checkout = {
+        onceOff: fmtMoney(b.onceOffCents / 100),
+        proRata: fmtMoney(b.proRataCents / 100),
+        periodStart: b.periodStart,
+        periodEnd: b.periodEnd,
+        monthlyIncl: fmtMoney(monthlyIncl / 100),
+        totalIncl: fmtMoney(b.totalCents / 100),
+      };
+    }
+  }
+
   const decidedBanner =
+    !subscription &&
     quote.decision &&
     (quote.status === "accepted" || quote.status === "rejected" || quote.status === "changes_requested");
 
@@ -89,6 +147,24 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
           }
         />
       </div>
+
+      {subscription && subscription.status === "active" && (
+        <div className="rounded-lg border border-good-line bg-good-tint px-4 py-3 text-sm text-good print:hidden">
+          <strong>Active</strong> — {fmtMoney(subscription.monthlyInclCents / 100)} incl VAT is billed
+          automatically on the 1st of each month.
+          {subscription.nextChargeDate ? <> Next billing date: {subscription.nextChargeDate}.</> : null}
+        </div>
+      )}
+
+      {subscription && subscription.status === "failed" && (
+        <div className="rounded-lg border border-warn-line bg-warn-tint-2 px-4 py-3 text-sm text-warn-ink print:hidden">
+          <strong>Payment problem</strong> — your last monthly payment didn&apos;t go through.{" "}
+          <Link href={`/quotes/${quote.id}/pay`} className="font-semibold underline underline-offset-2">
+            Update your card and settle the outstanding amount
+          </Link>
+          .
+        </div>
+      )}
 
       {decidedBanner && quote.decision && (
         <div
@@ -125,6 +201,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         clientName={quote.doc.client.name}
         totalInclVat={fmtMoney(quote.grandTotal)}
         canAct={quote.status === "sent"}
+        checkout={checkout}
       />
 
       <QuoteDocument doc={quote.doc} />

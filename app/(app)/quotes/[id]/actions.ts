@@ -6,8 +6,36 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { canAccess, toOverrides } from "@/lib/feature-access";
 import { isExpired } from "@/lib/quotes/doc";
 import { notifyQuoteDecision } from "@/lib/quote-emails";
+import { startCheckout } from "@/lib/subscriptions/store";
 
 type Decision = "accepted" | "rejected" | "changes_requested";
+
+/**
+ * Begin Paystack checkout on a checkout-enabled quote. Same guards as a
+ * decision (manager of THIS client, quotes feature on); the store validates
+ * quote state and computes the charge server-side.
+ */
+export async function checkoutQuote(
+  quoteId: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const me = await getCurrentProfile();
+  if (!me.authenticated || me.profile.role !== "client_manager" || !me.profile.client_id) {
+    return { ok: false, error: "only client managers can pay quotes" };
+  }
+  if (!canAccess(me.profile.role, toOverrides(me.profile.feature_overrides), "quotes")) {
+    return { ok: false, error: "quotes are not enabled for your account" };
+  }
+  const service = createServiceClient();
+  const { data: quote } = await service
+    .from("quotes")
+    .select("client_id")
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (!quote || quote.client_id !== me.profile.client_id) {
+    return { ok: false, error: "quote not found" };
+  }
+  return startCheckout({ quoteId, email: me.profile.email });
+}
 
 /**
  * Records a manager's decision on a quote. First click wins: the status flip

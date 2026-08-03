@@ -1,24 +1,36 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { acceptQuote, declineQuote, requestChanges } from "./actions";
+import { acceptQuote, checkoutQuote, declineQuote, requestChanges } from "./actions";
 
 /** Accept / Request changes / Decline / Print. First click wins server-side;
  *  errors from a lost race surface in the inline message. */
+export type CheckoutBreakdown = {
+  onceOff: string;
+  proRata: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  monthlyIncl: string;
+  totalIncl: string;
+};
+
 export function QuoteActions({
   quoteId,
   quoteNumber,
   clientName,
   totalInclVat,
   canAct,
+  checkout = null,
 }: {
   quoteId: string;
   quoteNumber: string;
   clientName: string;
   totalInclVat: string;
   canAct: boolean;
+  /** Present on checkout-enabled quotes: replaces Accept with paid Checkout. */
+  checkout?: CheckoutBreakdown | null;
 }) {
-  const [mode, setMode] = useState<"none" | "accept" | "amend" | "decline">("none");
+  const [mode, setMode] = useState<"none" | "accept" | "checkout" | "amend" | "decline">("none");
   const [comment, setComment] = useState("");
   const [poNumber, setPoNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +53,15 @@ export function QuoteActions({
     run(() => acceptQuote(quoteId, fd));
   };
 
+  const submitCheckout = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await checkoutQuote(quoteId);
+      if (res.ok) window.location.href = res.url;
+      else setError(res.error);
+    });
+  };
+
   const submitComment = () => {
     const fd = new FormData();
     fd.set("comment", comment);
@@ -55,11 +76,15 @@ export function QuoteActions({
           <>
             <button
               type="button"
-              onClick={() => { setMode(mode === "accept" ? "none" : "accept"); setError(null); }}
+              onClick={() => {
+                const target = checkout ? "checkout" : "accept";
+                setMode(mode === target ? "none" : target);
+                setError(null);
+              }}
               disabled={pending}
               className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
             >
-              Accept quote
+              {checkout ? "Checkout" : "Accept quote"}
             </button>
             <button
               type="button"
@@ -87,6 +112,54 @@ export function QuoteActions({
           Print / Save PDF
         </button>
       </div>
+
+      {mode === "checkout" && canAct && checkout && (
+        <div className="rounded-lg border border-line bg-card p-4">
+          <p className="text-[13px] font-semibold text-ink">Pay quote {quoteNumber}</p>
+          <dl className="mt-3 space-y-1.5 text-[13.5px]">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Once-off (installation &amp; setup)</dt>
+              <dd className="font-medium text-ink-2">{checkout.onceOff}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">
+                {checkout.periodStart
+                  ? `Pro-rata for ${checkout.periodStart} to ${checkout.periodEnd}`
+                  : "Pro-rata for this month"}
+              </dt>
+              <dd className="font-medium text-ink-2">
+                {checkout.periodStart ? checkout.proRata : "R 0,00 — billing starts on the 1st"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-line-soft pt-1.5">
+              <dt className="font-semibold text-ink">Payable now (incl VAT)</dt>
+              <dd className="font-semibold text-ink">{checkout.totalIncl}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
+            {checkout.monthlyIncl} incl VAT will be billed automatically to this card on the 1st of
+            every month until cancelled.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={submitCheckout}
+              disabled={pending}
+              className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
+            >
+              {pending ? "Starting payment…" : "Pay now"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("none")}
+              disabled={pending}
+              className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line-soft"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {mode === "accept" && canAct && (
         <div className="rounded-lg border border-line bg-card p-4">
