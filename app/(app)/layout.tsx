@@ -29,10 +29,11 @@ export default async function AppLayout({
   let accountName: string | null = null;
   let billingEnabled = false;
   let connectivityEnabled = false;
+  let suspensionNote: string | null = null;
   if (me.profile.client_id) {
     const supabase = await createClient();
     const [{ data: client }, { data: firstName }, hasLines] = await Promise.all([
-      supabase.from("clients").select("name, xero_contact_id").eq("id", me.profile.client_id).maybeSingle(),
+      supabase.from("clients").select("name, xero_contact_id, suspended_at, suspension_note").eq("id", me.profile.client_id).maybeSingle(),
       // Read the caller's own name via SECURITY DEFINER, not the RLS people query:
       // a person row stranded under a different client would be hidden by RLS and
       // loop this gate back to /welcome forever.
@@ -44,6 +45,10 @@ export default async function AppLayout({
     accountName = client?.name ?? null;
     billingEnabled = !!client?.xero_contact_id;
     connectivityEnabled = hasLines;
+    // Non-null suspended_at is the flag; the note is what they actually read.
+    suspensionNote = client?.suspended_at
+      ? (client.suspension_note ?? "Some of your services are currently suspended.")
+      : null;
     // First-login gate: capture the user's name before they use the portal.
     // Skipped while a staff member is impersonating — saving is a write, which
     // the read-only impersonation guard blocks, so forcing it would dead-end.
@@ -74,6 +79,7 @@ export default async function AppLayout({
       accountName={accountName}
       billingEnabled={billingEnabled}
       allowedHrefs={[...allowed].map((f) => FEATURE_HREFS[f])}
+      suspensionNote={suspensionNote}
     >
       {children}
       {chat && crispId && (

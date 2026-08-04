@@ -21,6 +21,7 @@ export function AppShell({
   accountName,
   billingEnabled = false,
   allowedHrefs,
+  suspensionNote,
   children,
 }: {
   email: string;
@@ -28,6 +29,9 @@ export function AppShell({
   impersonating?: string | null;
   accountName?: string | null;
   billingEnabled?: boolean;
+  /** Set when the client's services are suspended — renders a standing
+   *  banner. A notice only; nothing in the portal is gated. */
+  suspensionNote?: string | null;
   /** Hrefs of the gateable sections this user may see (from feature access).
    *  Omitted (staff/admin shell) = no feature filtering. */
   allowedHrefs?: string[];
@@ -54,6 +58,20 @@ export function AppShell({
               Exit
             </button>
           </form>
+        </div>
+      )}
+
+      {suspensionNote && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-warn-tint px-4 py-2.5 text-sm text-warn-ink print:hidden">
+          <span>
+            <strong>Some services are suspended.</strong> {suspensionNote}
+          </span>
+          <a
+            href="/billing"
+            className="shrink-0 rounded border border-warn-line px-3 py-0.5 font-medium hover:bg-warn-tint-2"
+          >
+            View billing
+          </a>
         </div>
       )}
 
