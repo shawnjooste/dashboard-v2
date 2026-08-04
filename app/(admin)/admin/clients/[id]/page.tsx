@@ -4,6 +4,7 @@ import { summarize } from "@/lib/views/health";
 import { SummaryStrip } from "@/components/SummaryStrip";
 import { DeviceTable } from "@/components/DeviceTable";
 import { UsersSection } from "./UsersSection";
+import { SuspensionSection } from "./SuspensionSection";
 import { SupportSection } from "./SupportSection";
 import { SecuritySection } from "./SecuritySection";
 import { ConnectivitySection } from "./ConnectivitySection";
@@ -35,6 +36,7 @@ export default async function AdminClientPage({
         }
       />
       <SummaryStrip summary={summarize(devices)} />
+      <SuspensionSection clientId={id} />
       <SupportSection clientId={id} />
       <SecuritySection clientId={id} />
       <ConnectivitySection clientId={id} />
