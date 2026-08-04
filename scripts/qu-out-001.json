@@ -27,7 +27,7 @@
       "preparedBy": "Shawn Jooste"
     },
     "projectTitle": "Microsoft 365 Licensing",
-    "projectIntro": "Revised at your request: Kirsten Dodgen, Lexi Reid and Sandy Gaizley have been removed, and Gerioeneesa Bailey has been moved to Business Basic ahead of her departure. This quote covers Microsoft 365 licensing for 17 users — 14 on Business Standard and 3 on Business Basic — on a Microsoft NCE annual commitment billed monthly. All prices exclude VAT (15%).",
+    "projectIntro": "Final revision: Kirsten Dodgen, Lexi Reid and Sandy Gaizley are removed, and Gerioeneesa Bailey remains on Business Standard until her departure so she keeps the desktop Office apps. This quote covers Microsoft 365 licensing for 17 users — 15 on Business Standard and 2 on Business Basic — on a Microsoft NCE annual commitment billed monthly. All prices exclude VAT (15%).",
     "sections": [
       {
         "id": "recurring",
@@ -39,15 +39,15 @@
           {
             "items": [
               {
-                "description": "Microsoft 365 Business Standard — 14 users",
-                "detail": "Full desktop Office apps, 1TB OneDrive, Exchange, Teams and SharePoint. Assigned to: Alex Holmes, Ammer Gajadur, Andrew Hochfelden, Anthea Petersen, Bianca Van Rooyen, Braam Rakoma, Chane Tessener, Dominique Bennett, Jayson Theron, Melissa Robinson, Philip Williams, Stefan Hugo, Tarryn Gander, Thabiso Lelosa.",
-                "qty": 14,
+                "description": "Microsoft 365 Business Standard — 15 users",
+                "detail": "Full desktop Office apps, 1TB OneDrive, Exchange, Teams and SharePoint. Assigned to: Alex Holmes, Ammer Gajadur, Andrew Hochfelden, Anthea Petersen, Bianca Van Rooyen, Braam Rakoma, Chane Tessener, Dominique Bennett, Gerioeneesa Bailey, Jayson Theron, Melissa Robinson, Philip Williams, Stefan Hugo, Tarryn Gander, Thabiso Lelosa.",
+                "qty": 15,
                 "unitPrice": 250.65
               },
               {
-                "description": "Microsoft 365 Business Basic — 3 users",
-                "detail": "Web and mobile Office apps, Exchange, Teams and SharePoint. Assigned to: Hilda Allin, OC Alerts, Gerioeneesa Bailey.",
-                "qty": 3,
+                "description": "Microsoft 365 Business Basic — 2 users",
+                "detail": "Web and mobile Office apps, Exchange, Teams and SharePoint. Assigned to: Hilda Allin, OC Alerts.",
+                "qty": 2,
                 "unitPrice": 115.0
               }
             ]
@@ -55,7 +55,7 @@
         ]
       }
     ],
-    "summaryNote": "On the Business Basic downgrade for Gerioeneesa Bailey: she keeps her full mailbox, Teams, SharePoint and OneDrive files, and can use Word, Excel and the other Office apps in the browser and on mobile — but Business Basic does not include the desktop Office applications, so anything she does in the installed desktop apps today would move to the web versions. If she needs the desktop apps until she leaves, keep her on Standard and drop the licence at the annual renewal or on departure. The two Copilot licences remain excluded; Jayson Theron and Stefan Hugo continue to license Copilot directly from Microsoft.",
+    "summaryNote": "Gerioeneesa Bailey remains on Business Standard so she keeps the desktop Office apps until she leaves; her licence will be dropped at the annual renewal or on her departure, whichever applies. The two Copilot licences remain excluded; Jayson Theron and Stefan Hugo continue to license Copilot directly from Microsoft.",
     "terms": [
       "This quote is valid for 14 days from the date of issue.",
       "All prices exclude VAT at 15% unless otherwise stated.",
@@ -77,13 +77,13 @@
   "internal": [
     {
       "path": "s0.g0.i0",
-      "supplierCost": 2807.28,
-      "note": "Multi — M365 Business Standard, Annual Commit / Monthly Billing. 14 x R200.52 ex VAT = R2,807.28 (v4: was 17 — Kirsten Dodgen + Lexi Reid removed, Gerioeneesa Bailey downgraded to Basic pending departure, per Jayson 2026-08-04). NON-STANDARD 25% MARKUP per Shawn: R250.65 to client."
+      "supplierCost": 3007.8,
+      "note": "Multi — M365 Business Standard. 15 x R200.52 ex VAT = R3,007.80 (v5: Gerioeneesa Bailey back on Standard per Jayson 2026-08-04 — keeps desktop apps until departure; DROP HER LICENCE at annual renewal or departure, whichever comes first). 25% markup per Shawn: R250.65."
     },
     {
       "path": "s0.g0.i1",
-      "supplierCost": 268.29,
-      "note": "Multi — M365 Business Basic. 3 x R89.43 ex VAT = R268.29 (v4: Sandy Gaizley removed, Gerioeneesa Bailey added). Client price R115.00 ex VAT per Shawn (28.6% on this line, deliberate). NCE caveat: licence REDUCTIONS take effect at annual renewal — check the Multi/NCE term status before actioning the downgrades, the removals may bill until renewal."
+      "supplierCost": 178.86,
+      "note": "Multi — M365 Business Basic. 2 x R89.43 ex VAT = R178.86 (v5: Hilda Allin + OC Alerts only). Client price R115.00 ex VAT per Shawn (deliberate). NCE caveat: reductions take effect at annual renewal — check Multi term status before actioning removals (Kirsten, Lexi, Sandy)."
     }
   ]
 }
