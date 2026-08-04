@@ -231,6 +231,8 @@ export type Database = {
           status: Database["public"]["Enums"]["client_status"]
           support_package_id: string | null
           support_plan_label: string | null
+          suspended_at: string | null
+          suspension_note: string | null
           xero_contact_id: string | null
         }
         Insert: {
@@ -240,6 +242,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["client_status"]
           support_package_id?: string | null
           support_plan_label?: string | null
+          suspended_at?: string | null
+          suspension_note?: string | null
           xero_contact_id?: string | null
         }
         Update: {
@@ -249,6 +253,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["client_status"]
           support_package_id?: string | null
           support_plan_label?: string | null
+          suspended_at?: string | null
+          suspension_note?: string | null
           xero_contact_id?: string | null
         }
         Relationships: [
