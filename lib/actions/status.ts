@@ -68,6 +68,26 @@ export async function postUpdate(incidentId: string, formData: FormData) {
   revalidatePath("/status");
 }
 
+/** Flip incident mode on an incident that's already running.
+ *
+ *  The checkbox on the post form only covers the moment you post, and an
+ *  outage rarely announces up front that it's going to need chat. This is the
+ *  same switch, reachable for the whole life of the incident. Resolving still
+ *  closes chat regardless of what this is set to. */
+export async function setIncidentChat(incidentId: string, open: boolean) {
+  await staff();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("status_incidents")
+    .update({ opens_chat: open, updated_at: new Date().toISOString() })
+    .eq("id", incidentId);
+  if (error) throw new Error(error.message);
+  // Client pages read this per request (the layout is dynamic), so chat
+  // appears or disappears on their next navigation — no deploy, no waiting.
+  revalidatePath("/status");
+  revalidatePath("/admin/status");
+}
+
 /** Resolution is an update too — with the flag set and the incident closed. */
 export async function resolveIncident(incidentId: string, formData: FormData) {
   const me = await staff();

@@ -125,7 +125,7 @@ export async function StatusView() {
                 <UpdateList updates={i.updates} />
                 {isStaff && (
                   <div className="mt-3">
-                    <IncidentControls incidentId={i.id} />
+                    <IncidentControls incidentId={i.id} opensChat={i.opensChat} />
                   </div>
                 )}
               </li>

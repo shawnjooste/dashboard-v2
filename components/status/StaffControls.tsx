@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { postIncident, postUpdate, resolveIncident } from "@/lib/actions/status";
+import { postIncident, postUpdate, resolveIncident, setIncidentChat } from "@/lib/actions/status";
 import { INCIDENT_TYPES, TYPE_LABELS } from "@/lib/status-helpers";
 
 const FIELD =
@@ -149,11 +149,28 @@ export function PostIncidentForm({ clients }: { clients: { id: string; name: str
   );
 }
 
-/** Post an update to, or resolve, one active incident. */
-export function IncidentControls({ incidentId }: { incidentId: string }) {
+/** Post an update to, resolve, or open/close chat on one active incident. */
+export function IncidentControls({
+  incidentId,
+  opensChat,
+}: {
+  incidentId: string;
+  opensChat: boolean;
+}) {
   const [mode, setMode] = useState<null | "update" | "resolve">(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
+
+  const toggleChat = () => {
+    setErr(null);
+    start(async () => {
+      try {
+        await setIncidentChat(incidentId, !opensChat);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Could not change that");
+      }
+    });
+  };
 
   const submit = (fd: FormData) => {
     setErr(null);
@@ -170,7 +187,7 @@ export function IncidentControls({ incidentId }: { incidentId: string }) {
 
   if (!mode) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setMode("update")}
@@ -185,6 +202,26 @@ export function IncidentControls({ incidentId }: { incidentId: string }) {
         >
           Resolve
         </button>
+        {/* Incident mode, reachable for the whole life of the incident — an
+            outage rarely announces up front that it's going to need chat. */}
+        <button
+          type="button"
+          onClick={toggleChat}
+          disabled={pending}
+          className={
+            opensChat
+              ? "rounded-md border border-good-line bg-good-tint px-2.5 py-1 text-xs font-semibold text-good transition-colors hover:bg-good-tint/60 disabled:opacity-60"
+              : "rounded-md border border-brand bg-brand-tint px-2.5 py-1 text-xs font-semibold text-brand transition-colors hover:bg-brand-tint/60 disabled:opacity-60"
+          }
+          title={
+            opensChat
+              ? "Stop offering live chat to everyone this incident affects"
+              : "Give everyone this incident affects live chat, whatever package they're on"
+          }
+        >
+          {pending ? "Saving…" : opensChat ? "Close live chat" : "Open live chat"}
+        </button>
+        {err && <span className="text-[12.5px] font-medium text-brand">{err}</span>}
       </div>
     );
   }
