@@ -72,51 +72,6 @@ const wrap = (body: string) => `
     ${body}
   </div>`;
 
-/** Job opened → active managers, each greeted by first name. Owner BCC'd once. Returns the number sent. */
-export async function notifyJobOpened(opts: { clientId: string; title: string; ownerProfileId?: string | null }): Promise<number> {
-  const recipients = await managerRecipients(opts.clientId);
-  const owner = await ownerEmail(opts.ownerProfileId);
-  const bcc = ownerBcc(owner, recipients.map((r) => r.email));
-  let sent = 0;
-  for (const [i, r] of recipients.entries()) {
-    try {
-      await sendEmail(
-        [r.email],
-        `We've started work — ${opts.title}`,
-        wrap(`
-      <p style="color:#444; margin:0 0 14px;">Hi ${r.name},</p>
-      <h2 style="margin:0 0 8px;">We're on it</h2>
-      <p style="color:#444; margin:0;">Rocking has opened a job for you: <strong>${opts.title}</strong>. We'll keep you posted on how it progresses.</p>
-    `),
-        i === 0 ? bcc : undefined, // owner copy rides the first send only
-        { clientId: opts.clientId, audience: "client" },
-      );
-      sent++;
-    } catch (e) {
-      console.error("job opened email failed for", r.email, e);
-    }
-  }
-  return sent;
-}
-
-/** Job completed → active managers, owner BCC'd. Returns the recipient count. */
-export async function notifyJobCompleted(opts: { clientId: string; title: string; ownerProfileId?: string | null }): Promise<number> {
-  const to = (await managerRecipients(opts.clientId)).map((r) => r.email);
-  if (to.length === 0) return 0;
-  const bcc = ownerBcc(await ownerEmail(opts.ownerProfileId), to);
-  await sendEmail(
-    to,
-    `Completed — ${opts.title}`,
-    wrap(`
-      <h2 style="margin:0 0 8px;">All done</h2>
-      <p style="color:#444; margin:0;"><strong>${opts.title}</strong> is complete. Thanks — reach out any time if you need anything else.</p>
-    `),
-    bcc,
-    { clientId: opts.clientId, audience: "client" },
-  );
-  return to.length;
-}
-
 /** Manual "Post update" → active managers, owner BCC'd. Returns the recipient count. */
 export async function notifyJobUpdate(opts: { clientId: string; title: string; body: string; ownerProfileId?: string | null }): Promise<number> {
   const to = (await managerRecipients(opts.clientId)).map((r) => r.email);

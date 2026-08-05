@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import { isClientUpdate, activityLabel, CLIENT_UPDATE_KINDS } from "./job-activity";
 
 describe("isClientUpdate", () => {
-  it("is true for the kinds the client was actually told about", () => {
-    expect(isClientUpdate("opened")).toBe(true);
+  it("is true for 'update' — the only kind that emails the client", () => {
     expect(isClientUpdate("update")).toBe(true);
-    expect(isClientUpdate("completed")).toBe(true);
+  });
+  it("is false for opening and completing, which no longer email anyone", () => {
+    expect(isClientUpdate("opened")).toBe(false);
+    expect(isClientUpdate("completed")).toBe(false);
   });
   it("is false for internal activity kinds", () => {
     expect(isClientUpdate("status")).toBe(false);
@@ -14,8 +16,8 @@ describe("isClientUpdate", () => {
   it("is false for an unknown kind, so new internal kinds never leak into the client panel", () => {
     expect(isClientUpdate("something_new")).toBe(false);
   });
-  it("exposes exactly the three client kinds", () => {
-    expect([...CLIENT_UPDATE_KINDS].sort()).toEqual(["completed", "opened", "update"]);
+  it("exposes only 'update' — the one kind that actually emails the client", () => {
+    expect([...CLIENT_UPDATE_KINDS]).toEqual(["update"]);
   });
 });
 

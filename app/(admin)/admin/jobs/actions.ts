@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { notifyJobOpened, notifyJobCompleted, notifyJobUpdate, notifyTaskAssigned } from "@/lib/job-emails";
+import { notifyJobUpdate, notifyTaskAssigned } from "@/lib/job-emails";
 import type { PersonName, AssigneeKind } from "@/lib/job-email-helpers";
 import { reorderSwap } from "@/lib/job-task-helpers";
 import { placeCard } from "@/lib/job-board-helpers";
@@ -42,13 +42,9 @@ async function openJob(
     await supabase.from("job_tasks").insert(args.tasks.map((label, i) => ({ job_id: job.id, label, position: i })));
   }
 
-  let emailed = 0;
-  try {
-    emailed = await notifyJobOpened({ clientId: args.clientId, title: args.title, ownerProfileId: args.ownerProfileId });
-  } catch (e) {
-    console.error("job opened email failed:", e);
-  }
-  await supabase.from("job_updates").insert({ job_id: job.id, kind: "opened", posted_by_profile_id: actorId, emailed_count: emailed });
+  // Opening a job deliberately does NOT email the client. The only client-facing
+  // job mail is the explicit "Post update" form — see postJobUpdate.
+  await supabase.from("job_updates").insert({ job_id: job.id, kind: "opened", posted_by_profile_id: actorId, emailed_count: 0 });
   return job.id;
 }
 
@@ -106,13 +102,9 @@ async function applyStatusChange(
   await supabase.from("jobs").update(patch).eq("id", jobId);
 
   if (justCompleted) {
-    let emailed = 0;
-    try {
-      emailed = await notifyJobCompleted({ clientId: job.client_id, title: job.title, ownerProfileId: job.owner_profile_id });
-    } catch (e) {
-      console.error("job completed email failed:", e);
-    }
-    await supabase.from("job_updates").insert({ job_id: jobId, kind: "completed", posted_by_profile_id: actorId, emailed_count: emailed });
+    // Completing a job deliberately does NOT email the client — tell them via the
+    // "Post update" form if they should know. The row is still logged as activity.
+    await supabase.from("job_updates").insert({ job_id: jobId, kind: "completed", posted_by_profile_id: actorId, emailed_count: 0 });
   } else if (job.status !== status) {
     // Internal trail only — no email, and never shown in the client panel.
     await supabase.from("job_updates").insert({
@@ -233,8 +225,12 @@ export async function setTaskAssignee(taskId: string, jobId: string, assigneePro
   await supabase.from("job_tasks").update({ assignee_profile_id: assigneeProfileId }).eq("id", taskId);
   await supabase.from("jobs").update({ updated_at: new Date().toISOString() }).eq("id", jobId);
 
-  // Email only on a *new* assignment (not unassign, not re-selecting the same person).
-  if (assignee && assigneeProfileId !== task.assignee_profile_id) {
+  // Email only on a *new* assignment (not unassign, not re-selecting the same person),
+  // and only when the assignee is Rocking staff. A client manager can still be
+  // assigned a task — it shows on the job and in the activity trail — but clients
+  // are never mailed automatically; the "Post update" form is the only client-facing
+  // job mail.
+  if (assignee && assignee.kind === "staff" && assigneeProfileId !== task.assignee_profile_id) {
     try {
       let ownerEmailAddr: string | null = null;
       if (job.owner_profile_id) {
@@ -245,6 +241,10 @@ export async function setTaskAssignee(taskId: string, jobId: string, assigneePro
     } catch (e) {
       console.error("task assigned email failed:", e);
     }
+  }
+
+  // Record every new assignment, staff or client, emailed or not.
+  if (assignee && assigneeProfileId !== task.assignee_profile_id) {
     await supabase.from("job_updates").insert({
       job_id: jobId,
       kind: "assigned",
