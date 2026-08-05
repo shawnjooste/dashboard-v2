@@ -1,0 +1,77 @@
+{
+  "clientId": "9f0cfd10-c1f6-4cae-8bf0-39e61d287d48",
+  "title": "Dell Vostro 15 5501 Replacement Battery",
+  "validUntil": "2026-08-19",
+  "number": "QU-GSR-007",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "GSR Law",
+      "attention": "Monique",
+      "addressLines": [
+        "155 Campground Road, Newlands",
+        "Cape Town, 7700"
+      ]
+    },
+    "meta": {
+      "quoteNumber": "QU-GSR-007",
+      "date": "5 August 2026",
+      "validUntil": "19 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell Vostro 15 5501 Replacement Battery",
+    "projectIntro": "This quote covers a genuine Dell replacement battery for Paul-Rick's Dell Vostro 15 5501 (Service Tag 1GC6503), supplied and fitted. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Battery Supply",
+        "subtitle": "Genuine Dell part",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell Original 64Whr 4-Cell Battery — Vostro 15 5501",
+                "detail": "Genuine Dell replacement battery for the Dell Vostro 15 5501, Service Tag 1GC6503 (Paul-Rick's laptop). Delivery included — bundled with an existing supplier order at no charge.",
+                "qty": 1,
+                "unitPrice": 1953.85
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Genuine Dell part via our distributor. Delivery is included — the battery ships with an existing order, so there is no delivery charge.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Payment is made online by card via this quote.",
+      "The part is ordered once payment is received.",
+      "Manufacturer warranty applies to the battery supplied."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": 1699,
+      "note": "Pinnacle (Nicholus de Jager) — R1,699 ex VAT, delivery excluded but bundled FOC with the existing CFS Pinnacle order (laptop & RAM). Beat TechExpress online at R2,125.20 incl. RFQ 94d06c84 (requested by Monique)."
+    }
+  ]
+}

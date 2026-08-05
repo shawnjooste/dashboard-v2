@@ -1,0 +1,87 @@
+{
+  "clientId": "5fe87e5f-7243-44b0-922e-9b075a2b20f5",
+  "title": "Dell P3426WEB 34\" Monitor + Desk Bracket",
+  "validUntil": "2026-08-19",
+  "number": "QU-CIL-002",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "CILSA",
+      "attention": "Woulene",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-CIL-002",
+      "date": "5 August 2026",
+      "validUntil": "19 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Dell P3426WEB 34\" Monitor + Desk Bracket",
+    "projectIntro": "This quote covers 1x additional Dell P3426WEB 34\" curved video conferencing monitor plus a desk-mount bracket. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "supply",
+        "title": "Section 1 — Monitor & Bracket Supply",
+        "subtitle": "Supply only",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Dell P3426WEB 34\" Curved Video Conferencing Monitor",
+                "detail": "34\" curved WQHD (3440x1440) video conferencing monitor with built-in camera, microphone and speakers (Dell item 210-BVHQ). Lead time approximately 3-4 weeks from order.",
+                "qty": 1,
+                "unitPrice": 12577.55
+              },
+              {
+                "description": "Monitor Bracket BRK-LDT34-C012U — 17-32\" Desk Mount, 90° Tilt",
+                "detail": "Desk-mount monitor bracket for 17-32\" screens with 90° tilt. In stock.",
+                "qty": 1,
+                "unitPrice": 1347.03
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "The monitor has a supplier lead time of approximately 3-4 weeks from order; the bracket is in stock. Bracket delivery is not included and will be confirmed on order.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Supply only — no installation included.",
+      "Pricing is subject to exchange-rate fluctuations and supplier stock availability.",
+      "Payment is due prior to order placement.",
+      "Goods remain the property of Rocking until paid in full.",
+      "Manufacturer warranty applies to all hardware supplied."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": 10937,
+      "note": "Pinnacle (Nicholus de Jager) — R10,937 ex VAT prior pricing reconfirmed as reference, ETA 3-4 weeks, no new pricing given. CILSA also holds a R464.60 credit with Pinnacle per Kelle. RFQ 00bd924b / token vrjvhm66."
+    },
+    {
+      "path": "s0.g0.i1",
+      "supplierCost": 1171.33,
+      "note": "Linkqage (Chandra) — R1,171.33 ex VAT, in stock, delivery NOT included. RFQ e228d377 / token 2a2bmh0g."
+    }
+  ]
+}

@@ -231,7 +231,8 @@ if (noEmail) {
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
-      to: reviewers, subject: `Quote ${quoteNumber} ready for review — ${doc.client.name}`,
+      to: reviewers, cc: ["accounts@rocking.one"],
+      subject: `Quote ${quoteNumber} ready for review — ${doc.client.name}`,
       html: `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">Quote ready for review</h2>
@@ -271,7 +272,7 @@ if (noEmail) {
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
-      to, cc: ["shawn@rocking.one"], subject: `${heading}: ${title}`,
+      to, cc: ["shawn@rocking.one", "accounts@rocking.one"], subject: `${heading}: ${title}`,
       html: clientHtml,
     }),
   });
@@ -288,7 +289,7 @@ if (noEmail) {
     // the two write paths must be kept in sync by hand.
     await sb.from("sent_emails").insert({
       client_id: clientId,
-      to_emails: [...to, "shawn@rocking.one"].map((e) => e.trim().toLowerCase()),
+      to_emails: [...to, "shawn@rocking.one", "accounts@rocking.one"].map((e) => e.trim().toLowerCase()),
       subject: `${heading}: ${title}`,
       html: clientHtml,
       category: "quote",

@@ -8,6 +8,8 @@ import { createSingleUseBookingLink, isBookingLinkStale } from "@/lib/calendly";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
+// Standing rule (2026-08-05): accounts@ is copied on ALL quote-related email.
+const ACCOUNTS_EMAIL = "accounts@rocking.one";
 const REVIEWERS = ["shawn@rocking.one", "kelle@rocking.one"];
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
@@ -77,7 +79,7 @@ export async function notifyQuotePendingReview(opts: {
       </p>
       ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "Review the quote")}
     `),
-    undefined,
+    [ACCOUNTS_EMAIL],
     { audience: "internal" },
   );
 }
@@ -148,7 +150,7 @@ export async function notifyQuoteSent(opts: {
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
       ${bookingCta(bookingUrl)}
     `),
-    [ADMIN_EMAIL],
+    [ADMIN_EMAIL, ACCOUNTS_EMAIL],
     { clientId: opts.clientId, audience: "client" },
   );
   if (messageId) {
@@ -181,7 +183,7 @@ export async function notifyQuoteViewed(opts: {
       </p>
       ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "View in admin")}
     `),
-    undefined,
+    [ACCOUNTS_EMAIL],
     { audience: "internal" },
   );
 }
@@ -215,7 +217,7 @@ export async function notifyQuoteDecision(opts: {
       ${opts.comment ? `<p style="color:#444; border-left:3px solid #E4E4E7; padding-left:12px; margin:0 0 16px;">"${opts.comment}"</p>` : ""}
       ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
     `),
-    undefined,
+    [ACCOUNTS_EMAIL],
     { clientId: opts.clientId, audience: "client" },
   );
 }
