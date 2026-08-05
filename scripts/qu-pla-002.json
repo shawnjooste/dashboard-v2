@@ -1,0 +1,107 @@
+{
+  "clientId": "5c8a9215-388c-43ab-a361-9fafd9d9d01b",
+  "title": "Network Installation — Rack, Switch, Cabling & Labour",
+  "validUntil": "2026-08-18",
+  "number": "QU-PLA-002",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Plane Talking",
+      "attention": "Dillon Birns",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-PLA-002",
+      "date": "4 August 2026",
+      "validUntil": "18 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "Network Installation — Rack, Switch, Cabling & Labour",
+    "projectIntro": "This quote covers the once-off network installation for Plane Talking: a compact 6U rack, PoE switch, network-point cabling and installation labour. The 100Mbps connectivity service is quoted separately under QU-PLA-001. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "setup",
+        "title": "Section 1 — Once-Off Installation",
+        "subtitle": "Hardware, cabling & labour",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "6U Desktop 10-inch Mini Rack",
+                "detail": "Compact 6U desktop/wall-mount rack for the network equipment.",
+                "qty": 1,
+                "unitPrice": 1025.0
+              },
+              {
+                "description": "Cudy 10-Port Fast Ethernet Switch — 8x PoE, 115W",
+                "detail": "10-port switch with 8 PoE ports and a 115W power budget.",
+                "qty": 1,
+                "unitPrice": 500.0
+              },
+              {
+                "description": "Network Point Cabling",
+                "detail": "Cable and materials for the network points.",
+                "qty": 1,
+                "unitPrice": 1000.0
+              },
+              {
+                "description": "Installation Labour",
+                "detail": "Racking, cabling, switch configuration and commissioning.",
+                "qty": 1,
+                "unitPrice": 1000.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Once-off installation only — the 100Mbps connectivity service is quoted separately under QU-PLA-001 and paid online by card.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Payment is due on acceptance, prior to installation.",
+      "Installation is scheduled once payment is received.",
+      "Hardware remains the property of Rocking until paid in full."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": null,
+      "note": "6U mini rack — client price R1,025 ex VAT per Shawn; supplier cost not supplied. Split from QU-PLA-001 (2026-08-04)."
+    },
+    {
+      "path": "s0.g0.i1",
+      "supplierCost": null,
+      "note": "Cudy 10-port 8-PoE 115W switch — client price R500 ex VAT per Shawn; supplier cost not supplied."
+    },
+    {
+      "path": "s0.g0.i2",
+      "supplierCost": 0,
+      "note": "Network point cabling — own materials/stock, R1,000 ex VAT."
+    },
+    {
+      "path": "s0.g0.i3",
+      "supplierCost": 0,
+      "note": "Installation labour — own labour, R1,000 ex VAT."
+    }
+  ]
+}

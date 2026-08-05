@@ -1,6 +1,6 @@
 {
   "clientId": "5c8a9215-388c-43ab-a361-9fafd9d9d01b",
-  "title": "100Mbps Connectivity & Network Installation",
+  "title": "100Mbps Connectivity",
   "validUntil": "2026-08-18",
   "number": "QU-PLA-001",
   "doc": {
@@ -26,45 +26,9 @@
       "validUntil": "18 August 2026",
       "preparedBy": "Shawn Jooste"
     },
-    "projectTitle": "100Mbps Connectivity & Network Installation",
-    "projectIntro": "This quote covers a 100Mbps connectivity service for Plane Talking, together with the once-off network installation: a compact 6U wall rack, PoE switch, network-point cabling and installation labour. Payment is online by card — the once-off installation plus a pro-rata portion of the current month is paid at checkout, and the monthly service fee is then billed automatically on the 1st of each month. All prices exclude VAT (15%).",
+    "projectTitle": "100Mbps Connectivity",
+    "projectIntro": "This quote covers the 100Mbps connectivity service for Plane Talking, paid online by card: a pro-rata portion of the current month at checkout, and the monthly fee billed automatically on the 1st of each month thereafter. The once-off network installation (rack, switch, cabling and labour) is quoted separately under QU-PLA-002. All prices exclude VAT (15%).",
     "sections": [
-      {
-        "id": "setup",
-        "title": "Section 1 — Once-Off Installation",
-        "subtitle": "Hardware, cabling & labour",
-        "totalLabel": "TOTAL ONCE-OFF (incl VAT)",
-        "groups": [
-          {
-            "items": [
-              {
-                "description": "6U Desktop 10-inch Mini Rack",
-                "detail": "Compact 6U desktop/wall-mount rack for the network equipment.",
-                "qty": 1,
-                "unitPrice": 1025.0
-              },
-              {
-                "description": "Cudy 10-Port Fast Ethernet Switch — 8x PoE, 115W",
-                "detail": "10-port switch with 8 PoE ports and a 115W power budget.",
-                "qty": 1,
-                "unitPrice": 500.0
-              },
-              {
-                "description": "Network Point Cabling",
-                "detail": "Cable and materials for the network points.",
-                "qty": 1,
-                "unitPrice": 1000.0
-              },
-              {
-                "description": "Installation Labour",
-                "detail": "Racking, cabling, switch configuration and commissioning.",
-                "qty": 1,
-                "unitPrice": 1000.0
-              }
-            ]
-          }
-        ]
-      },
       {
         "id": "recurring",
         "title": "Section 2 — Monthly Connectivity",
@@ -85,15 +49,14 @@
         ]
       }
     ],
-    "summaryNote": "Checkout is online by card: you pay the once-off installation plus a pro-rata portion of the current month now, and R 1,725.00 incl VAT is then billed automatically to the same card on the 1st of every month until cancelled. The three days between checkout and the start of billing allow for installation at no charge.",
+    "summaryNote": "Checkout is online by card: you pay a pro-rata portion of the current month now, and R 1,725.00 incl VAT is then billed automatically to the same card on the 1st of every month until cancelled. The three days between checkout and the start of billing allow for installation at no charge. The once-off installation is quoted separately under QU-PLA-002.",
     "terms": [
       "This quote is valid for 14 days from the date of issue.",
       "All prices exclude VAT at 15% unless otherwise stated.",
-      "Payment is by card at checkout: the once-off installation plus a pro-rata charge for the current month, calculated from three days after checkout to month-end.",
+      "Payment is by card at checkout: a pro-rata charge for the current month, calculated from three days after checkout to month-end.",
       "The monthly connectivity fee is billed automatically to the same card on the 1st of every month until cancelled.",
       "The connectivity service is month-to-month; cancellation requires one calendar month's notice.",
-      "Installation is scheduled once payment is received.",
-      "Hardware remains the property of Rocking until paid in full."
+      "The once-off network installation is quoted separately under QU-PLA-002."
     ],
     "banking": {
       "bank": "First National Bank",
@@ -106,28 +69,8 @@
   "internal": [
     {
       "path": "s0.g0.i0",
-      "supplierCost": null,
-      "note": "6U mini rack — client price R1,025 ex VAT set directly by Shawn; supplier cost not supplied. Fill in when known."
-    },
-    {
-      "path": "s0.g0.i1",
-      "supplierCost": null,
-      "note": "Cudy 10-port 8-PoE 115W switch — client price R500 ex VAT set directly by Shawn; supplier cost not supplied. Fill in when known."
-    },
-    {
-      "path": "s0.g0.i2",
       "supplierCost": 0,
-      "note": "Network point cabling — own materials/stock, R1,000 ex VAT per Shawn."
-    },
-    {
-      "path": "s0.g0.i3",
-      "supplierCost": 0,
-      "note": "Installation labour — own labour, R1,000 ex VAT per Shawn."
-    },
-    {
-      "path": "s1.g0.i0",
-      "supplierCost": 0,
-      "note": "100Mbps connectivity @ R1,500 ex VAT/mo (v2, 2026-08-04 — reduced from R2,000 per Shawn before client paid). Rocking's own connectivity product, sell price set directly. FIRST REAL CHECKOUT QUOTE: R1,725 incl VAT recurs on the 1st via stored authorization."
+      "note": "100Mbps connectivity @ R1,500 ex VAT/mo — own product, sell price per Shawn. v3 (2026-08-04): quote SPLIT at Shawn's request — once-off installation items moved to QU-PLA-002 (accept flow); this quote is connectivity-only and stays on checkout. R1,725 incl recurs on the 1st via stored authorization."
     }
   ]
 }
