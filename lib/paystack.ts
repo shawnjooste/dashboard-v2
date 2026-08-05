@@ -56,15 +56,17 @@ export async function verifyTransaction(reference: string): Promise<{
   amountCents: number;
   authorizationCode: string | null;
   customerCode: string | null;
+  customerEmail: string | null;
 }> {
   const json = await ps(`/transaction/verify/${encodeURIComponent(reference)}`);
   const auth = json.data.authorization as { authorization_code?: string; reusable?: boolean } | undefined;
-  const customer = json.data.customer as { customer_code?: string } | undefined;
+  const customer = json.data.customer as { customer_code?: string; email?: string } | undefined;
   return {
     paid: json.data.status === "success",
     amountCents: Number(json.data.amount ?? 0),
     authorizationCode: auth?.authorization_code ?? null,
     customerCode: customer?.customer_code ?? null,
+    customerEmail: customer?.email ?? null,
   };
 }
 

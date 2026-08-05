@@ -4,7 +4,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { chargeAuthorization, verifyTransaction } from "@/lib/paystack";
 import { sendEmail } from "@/lib/email/send";
-import { confirmSubscriptionCharge } from "@/lib/subscriptions/store";
+import { confirmSubscriptionCharge, sendChargeReceipt } from "@/lib/subscriptions/store";
 import {
   MAX_ATTEMPTS,
   chargeReference,
@@ -127,15 +127,31 @@ export async function runSubscriptionCharge(subscriptionId: string, today = new 
   }
 
   if (result.success) {
-    await service
+    const { data: flipped } = await service
       .from("quote_subscription_charges")
       .update({ status: "success", charged_at: new Date().toISOString() })
       .eq("paystack_reference", reference)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
     await service
       .from("quote_subscriptions")
       .update({ next_charge_date: firstOfNextMonth(new Date(period)) })
       .eq("id", sub.id);
+    if (flipped) {
+      try {
+        await sendChargeReceipt(sub, {
+          chargeType: "recurring",
+          billingPeriod: period,
+          exVatCents: sub.monthly_amount_cents,
+          vatCents: sub.vat_cents,
+          reference,
+          payerEmail: chargeEmail,
+        });
+      } catch (e) {
+        console.error("receipt failed (payment recorded):", e);
+      }
+    }
     return "charged";
   }
 

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       reference?: string;
       amount?: number;
       authorization?: { authorization_code?: string };
-      customer?: { customer_code?: string };
+      customer?: { customer_code?: string; email?: string };
     };
   };
   try {
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       ? await confirmSubscriptionCharge(ref, amount, {
           authorizationCode: event.data.authorization?.authorization_code ?? null,
           customerCode: event.data.customer?.customer_code ?? null,
+          payerEmail: event.data.customer?.email ?? null,
         })
       : await confirmBooking(ref, amount);
     // not_found is fine (unrelated payments); underpaid is logged inside.

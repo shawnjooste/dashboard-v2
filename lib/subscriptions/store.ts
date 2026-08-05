@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { computeTotals, type QuoteDoc } from "@/lib/quotes/doc";
 import { initializeTransaction } from "@/lib/paystack";
 import { sendEmail } from "@/lib/email/send";
+import { sendPaymentReceipt } from "@/lib/receipts";
 import {
   chargeReference,
   computeInitialBreakdown,
@@ -207,12 +208,12 @@ export async function payArrears(opts: {
 export async function confirmSubscriptionCharge(
   reference: string,
   amountPaidCents: number,
-  auth?: { authorizationCode: string | null; customerCode: string | null },
+  auth?: { authorizationCode: string | null; customerCode: string | null; payerEmail?: string | null },
 ): Promise<"confirmed" | "already" | "not_found" | "underpaid"> {
   const service = createServiceClient();
   const { data: row } = await service
     .from("quote_subscription_charges")
-    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, quote_subscriptions(id, quote_id, client_id, status)")
+    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, charge_type, quote_subscriptions(id, quote_id, client_id, status)")
     .eq("paystack_reference", reference)
     .maybeSingle();
   if (!row) return "not_found";
@@ -236,6 +237,21 @@ export async function confirmSubscriptionCharge(
     id: string; quote_id: string; client_id: string; status: string;
   } | null;
   if (!sub) return "confirmed";
+
+  // Winning the flip above means THIS caller owns the one receipt for this
+  // payment — webhook, verify-fallback and cron sweep can never double-send.
+  try {
+    await sendChargeReceipt(sub, {
+      chargeType: row.charge_type as "initial" | "recurring",
+      billingPeriod: row.billing_period,
+      exVatCents: row.amount_cents,
+      vatCents: row.vat_cents,
+      reference,
+      payerEmail: auth?.payerEmail ?? null,
+    });
+  } catch (e) {
+    console.error("receipt failed (payment recorded):", e);
+  }
 
   try {
     const authPatch =
@@ -311,4 +327,65 @@ export async function confirmSubscriptionCharge(
     console.error("subscription confirm side-effects failed (payment recorded):", e);
   }
   return "confirmed";
+}
+
+
+/** Month label like "August 2026" from a yyyy-mm-dd billing period. */
+function periodLabel(period: string): string {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-ZA", {
+    month: "long", year: "numeric", timeZone: "UTC",
+  });
+}
+
+/** Receipt for a successful subscription charge — payer + accounts@ copied.
+ *  Exported for the cron's synchronous success path (run-charge). */
+export async function sendChargeReceipt(
+  sub: { quote_id: string; client_id: string },
+  charge: {
+    chargeType: "initial" | "recurring";
+    billingPeriod: string;
+    exVatCents: number;
+    vatCents: number;
+    reference: string;
+    payerEmail: string | null;
+  },
+): Promise<void> {
+  const service = createServiceClient();
+  const [{ data: quote }, { data: client }] = await Promise.all([
+    service.from("quotes").select("quote_number, title").eq("id", sub.quote_id).maybeSingle(),
+    service.from("clients").select("name").eq("id", sub.client_id).maybeSingle(),
+  ]);
+  let to = charge.payerEmail;
+  if (!to) {
+    const { data: mgr } = await service
+      .from("profiles")
+      .select("email")
+      .eq("client_id", sub.client_id)
+      .eq("role", "client_manager")
+      .eq("status", "active")
+      .order("email")
+      .limit(1)
+      .maybeSingle();
+    to = mgr?.email ?? null;
+  }
+  if (!to || !quote) {
+    console.error("receipt skipped — no recipient or quote:", charge.reference);
+    return;
+  }
+  await sendPaymentReceipt({
+    clientId: sub.client_id,
+    clientName: client?.name ?? "your company",
+    toEmail: to,
+    quoteNumber: quote.quote_number,
+    quoteTitle: quote.title,
+    description:
+      charge.chargeType === "initial"
+        ? `Quote payment — once-off items plus pro-rata for ${periodLabel(charge.billingPeriod)}`
+        : `Monthly service — ${periodLabel(charge.billingPeriod)}`,
+    exVatCents: charge.exVatCents,
+    vatCents: charge.vatCents,
+    reference: charge.reference,
+    paidAt: new Date(),
+  });
 }

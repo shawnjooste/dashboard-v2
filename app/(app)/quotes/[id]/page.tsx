@@ -62,6 +62,7 @@ export default async function QuotePage({
         await confirmSubscriptionCharge(ref, v.amountCents, {
           authorizationCode: v.authorizationCode,
           customerCode: v.customerCode,
+          payerEmail: v.customerEmail,
         });
       }
     } catch (e) {
