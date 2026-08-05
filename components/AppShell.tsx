@@ -7,6 +7,7 @@ import { NAV, PENDING_NAV } from "@/lib/nav";
 import { FEATURE_HREFS } from "@/lib/feature-access";
 import { dotColour } from "@/lib/status-helpers";
 import { Sidebar } from "./Sidebar";
+import { MobileTabBar } from "./MobileTabBar";
 
 function initials(name: string): string {
   const base = name.includes("@") ? name.split("@")[0] : name;
@@ -90,7 +91,7 @@ export function AppShell({
 
       <div className="flex min-h-0 flex-1 md:flex-row">
         {/* Sidebar: left column on md+, slim top bar on small screens */}
-        <aside className="flex flex-col gap-2 border-b border-line bg-card px-3 pb-4 md:w-[248px] md:shrink-0 md:gap-0 md:border-b-0 md:border-r print:hidden">
+        <aside className="hidden flex-col gap-2 border-b border-line bg-card px-3 pb-4 md:flex md:w-[248px] md:shrink-0 md:gap-0 md:border-b-0 md:border-r print:hidden">
           <div className="flex items-center px-3 pb-3 pt-[18px]">
             <Image src={logo} alt="Rocking" priority className="h-5 w-auto" />
           </div>
@@ -108,18 +109,16 @@ export function AppShell({
               </button>
             </form>
           </div>
-          {/* mobile sign-out */}
-          <form action="/auth/signout" method="post" className="md:hidden">
-            <button className="rounded-md border border-line px-3 py-1 text-sm text-ink-2 hover:bg-line-soft">
-              Sign out
-            </button>
-          </form>
         </aside>
 
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-6 print:hidden">
-            <div className="ml-auto flex items-center gap-5">
+          <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-4 md:px-6 print:hidden">
+            {/* Mobile: logo doubles as "home" — on a phone, tickets IS home. */}
+            <Link href="/support" className="md:hidden">
+              <Image src={logo} alt="Rocking" priority className="h-5 w-auto" />
+            </Link>
+            <div className="ml-auto flex items-center gap-4 md:gap-5">
               {pendingMode !== "rejected" && (
                 <Link
                   href={statusHref}
@@ -132,17 +131,24 @@ export function AppShell({
                   Status
                 </Link>
               )}
+              <form action="/auth/signout" method="post" className="md:hidden">
+                <button className="rounded-md border border-line px-2.5 py-1 text-[13px] font-medium text-ink-2">
+                  Sign out
+                </button>
+              </form>
               <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-ink text-[11.5px] font-semibold text-white">
                 {initials(email)}
               </span>
             </div>
           </div>
 
-          <main className="mx-auto w-full max-w-[1240px] flex-1 px-6 py-9 md:px-10 print:max-w-none print:p-0">
+          <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-28 pt-6 md:px-10 md:py-9 md:pb-9 print:max-w-none print:p-0">
             {children}
           </main>
         </div>
       </div>
+
+      <MobileTabBar />
     </div>
   );
 }
