@@ -86,3 +86,13 @@ export const NAV: Record<UserRole, NavGroup[]> = {
     },
   ],
 };
+
+/** What a phone shows a signed-in client: tickets and service status, nothing
+ *  else. Deliberately two items — the other sections stay desktop-only and are
+ *  hidden from mobile navigation entirely (they still render by direct URL).
+ *  Keep this list here rather than in the shell so "what mobile offers" is one
+ *  editable place. */
+export const MOBILE_NAV: NavItem[] = [
+  { label: "Tickets", href: "/support" },
+  { label: "Status", href: "/status" },
+];
