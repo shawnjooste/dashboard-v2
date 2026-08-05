@@ -14,21 +14,29 @@ const TYPE_TONE: Record<string, string> = {
   maintenance: "bg-line-soft text-ink-2",
 };
 
+const CHIP = "rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.3px]";
+
+/** Newest first. An update's body can run to several paragraphs, so each entry
+ *  is headed by its own when/who line and separated by a rule — otherwise two
+ *  updates read as one wall of text. */
 function UpdateList({ updates }: { updates: StatusIncident["updates"] }) {
   if (updates.length === 0) return null;
   return (
-    <ul className="mt-3 space-y-2.5 border-l-2 border-line-soft pl-3.5">
-      {updates.map((u) => (
-        <li key={u.id}>
-          <p className="whitespace-pre-wrap text-[13.5px] text-ink">{u.body}</p>
-          <p className="mt-0.5 text-xs text-faint">
-            {u.isResolution && <span className="font-semibold text-good">Resolved · </span>}
-            {fmt(u.createdAt)}
-            {u.author ? <span className="capitalize"> · {u.author}</span> : ""}
-          </p>
+    <ol className="mt-3.5 border-l-2 border-line-soft pl-4">
+      {updates.map((u, idx) => (
+        <li key={u.id} className={idx > 0 ? "mt-4 border-t border-line pt-4" : ""}>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-xs font-semibold text-ink-3">{fmt(u.createdAt)}</span>
+            {u.author && <span className="text-xs capitalize text-faint">· {u.author}</span>}
+            {u.isResolution && <span className={`${CHIP} bg-good-tint text-good`}>Resolved</span>}
+            {idx === 0 && updates.length > 1 && !u.isResolution && (
+              <span className={`${CHIP} bg-line-soft text-ink-3`}>Latest</span>
+            )}
+          </div>
+          <p className="mt-1.5 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-ink">{u.body}</p>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }
 
