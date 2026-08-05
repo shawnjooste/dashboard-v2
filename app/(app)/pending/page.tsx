@@ -28,8 +28,9 @@ export default async function PendingPage() {
             </>
           ) : (
             <>
-              Your account <strong className="text-ink-2">{me.profile.email}</strong> isn&apos;t
-              linked to a company yet. Rocking has been notified and will connect you shortly.
+              Your account <strong className="text-ink-2">{me.profile.email}</strong>{" "}
+              isn&apos;t linked to a company yet. Rocking has been notified and will connect you
+              shortly.
             </>
           )}
         </p>
