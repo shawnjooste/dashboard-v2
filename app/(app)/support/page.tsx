@@ -111,20 +111,23 @@ export default async function SupportPage() {
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="group flex items-center gap-3 border-b border-line-soft px-4 py-3 last:border-0 hover:bg-canvas"
+              className="group flex flex-col gap-1.5 border-b border-line-soft px-4 py-3.5 last:border-0 hover:bg-canvas md:flex-row md:items-center md:gap-3 md:py-3"
             >
-              <StatusPill tone={STATUS_TONE[t.status] ?? "warn"} label={STATUS_LABEL[t.status] ?? t.status} />
+              <div className="flex items-center gap-2.5">
+                <StatusPill tone={STATUS_TONE[t.status] ?? "warn"} label={STATUS_LABEL[t.status] ?? t.status} />
+                <span className="text-xs text-faint md:hidden">{t.updatedAt.slice(0, 10)}</span>
+              </div>
               <div className="min-w-0">
-                <div className="truncate font-medium text-ink">{t.subject}</div>
+                <div className="font-medium text-ink md:truncate">{t.subject}</div>
                 <div className="truncate text-xs text-muted">
                   #{t.number}
                   {scope.isManager && t.customerEmail !== scope.email ? ` · ${t.customerEmail}` : ""}
                   {t.preview ? ` · ${t.preview}` : ""}
                 </div>
               </div>
-              <span className="ml-auto shrink-0 text-xs text-faint">{t.updatedAt.slice(0, 10)}</span>
+              <span className="ml-auto hidden shrink-0 text-xs text-faint md:inline">{t.updatedAt.slice(0, 10)}</span>
               {t.status !== "closed" && (
-                <span className="shrink-0 rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors group-hover:border-brand group-hover:bg-brand-tint group-hover:text-brand">
+                <span className="shrink-0 self-start rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-ink-2 transition-colors md:self-auto md:group-hover:border-brand md:group-hover:bg-brand-tint md:group-hover:text-brand">
                   Book support
                 </span>
               )}
