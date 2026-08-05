@@ -5,6 +5,12 @@ export type NavGroup = { label: string; items: NavItem[] };
 
 /** Role → grouped sidebar. Live items only — add entries as features ship.
  *  An empty group label renders the items with no section heading. */
+/** Sidebar for someone who isn't linked to a company yet. Everything else in
+ *  the portal needs a client to mean anything; the status page doesn't. */
+export const PENDING_NAV: NavGroup[] = [
+  { label: "", items: [{ label: "Status", href: "/status" }] },
+];
+
 export const NAV: Record<UserRole, NavGroup[]> = {
   rocking_staff: [
     { label: "", items: [{ label: "Overview", href: "/admin" }] },

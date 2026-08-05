@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/public/rocking-logo.png";
 import type { UserRole } from "@/lib/types/domain";
-import { NAV } from "@/lib/nav";
+import { NAV, PENDING_NAV } from "@/lib/nav";
 import { FEATURE_HREFS } from "@/lib/feature-access";
 import { dotColour } from "@/lib/status-helpers";
 import { Sidebar } from "./Sidebar";
@@ -24,6 +24,7 @@ export function AppShell({
   allowedHrefs,
   suspensionNote,
   statusType = null,
+  pendingMode,
   children,
 }: {
   email: string;
@@ -40,12 +41,18 @@ export function AppShell({
   /** Worst active incident type visible to this viewer; null = all clear.
    *  Drives the colour of the Status dot in the top bar. */
   statusType?: string | null;
+  /** Set for a user with no company: 'pending' gets a Status-only sidebar,
+   *  'rejected' gets no navigation at all. Unset = the normal portal. */
+  pendingMode?: "pending" | "rejected";
   children: ReactNode;
 }) {
   const gated = new Set(Object.values(FEATURE_HREFS));
   const allowed = new Set(allowedHrefs ?? [...gated]);
   if (!billingEnabled) allowed.delete("/billing"); // needs a Xero link too
-  const groups = NAV[role]
+  // No company: skip role nav and feature filtering entirely — neither means
+  // anything without one.
+  const source = pendingMode ? (pendingMode === "pending" ? PENDING_NAV : []) : NAV[role];
+  const groups = source
     .map((g) => ({ ...g, items: g.items.filter((i) => !gated.has(i.href) || allowed.has(i.href)) }))
     .filter((g) => g.items.length > 0);
   // Staff get the same status page with the post/resolve controls.
@@ -113,16 +120,18 @@ export function AppShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-6 print:hidden">
             <div className="ml-auto flex items-center gap-5">
-              <Link
-                href={statusHref}
-                className="flex items-center gap-1.5 text-[13.5px] font-medium text-ink-3 hover:text-ink"
-              >
-                <span
-                  className="h-[7px] w-[7px] shrink-0 rounded-full"
-                  style={{ background: dotColour(statusType) }}
-                />
-                Status
-              </Link>
+              {pendingMode !== "rejected" && (
+                <Link
+                  href={statusHref}
+                  className="flex items-center gap-1.5 text-[13.5px] font-medium text-ink-3 hover:text-ink"
+                >
+                  <span
+                    className="h-[7px] w-[7px] shrink-0 rounded-full"
+                    style={{ background: dotColour(statusType) }}
+                  />
+                  Status
+                </Link>
+              )}
               <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-ink text-[11.5px] font-semibold text-white">
                 {initials(email)}
               </span>

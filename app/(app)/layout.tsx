@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { resolvePendingAccess } from "@/lib/auth/pending-access";
 import { trackVisit } from "@/lib/track";
 import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-access";
 import { hasConnectivity } from "@/lib/views/connectivity";
@@ -22,10 +23,37 @@ export default async function AppLayout({
   if (me.profile.role === "rocking_staff") redirect("/admin");
   const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
 
-  const pathname = (await headers()).get("x-pathname") ?? "/";
+  const rawPath = (await headers()).get("x-pathname");
+  const pathname = rawPath ?? "/";
   const trackable = { id: me.profile.id, role: me.profile.role, client_id: me.profile.client_id };
   // Post-response so tracking adds zero latency to the page.
   after(() => trackVisit(trackable, pathname));
+
+  // Nobody without a company gets further than the holding page and the status
+  // page. Fall back to the holding path if the header is ever missing — any
+  // other default would redirect /pending to itself forever.
+  const gate = resolvePendingAccess({
+    status: me.profile.status,
+    hasClient: me.profile.client_id !== null,
+    pathname: rawPath ?? "/pending",
+  });
+  if (gate.redirectTo) redirect(gate.redirectTo);
+  if (gate.mode !== "full") {
+    // Everything below this point is client-scoped and meaningless without a
+    // company, so skip it entirely. The status dot still works: it reads the
+    // global incidents this user can see.
+    return (
+      <AppShell
+        email={me.profile.email}
+        role={me.profile.role}
+        impersonating={marker?.email ?? null}
+        statusType={gate.mode === "pending" ? await getStatusIndicator() : null}
+        pendingMode={gate.mode}
+      >
+        {children}
+      </AppShell>
+    );
+  }
 
   let accountName: string | null = null;
   let billingEnabled = false;
