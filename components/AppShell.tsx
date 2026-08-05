@@ -5,6 +5,7 @@ import logo from "@/public/rocking-logo.png";
 import type { UserRole } from "@/lib/types/domain";
 import { NAV } from "@/lib/nav";
 import { FEATURE_HREFS } from "@/lib/feature-access";
+import { dotColour } from "@/lib/status-helpers";
 import { Sidebar } from "./Sidebar";
 
 function initials(name: string): string {
@@ -22,6 +23,7 @@ export function AppShell({
   billingEnabled = false,
   allowedHrefs,
   suspensionNote,
+  statusType = null,
   children,
 }: {
   email: string;
@@ -35,6 +37,9 @@ export function AppShell({
   /** Hrefs of the gateable sections this user may see (from feature access).
    *  Omitted (staff/admin shell) = no feature filtering. */
   allowedHrefs?: string[];
+  /** Worst active incident type visible to this viewer; null = all clear.
+   *  Drives the colour of the Status dot in the top bar. */
+  statusType?: string | null;
   children: ReactNode;
 }) {
   const gated = new Set(Object.values(FEATURE_HREFS));
@@ -44,6 +49,8 @@ export function AppShell({
     .map((g) => ({ ...g, items: g.items.filter((i) => !gated.has(i.href) || allowed.has(i.href)) }))
     .filter((g) => g.items.length > 0);
   const supportHref = role === "rocking_staff" ? "https://help.rocking.co.za" : "/support";
+  // Staff get the same status page with the post/resolve controls.
+  const statusHref = role === "rocking_staff" ? "/admin/status" : "/status";
   const orgLabel = accountName ?? (role === "rocking_staff" ? "Rocking" : email.split("@")[1] ?? "");
 
   return (
@@ -107,6 +114,16 @@ export function AppShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-6 print:hidden">
             <div className="ml-auto flex items-center gap-5">
+              <Link
+                href={statusHref}
+                className="flex items-center gap-1.5 text-[13.5px] font-medium text-ink-3 hover:text-ink"
+              >
+                <span
+                  className="h-[7px] w-[7px] shrink-0 rounded-full"
+                  style={{ background: dotColour(statusType) }}
+                />
+                Status
+              </Link>
               <Link
                 href={supportHref}
                 {...(role === "rocking_staff" ? { target: "_blank", rel: "noreferrer" } : {})}

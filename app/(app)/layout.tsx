@@ -7,6 +7,7 @@ import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-acces
 import { hasConnectivity } from "@/lib/views/connectivity";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { getStatusIndicator } from "@/lib/views/status";
 import { CrispChat } from "@/components/CrispChat";
 import { getSupportStatus } from "@/lib/views/support-packages";
 import { MARKER_COOKIE, decodeMarker } from "@/lib/impersonation";
@@ -55,6 +56,7 @@ export default async function AppLayout({
     if (!marker && me.profile.person_id && !firstName) redirect("/welcome");
   }
 
+  const statusType = await getStatusIndicator();
   const allowed = allowedFeatures(me.profile.role, toOverrides(me.profile.feature_overrides));
   // Connectivity shows only for clients who actually have lines (billing pattern).
   if (!connectivityEnabled) allowed.delete("connectivity");
@@ -80,6 +82,7 @@ export default async function AppLayout({
       billingEnabled={billingEnabled}
       allowedHrefs={[...allowed].map((f) => FEATURE_HREFS[f])}
       suspensionNote={suspensionNote}
+      statusType={statusType}
     >
       {children}
       {chat && crispId && (
