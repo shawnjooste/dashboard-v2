@@ -33,7 +33,7 @@ function UpdateList({ updates }: { updates: StatusIncident["updates"] }) {
               <span className={`${CHIP} bg-line-soft text-ink-3`}>Latest</span>
             )}
           </div>
-          <p className="mt-1.5 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-ink">{u.body}</p>
+          <p className="mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-[1.5] text-ink">{u.body}</p>
         </li>
       ))}
     </ol>
@@ -82,7 +82,7 @@ export async function StatusView() {
 
       {/* Current state */}
       <Card>
-        <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-line-soft px-4 py-3.5">
           <span
             className="h-[9px] w-[9px] shrink-0 rounded-full"
             style={{ background: dotColour(worst) }}
