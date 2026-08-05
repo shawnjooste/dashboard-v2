@@ -2841,6 +2841,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          opens_chat: boolean
           resolved_at: string | null
           scope: string
           started_at: string
@@ -2853,6 +2854,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          opens_chat?: boolean
           resolved_at?: string | null
           scope: string
           started_at?: string
@@ -2865,6 +2867,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          opens_chat?: boolean
           resolved_at?: string | null
           scope?: string
           started_at?: string

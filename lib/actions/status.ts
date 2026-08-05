@@ -28,11 +28,14 @@ export async function postIncident(formData: FormData) {
   if (scope === "clients" && clientIds.length === 0) {
     throw new Error("Pick at least one client, or post it as global");
   }
+  // Incident mode: live chat for everyone this incident reaches, until it is
+  // resolved. Nothing else turns it on and nothing else turns it off.
+  const opensChat = formData.get("opens_chat") === "on";
 
   const supabase = await createClient();
   const { data: incident, error } = await supabase
     .from("status_incidents")
-    .insert({ title, type, scope, created_by: me.id })
+    .insert({ title, type, scope, opens_chat: opensChat, created_by: me.id })
     .select("id")
     .single();
   if (error) throw new Error(error.message);

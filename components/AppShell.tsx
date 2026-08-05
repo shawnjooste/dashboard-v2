@@ -6,6 +6,7 @@ import type { UserRole } from "@/lib/types/domain";
 import { NAV, PENDING_NAV } from "@/lib/nav";
 import { FEATURE_HREFS } from "@/lib/feature-access";
 import { dotColour } from "@/lib/status-helpers";
+import { IncidentBanner } from "./IncidentBanner";
 import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 
@@ -25,6 +26,7 @@ export function AppShell({
   allowedHrefs,
   suspensionNote,
   statusType = null,
+  incident = null,
   pendingMode,
   children,
 }: {
@@ -42,6 +44,9 @@ export function AppShell({
   /** Worst active incident type visible to this viewer; null = all clear.
    *  Drives the colour of the Status dot in the top bar. */
   statusType?: string | null;
+  /** Set when an outage (or anything that opened chat) is running for this
+   *  viewer — renders the red bar above everything. */
+  incident?: { title: string; chatOpen: boolean } | null;
   /** Set for a user with no company: 'pending' gets a Status-only sidebar,
    *  'rejected' gets no navigation at all. Unset = the normal portal. */
   pendingMode?: "pending" | "rejected";
@@ -73,6 +78,10 @@ export function AppShell({
             </button>
           </form>
         </div>
+      )}
+
+      {incident && (
+        <IncidentBanner title={incident.title} chatOpen={incident.chatOpen} statusHref={statusHref} />
       )}
 
       {suspensionNote && (

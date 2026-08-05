@@ -113,6 +113,12 @@ export async function StatusView() {
                     {TYPE_LABELS[i.type] ?? i.type}
                   </span>
                   <span className="text-[15px] font-semibold text-ink">{i.title}</span>
+                  {/* Staff only: a client sees the chat widget, not the plumbing
+                      that opened it. Here it's the reminder that resolving this
+                      incident is also what closes chat again. */}
+                  {isStaff && i.opensChat && (
+                    <span className={`${CHIP} bg-good-tint text-good`}>Chat open</span>
+                  )}
                   <span className="ml-auto shrink-0 text-xs text-faint">since {fmt(i.startedAt)}</span>
                 </div>
                 <p className="mt-1 text-[12.5px] text-muted">{scopeLine(i, isStaff)}</p>

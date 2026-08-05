@@ -117,6 +117,14 @@ export function PostIncidentForm({ clients }: { clients: { id: string; name: str
                 />
               </label>
 
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-line bg-canvas px-3 py-2.5">
+                <input type="checkbox" name="opens_chat" className="mt-0.5 h-4 w-4 accent-brand" />
+                <span className="text-[13px] text-ink-2">
+                  <span className="font-semibold text-ink">Open live chat</span> — everyone this incident
+                  affects can chat to us, whatever package they&apos;re on. Closes again when you resolve it.
+                </span>
+              </label>
+
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
                   disabled={pending}

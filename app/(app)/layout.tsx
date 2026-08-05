@@ -9,7 +9,9 @@ import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-acces
 import { hasConnectivity } from "@/lib/views/connectivity";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
-import { getStatusIndicator } from "@/lib/views/status";
+import { getActiveIncidents, getStatusIndicator } from "@/lib/views/status";
+import { bannerIncident, chatOpenedByIncident } from "@/lib/incident-mode";
+import { worstType } from "@/lib/status-helpers";
 import { CrispChat } from "@/components/CrispChat";
 import { getSupportStatus } from "@/lib/views/support-packages";
 import { MARKER_COOKIE, decodeMarker } from "@/lib/impersonation";
@@ -86,20 +88,35 @@ export default async function AppLayout({
     if (!marker && me.profile.person_id && !firstName) redirect("/welcome");
   }
 
-  const statusType = await getStatusIndicator();
+  // One read of the active incidents this person can see, three uses: the
+  // colour of the status dot, whether to run the outage banner, and whether
+  // this is "incident mode" — chat open to everyone affected regardless of
+  // tier. RLS scopes the rows, so a client-scoped incident reaches only its
+  // own clients.
+  const activeIncidents = await getActiveIncidents();
+  const statusType = worstType(activeIncidents.map((i) => i.type));
+  const banner = bannerIncident(activeIncidents);
+  const incidentChat = chatOpenedByIncident(activeIncidents);
   const allowed = allowedFeatures(me.profile.role, toOverrides(me.profile.feature_overrides));
   // Connectivity shows only for clients who actually have lines (billing pattern).
   if (!connectivityEnabled) allowed.delete("connectivity");
 
-  // Live chat is a tier perk: only mount it for packages that include it, and
-  // never while impersonating (a staff member shouldn't open a chat as the
-  // client). Identity is passed through so nobody is asked for their email.
+  // Live chat is a tier perk: only mount it for packages that include it —
+  // unless an incident has opened it to everyone affected, which is the point
+  // of incident mode. Never while impersonating (a staff member shouldn't open
+  // a chat as the client). Identity is passed through so nobody is asked for
+  // their email.
   const crispId = process.env.NEXT_PUBLIC_CRISP_WEBSITE_ID;
-  let chat: { tier: string; name: string | null } | null = null;
+  let chat: { tier: string; name: string | null; incident: string | null } | null = null;
   if (crispId && !marker && me.profile.client_id) {
     const status = await getSupportStatus(me.profile.client_id);
-    if (status.pkg?.hasChat) {
-      chat = { tier: status.planLabel ?? status.pkg.name, name: null };
+    if (status.pkg?.hasChat || incidentChat) {
+      chat = {
+        tier: status.planLabel ?? status.pkg?.name ?? "—",
+        name: null,
+        // Tells the agent why a free-tier client is in the chat at all.
+        incident: incidentChat ? (banner?.title ?? "Incident") : null,
+      };
     }
   }
 
@@ -113,6 +130,7 @@ export default async function AppLayout({
       allowedHrefs={[...allowed].map((f) => FEATURE_HREFS[f])}
       suspensionNote={suspensionNote}
       statusType={statusType}
+      incident={banner ? { title: banner.title, chatOpen: incidentChat } : null}
     >
       {children}
       {chat && crispId && (
@@ -122,6 +140,7 @@ export default async function AppLayout({
           name={chat.name}
           company={accountName}
           tier={chat.tier}
+          incident={chat.incident}
         />
       )}
     </AppShell>

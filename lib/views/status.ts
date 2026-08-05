@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { worstType, typeRank } from "@/lib/status-helpers";
+import type { ActiveIncident } from "@/lib/incident-mode";
 
 export type StatusUpdate = {
   id: string;
@@ -18,6 +19,8 @@ export type StatusIncident = {
   scope: string;
   startedAt: string;
   resolvedAt: string | null;
+  /** While active, this incident gives everyone who can see it live chat. */
+  opensChat: boolean;
   /** Staff only — clients never see which OTHER clients are affected. */
   clientNames: string[];
   updates: StatusUpdate[];
@@ -39,7 +42,7 @@ export async function getStatusPage(): Promise<{
   const [incidentsRes, updatesRes, targetsRes, clientsRes, subsRes, profilesRes] = await Promise.all([
     supabase
       .from("status_incidents")
-      .select("id, title, type, status, scope, started_at, resolved_at")
+      .select("id, title, type, status, scope, started_at, resolved_at, opens_chat")
       .order("started_at", { ascending: false })
       .limit(HISTORY_CAP + 50),
     supabase
@@ -91,6 +94,7 @@ export async function getStatusPage(): Promise<{
     scope: i.scope,
     startedAt: i.started_at,
     resolvedAt: i.resolved_at,
+    opensChat: i.opens_chat,
     clientNames: (namesByIncident.get(i.id) ?? []).sort(),
     updates: updatesByIncident.get(i.id) ?? [],
   }));
@@ -113,5 +117,33 @@ export async function getStatusIndicator(): Promise<string | null> {
   } catch (e) {
     console.error("status indicator failed:", e);
     return null;
+  }
+}
+
+/** Every active incident the caller can see, newest first — one query that
+ *  feeds all three shell decisions: the dot's colour, whether to banner, and
+ *  whether chat is open to this viewer. RLS does the scoping, so a
+ *  client-scoped incident never leaks to a client it doesn't target.
+ *
+ *  Never throws, for the same reason as the indicator: the portal must render
+ *  even when the status table doesn't answer. Failing closed here means no
+ *  banner and no chat override, never a broken page. */
+export async function getActiveIncidents(): Promise<ActiveIncident[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("status_incidents")
+      .select("id, title, type, opens_chat")
+      .eq("status", "active")
+      .order("started_at", { ascending: false });
+    return (data ?? []).map((i) => ({
+      id: i.id,
+      title: i.title,
+      type: i.type,
+      opensChat: i.opens_chat,
+    }));
+  } catch (e) {
+    console.error("active incidents failed:", e);
+    return [];
   }
 }

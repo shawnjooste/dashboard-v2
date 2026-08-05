@@ -26,12 +26,16 @@ export function CrispChat({
   name,
   company,
   tier,
+  incident = null,
 }: {
   websiteId: string;
   email: string;
   name: string | null;
   company: string | null;
   tier: string | null;
+  /** Set when chat is only open because an incident opened it — tells the
+   *  agent why someone on the free tier is in the chat at all. */
+  incident?: string | null;
 }) {
   useEffect(() => {
     if (!websiteId) return;
@@ -57,11 +61,12 @@ export function CrispChat({
         [
           ["client", company ?? "—"],
           ["tier", tier ?? "—"],
-          ["source", "portal"],
+          ["source", incident ? "portal (incident)" : "portal"],
+          ...(incident ? [["incident", incident]] : []),
         ],
       ],
     ]);
-  }, [websiteId, email, name, company, tier]);
+  }, [websiteId, email, name, company, tier, incident]);
 
   return null;
 }
