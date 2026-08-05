@@ -86,7 +86,7 @@ export default async function TicketPage({
             const isStaff = t.type !== "customer";
             return (
               <Card key={t.id}>
-                <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-[11px]">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-line-soft px-4 py-[11px]">
                   <Avatar name={t.authorName} tone={isStaff ? "dark" : "neutral"} />
                   <div className="min-w-0">
                     <div className="truncate text-[13.5px] font-semibold text-ink">{t.authorName}</div>
@@ -96,7 +96,7 @@ export default async function TicketPage({
                     {fmtDateTime(t.createdAt)}
                   </span>
                 </div>
-                <p className="whitespace-pre-line px-4 py-3 text-[13.5px] leading-relaxed text-ink-2">
+                <p className="whitespace-pre-line break-words px-4 py-3 text-[13.5px] leading-relaxed text-ink-2">
                   {htmlToText(t.body)}
                 </p>
               </Card>

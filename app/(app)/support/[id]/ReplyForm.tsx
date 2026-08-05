@@ -11,7 +11,7 @@ function SubmitButton({ closed }: { closed: boolean }) {
   return (
     <button
       disabled={pending}
-      className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+      className="min-h-[44px] w-full rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-50 md:w-auto"
     >
       {pending ? "Sending…" : closed ? "Reply & reopen" : "Send reply"}
     </button>
@@ -31,7 +31,7 @@ export function ReplyForm({ ticketId, closed }: { ticketId: number; closed: bool
         name="message"
         required
         rows={4}
-        className="w-full rounded border border-gray-300 px-3 py-2"
+        className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-base text-ink outline-none md:text-[13.5px]"
         placeholder={closed ? "This ticket is closed — replying will reopen it." : "Write your reply…"}
       />
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}

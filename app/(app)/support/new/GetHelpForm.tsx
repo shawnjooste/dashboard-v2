@@ -16,7 +16,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center rounded-lg bg-brand px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
+      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-brand px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50 md:w-auto"
     >
       {pending ? "Sending…" : "Send"}
     </button>
@@ -56,7 +56,7 @@ function Form({
               required
               maxLength={150}
               defaultValue={subjectDefault}
-              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-[13.5px] text-ink outline-none"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-base text-ink outline-none md:text-[13.5px]"
               placeholder="What do you need help with?"
             />
           </div>
@@ -69,7 +69,7 @@ function Form({
               name="message"
               required
               rows={6}
-              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-[13.5px] text-ink outline-none"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-base text-ink outline-none md:text-[13.5px]"
               placeholder="Tell us what happened, and on which machine — the more detail, the faster we can help."
             />
           </div>
