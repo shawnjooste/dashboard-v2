@@ -8,6 +8,15 @@ export type RouteInput = {
   hasClaimedDevice: boolean;
 };
 
+/** Where a sign-in lands when the link didn't name a destination. Status
+ *  first, deliberately: what's broken right now is the thing most people open
+ *  the portal to find out. Staff are carried on to /admin/status by
+ *  staffRedirectFor below, so this one constant covers both.
+ *
+ *  Only the DEFAULT. A link that names where to go (a quote email, an invite
+ *  carrying next=…) still goes there. */
+export const POST_LOGIN_PATH = "/status";
+
 /** Where a staff member lands when they open a client-side route. Almost
  *  nothing in the client portal has a staff equivalent, so they go to the admin
  *  overview — but /status does, and every status email (and the announcement)

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { notifyPendingSignup, notifyFirstSignIn } from "@/lib/notify";
+import { POST_LOGIN_PATH } from "@/lib/auth/routing";
 
 export type ActionState = { error?: string; codeSent?: boolean; email?: string };
 
@@ -60,5 +61,5 @@ export async function verifyCode(
     }
   }
 
-  redirect("/");
+  redirect(POST_LOGIN_PATH);
 }

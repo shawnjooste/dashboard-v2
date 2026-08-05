@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { POST_LOGIN_PATH } from "@/lib/auth/routing";
 
 /**
  * Magic-link / invite landing. Supabase action links (from generateLink) point
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const nextParam = searchParams.get("next") ?? "/";
+  const nextParam = searchParams.get("next") ?? POST_LOGIN_PATH;
   // Only allow relative, single-slash paths — never an open redirect.
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/";
 

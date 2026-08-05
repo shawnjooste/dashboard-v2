@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveLandingPath, staffRedirectFor, type RouteInput } from "../routing";
+import { POST_LOGIN_PATH, resolveLandingPath, staffRedirectFor, type RouteInput } from "../routing";
 
 const base: RouteInput = {
   authenticated: true,
@@ -8,6 +8,15 @@ const base: RouteInput = {
   hasClient: true,
   hasClaimedDevice: true,
 };
+
+describe("POST_LOGIN_PATH", () => {
+  it("lands a sign-in on the status page", () => {
+    expect(POST_LOGIN_PATH).toBe("/status");
+  });
+  it("carries staff on to their own status page, not the client one", () => {
+    expect(staffRedirectFor(POST_LOGIN_PATH)).toBe("/admin/status");
+  });
+});
 
 describe("resolveLandingPath", () => {
   it("sends unauthenticated users to /login", () => {
