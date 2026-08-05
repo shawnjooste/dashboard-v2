@@ -2806,6 +2806,148 @@ export type Database = {
           },
         ]
       }
+      status_incident_clients: {
+        Row: {
+          client_id: string
+          incident_id: string
+        }
+        Insert: {
+          client_id: string
+          incident_id: string
+        }
+        Update: {
+          client_id?: string
+          incident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_incident_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_incident_clients_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "status_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_incidents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          resolved_at: string | null
+          scope: string
+          started_at: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          resolved_at?: string | null
+          scope: string
+          started_at?: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          resolved_at?: string | null
+          scope?: string
+          started_at?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_incidents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_subscriptions: {
+        Row: {
+          created_at: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_updates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string
+          is_resolution: boolean
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id: string
+          is_resolution?: boolean
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string
+          is_resolution?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_updates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "status_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_documents: {
         Row: {
           amount: number | null
@@ -3235,6 +3377,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_see_incident: { Args: { p_incident_id: string }; Returns: boolean }
       claim_device: { Args: { p_device_id: string }; Returns: undefined }
       claimable_devices: {
         Args: never
