@@ -3405,6 +3405,7 @@ export type Database = {
       is_rocking_staff: { Args: never; Returns: boolean }
       my_assigned_device_ids: { Args: never; Returns: string[] }
       my_first_name: { Args: never; Returns: string }
+      my_full_name: { Args: never; Returns: string }
       network_ingest_targets: {
         Args: never
         Returns: {

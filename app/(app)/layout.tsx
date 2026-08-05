@@ -60,12 +60,13 @@ export default async function AppLayout({
   }
 
   let accountName: string | null = null;
+  let fullName: string | null = null;
   let billingEnabled = false;
   let connectivityEnabled = false;
   let suspensionNote: string | null = null;
   if (me.profile.client_id) {
     const supabase = await createClient();
-    const [{ data: client }, { data: firstName }, hasLines] = await Promise.all([
+    const [{ data: client }, { data: firstName }, { data: personName }, hasLines] = await Promise.all([
       supabase.from("clients").select("name, xero_contact_id, suspended_at, suspension_note").eq("id", me.profile.client_id).maybeSingle(),
       // Read the caller's own name via SECURITY DEFINER, not the RLS people query:
       // a person row stranded under a different client would be hidden by RLS and
@@ -73,9 +74,16 @@ export default async function AppLayout({
       me.profile.person_id
         ? supabase.rpc("my_first_name")
         : Promise.resolve({ data: null }),
+      // Full name, for the chat identity. Kept separate from the gate above:
+      // the gate must stay keyed on the first name specifically, or someone
+      // with only a display name would skip /welcome.
+      me.profile.person_id
+        ? supabase.rpc("my_full_name")
+        : Promise.resolve({ data: null }),
       hasConnectivity(me.profile.client_id),
     ]);
     accountName = client?.name ?? null;
+    fullName = personName ?? null;
     billingEnabled = !!client?.xero_contact_id;
     connectivityEnabled = hasLines;
     // Non-null suspended_at is the flag; the note is what they actually read.
@@ -113,7 +121,8 @@ export default async function AppLayout({
     if (status.pkg?.hasChat || incidentChat) {
       chat = {
         tier: status.planLabel ?? status.pkg?.name ?? "—",
-        name: null,
+        // Full name, so three Moniques are three people in the inbox.
+        name: fullName,
         // Tells the agent why a free-tier client is in the chat at all.
         incident: incidentChat ? (banner?.title ?? "Incident") : null,
       };
