@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { createServiceClient } from "@/lib/supabase/service";
+import { notifyInboundRfqEmail } from "@/lib/rfq-notify";
 
 /**
  * Resend inbound-email webhook for quotes@send.rocking.one. The webhook
@@ -212,6 +213,17 @@ export async function POST(req: Request) {
       body: `Reply from ${fromEmail}: "${subject}"`,
     });
   }
+
+  // Processing is manual now (the scheduled run was retired) — tell Shawn
+  // something arrived. Fail-soft: notification trouble never fails the hook.
+  await notifyInboundRfqEmail({
+    kind,
+    fromEmail,
+    subject,
+    textBody: full.text ?? null,
+    rfqId,
+    quoteId,
+  });
 
   return NextResponse.json({ ok: true, kind });
 }

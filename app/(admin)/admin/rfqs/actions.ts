@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { RFQ_STATUS_LABEL, type RfqStatus } from "@/lib/views/rfqs";
+import { notifyRfqCreated } from "@/lib/rfq-notify";
 
 const STATUSES: RfqStatus[] = ["new", "sourcing", "quoted", "won", "lost"];
 
@@ -54,6 +55,21 @@ export async function createRfq(formData: FormData) {
   if (error) throw new Error(error.message);
 
   await logEvent(supabase, rfq.id, "created", null, me.id);
+
+  let clientLabel = clientName;
+  if (clientId) {
+    const { data: c } = await supabase.from("clients").select("name").eq("id", clientId).maybeSingle();
+    clientLabel = c?.name ?? null;
+  }
+  await notifyRfqCreated({
+    rfqId: rfq.id,
+    title,
+    clientLabel,
+    requestedBy,
+    description,
+    creatorEmail: me.email,
+  });
+
   revalidatePath("/admin/rfqs");
   redirect(`/admin/rfqs/${rfq.id}`);
 }
