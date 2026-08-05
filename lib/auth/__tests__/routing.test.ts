@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveLandingPath, type RouteInput } from "../routing";
+import { resolveLandingPath, staffRedirectFor, type RouteInput } from "../routing";
 
 const base: RouteInput = {
   authenticated: true,
@@ -27,5 +27,20 @@ describe("resolveLandingPath", () => {
   });
   it("sends managers to /app regardless of personal device claim", () => {
     expect(resolveLandingPath({ ...base, role: "client_manager", hasClaimedDevice: false })).toBe("/app");
+  });
+});
+
+describe("staffRedirectFor", () => {
+  it("sends staff following a /status link to the staff status page", () => {
+    expect(staffRedirectFor("/status")).toBe("/admin/status");
+  });
+  it("sends staff to the overview from any other client route", () => {
+    for (const p of ["/", "/billing", "/devices", "/support", "/pending"]) {
+      expect(staffRedirectFor(p)).toBe("/admin");
+    }
+  });
+  it("does not match paths that merely start with /status", () => {
+    expect(staffRedirectFor("/statusboard")).toBe("/admin");
+    expect(staffRedirectFor("/status/x")).toBe("/admin");
   });
 });

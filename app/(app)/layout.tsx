@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolvePendingAccess } from "@/lib/auth/pending-access";
+import { staffRedirectFor } from "@/lib/auth/routing";
 import { trackVisit } from "@/lib/track";
 import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-access";
 import { hasConnectivity } from "@/lib/views/connectivity";
@@ -20,11 +21,12 @@ export default async function AppLayout({
 }) {
   const me = await getCurrentProfile();
   if (!me.authenticated) redirect("/login");
-  if (me.profile.role === "rocking_staff") redirect("/admin");
-  const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
 
   const rawPath = (await headers()).get("x-pathname");
   const pathname = rawPath ?? "/";
+  if (me.profile.role === "rocking_staff") redirect(staffRedirectFor(pathname));
+  const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
+
   const trackable = { id: me.profile.id, role: me.profile.role, client_id: me.profile.client_id };
   // Post-response so tracking adds zero latency to the page.
   after(() => trackVisit(trackable, pathname));
