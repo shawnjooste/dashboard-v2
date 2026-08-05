@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { notifyIncident } from "@/lib/status-email";
+import { trackAction } from "@/lib/track";
 import { INCIDENT_TYPES } from "@/lib/status-helpers";
 
 async function staff() {
@@ -98,4 +99,11 @@ export async function setStatusSubscription(subscribe: boolean) {
     const { error } = await supabase.from("status_subscriptions").delete().eq("profile_id", me.profile.id);
     if (error) throw new Error(error.message);
   }
+  // The table only holds current state — log the change so the feed shows who
+  // opted in or out, and when.
+  await trackAction(
+    { id: me.profile.id, role: me.profile.role, client_id: me.profile.client_id },
+    "status",
+    subscribe ? "turned status emails on" : "turned status emails off",
+  );
 }

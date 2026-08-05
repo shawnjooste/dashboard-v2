@@ -3411,6 +3411,15 @@ export type Database = {
         }[]
       }
       next_quote_number: { Args: never; Returns: string }
+      record_portal_visit: {
+        Args: {
+          p_client_id: string
+          p_kind: string
+          p_profile_id: string
+          p_section: string
+        }
+        Returns: string
+      }
       reject_pending_user: {
         Args: { p_profile_id: string; p_reason?: string }
         Returns: undefined

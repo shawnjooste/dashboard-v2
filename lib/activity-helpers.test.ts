@@ -22,6 +22,9 @@ describe("sectionFromPath", () => {
   it("maps connectivity", () => {
     expect(sectionFromPath("/connectivity")).toBe("connectivity");
   });
+  it("maps the status page to its own section, not 'other'", () => {
+    expect(sectionFromPath("/status")).toBe("status");
+  });
 });
 
 describe("isLoginGap", () => {
