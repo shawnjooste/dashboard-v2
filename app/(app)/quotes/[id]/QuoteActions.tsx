@@ -10,7 +10,8 @@ export type CheckoutBreakdown = {
   proRata: string;
   periodStart: string | null;
   periodEnd: string | null;
-  monthlyIncl: string;
+  /** Null on once-off-only quotes — nothing recurs after payment. */
+  monthlyIncl: string | null;
   totalIncl: string;
 };
 
@@ -118,28 +119,38 @@ export function QuoteActions({
           <p className="text-[13px] font-semibold text-ink">Pay quote {quoteNumber}</p>
           <dl className="mt-3 space-y-1.5 text-[13.5px]">
             <div className="flex justify-between gap-4">
-              <dt className="text-muted">Once-off (installation &amp; setup)</dt>
+              <dt className="text-muted">
+                {checkout.monthlyIncl ? "Once-off (installation & setup)" : "Quote total (ex VAT)"}
+              </dt>
               <dd className="font-medium text-ink-2">{checkout.onceOff}</dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">
-                {checkout.periodStart
-                  ? `Pro-rata for ${checkout.periodStart} to ${checkout.periodEnd}`
-                  : "Pro-rata for this month"}
-              </dt>
-              <dd className="font-medium text-ink-2">
-                {checkout.periodStart ? checkout.proRata : "R 0,00 — billing starts on the 1st"}
-              </dd>
-            </div>
+            {checkout.monthlyIncl && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">
+                  {checkout.periodStart
+                    ? `Pro-rata for ${checkout.periodStart} to ${checkout.periodEnd}`
+                    : "Pro-rata for this month"}
+                </dt>
+                <dd className="font-medium text-ink-2">
+                  {checkout.periodStart ? checkout.proRata : "R 0,00 — billing starts on the 1st"}
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between gap-4 border-t border-line-soft pt-1.5">
               <dt className="font-semibold text-ink">Payable now (incl VAT)</dt>
               <dd className="font-semibold text-ink">{checkout.totalIncl}</dd>
             </div>
           </dl>
-          <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
-            {checkout.monthlyIncl} incl VAT will be billed automatically to this card on the 1st of
-            every month until cancelled.
-          </p>
+          {checkout.monthlyIncl ? (
+            <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
+              {checkout.monthlyIncl} incl VAT will be billed automatically to this card on the 1st of
+              every month until cancelled.
+            </p>
+          ) : (
+            <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
+              Once-off payment — nothing further will be billed to this card.
+            </p>
+          )}
           <div className="mt-3 flex items-center gap-2">
             <button
               type="button"

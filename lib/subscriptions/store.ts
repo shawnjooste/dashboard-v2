@@ -50,7 +50,10 @@ export async function startCheckout(opts: {
   const totals = computeTotals(doc);
   const onceOffExCents = Math.round(totals.subtotal * 100);
   const monthlyExCents = Math.round((totals.revenueExVat - totals.subtotal) * 100);
-  if (monthlyExCents <= 0) return { ok: false, error: "this quote has no recurring amount" };
+  // Once-off-only quotes are valid checkouts: pay once, no recurring billing.
+  if (monthlyExCents <= 0 && onceOffExCents <= 0) {
+    return { ok: false, error: "this quote has nothing payable" };
+  }
   const monthlyVatCents = Math.round((monthlyExCents * doc.vatPercent) / 100);
 
   const breakdown = computeInitialBreakdown({
@@ -213,7 +216,7 @@ export async function confirmSubscriptionCharge(
   const service = createServiceClient();
   const { data: row } = await service
     .from("quote_subscription_charges")
-    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, charge_type, quote_subscriptions(id, quote_id, client_id, status)")
+    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, charge_type, quote_subscriptions(id, quote_id, client_id, status, monthly_amount_cents)")
     .eq("paystack_reference", reference)
     .maybeSingle();
   if (!row) return "not_found";
@@ -234,7 +237,7 @@ export async function confirmSubscriptionCharge(
   if (!flipped) return "already";
 
   const sub = row.quote_subscriptions as unknown as {
-    id: string; quote_id: string; client_id: string; status: string;
+    id: string; quote_id: string; client_id: string; status: string; monthly_amount_cents: number;
   } | null;
   if (!sub) return "confirmed";
 
@@ -248,6 +251,7 @@ export async function confirmSubscriptionCharge(
       vatCents: row.vat_cents,
       reference,
       payerEmail: auth?.payerEmail ?? null,
+      recurring: sub.monthly_amount_cents > 0,
     });
   } catch (e) {
     console.error("receipt failed (payment recorded):", e);
@@ -260,13 +264,16 @@ export async function confirmSubscriptionCharge(
         : {};
 
     if (sub.status === "pending_payment") {
+      // Once-off-only checkout: nothing recurs, so no next charge date — the
+      // daily cron skips subscriptions without one.
+      const recurring = sub.monthly_amount_cents > 0;
       await service
         .from("quote_subscriptions")
         .update({
           ...authPatch,
           status: "active",
           activated_at: new Date().toISOString(),
-          next_charge_date: firstOfNextMonth(new Date()),
+          next_charge_date: recurring ? firstOfNextMonth(new Date()) : null,
         })
         .eq("id", sub.id)
         .eq("status", "pending_payment");
@@ -300,7 +307,11 @@ export async function confirmSubscriptionCharge(
           html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;">
             <h2 style="margin:0 0 8px;">Checkout complete</h2>
             <p style="color:#444;">Quote <strong>${quote.quote_number}</strong> (${quote.title}) was paid —
-            R ${(due / 100).toFixed(2)} incl VAT. Monthly billing starts on the 1st.</p>
+            R ${(due / 100).toFixed(2)} incl VAT. ${
+              sub.monthly_amount_cents > 0
+                ? "Monthly billing starts on the 1st."
+                : "Once-off payment — nothing recurs."
+            }</p>
             <p style="margin:20px 0 0;"><a href="${APP_URL}/admin/quotes/${sub.quote_id}"
               style="background:#D7141C;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">View the quote</a></p>
             <p style="margin:24px 0 0;color:#888;font-size:12.5px;">— Rocky</p></div>`,
@@ -349,6 +360,8 @@ export async function sendChargeReceipt(
     vatCents: number;
     reference: string;
     payerEmail: string | null;
+    /** Whether the subscription has a recurring component (default true). */
+    recurring?: boolean;
   },
 ): Promise<void> {
   const service = createServiceClient();
@@ -381,7 +394,9 @@ export async function sendChargeReceipt(
     quoteTitle: quote.title,
     description:
       charge.chargeType === "initial"
-        ? `Quote payment — once-off items plus pro-rata for ${periodLabel(charge.billingPeriod)}`
+        ? charge.recurring === false
+          ? "Quote payment — once-off items"
+          : `Quote payment — once-off items plus pro-rata for ${periodLabel(charge.billingPeriod)}`
         : `Monthly service — ${periodLabel(charge.billingPeriod)}`,
     exVatCents: charge.exVatCents,
     vatCents: charge.vatCents,

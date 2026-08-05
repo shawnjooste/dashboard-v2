@@ -103,13 +103,13 @@ export default async function QuotePage({
   // at click time — the only divergence window is a midnight boundary.
   let checkout: {
     onceOff: string; proRata: string; periodStart: string | null; periodEnd: string | null;
-    monthlyIncl: string; totalIncl: string;
+    monthlyIncl: string | null; totalIncl: string;
   } | null = null;
   if (quote.checkoutEnabled && quote.status === "sent" && (!subscription || subscription.status === "pending_payment")) {
     const totals = computeTotals(quote.doc);
     const onceOffExCents = Math.round(totals.subtotal * 100);
     const monthlyExCents = Math.round((totals.revenueExVat - totals.subtotal) * 100);
-    if (monthlyExCents > 0) {
+    if (monthlyExCents > 0 || onceOffExCents > 0) {
       const b = computeInitialBreakdown({
         onceOffExCents, monthlyExCents, vatPercent: quote.doc.vatPercent, today: new Date(),
       });
@@ -117,9 +117,10 @@ export default async function QuotePage({
       checkout = {
         onceOff: fmtMoney(b.onceOffCents / 100),
         proRata: fmtMoney(b.proRataCents / 100),
-        periodStart: b.periodStart,
-        periodEnd: b.periodEnd,
-        monthlyIncl: fmtMoney(monthlyIncl / 100),
+        // null monthly = once-off-only checkout: no pro-rata, nothing recurs.
+        periodStart: monthlyExCents > 0 ? b.periodStart : null,
+        periodEnd: monthlyExCents > 0 ? b.periodEnd : null,
+        monthlyIncl: monthlyExCents > 0 ? fmtMoney(monthlyIncl / 100) : null,
         totalIncl: fmtMoney(b.totalCents / 100),
       };
     }
@@ -149,11 +150,17 @@ export default async function QuotePage({
         />
       </div>
 
-      {subscription && subscription.status === "active" && (
+      {subscription && subscription.status === "active" && subscription.monthlyInclCents > 0 && (
         <div className="rounded-lg border border-good-line bg-good-tint px-4 py-3 text-sm text-good print:hidden">
           <strong>Active</strong> — {fmtMoney(subscription.monthlyInclCents / 100)} incl VAT is billed
           automatically on the 1st of each month.
           {subscription.nextChargeDate ? <> Next billing date: {subscription.nextChargeDate}.</> : null}
+        </div>
+      )}
+
+      {subscription && subscription.status === "active" && subscription.monthlyInclCents === 0 && (
+        <div className="rounded-lg border border-good-line bg-good-tint px-4 py-3 text-sm text-good print:hidden">
+          <strong>Paid</strong> — this quote was settled by card. Thank you! A receipt has been emailed.
         </div>
       )}
 

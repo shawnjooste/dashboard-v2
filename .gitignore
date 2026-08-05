@@ -27,3 +27,7 @@ supabase/.temp/
 
 # M365 probe token (local only)
 .m365-token.json
+
+# Rocky pipeline scratch files (scheduled task)
+scripts/_rocky-run.mjs
+scripts/_rocky-quote.json
