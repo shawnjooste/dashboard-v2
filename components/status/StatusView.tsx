@@ -3,10 +3,13 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getStatusPage, type StatusIncident } from "@/lib/views/status";
 import { dotColour, statusLabel, TYPE_LABELS, worstType } from "@/lib/status-helpers";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
+import { fmtDateTime } from "@/lib/time";
 import { SubscribeToggle } from "./SubscribeToggle";
 import { PostIncidentForm, IncidentControls } from "./StaffControls";
 
-const fmt = (ts: string) => ts.replace("T", " ").slice(0, 16);
+// SAST, not raw UTC — see lib/time.ts. An outage must never read as though it
+// started two hours before it did.
+const fmt = (ts: string) => fmtDateTime(ts);
 
 const TYPE_TONE: Record<string, string> = {
   outage: "bg-brand-tint text-brand",
