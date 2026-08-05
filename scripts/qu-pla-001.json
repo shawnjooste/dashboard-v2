@@ -78,14 +78,14 @@
                 "description": "100Mbps Connectivity",
                 "detail": "100Mbps service, billed monthly. Your first month is charged pro-rata from three days after checkout (allowing for installation); thereafter the full monthly fee is billed on the 1st.",
                 "qty": 1,
-                "unitPrice": 2000.0
+                "unitPrice": 1500.0
               }
             ]
           }
         ]
       }
     ],
-    "summaryNote": "Checkout is online by card: you pay the once-off installation plus a pro-rata portion of the current month now, and R 2,300.00 incl VAT is then billed automatically to the same card on the 1st of every month until cancelled. The three days between checkout and the start of billing allow for installation at no charge.",
+    "summaryNote": "Checkout is online by card: you pay the once-off installation plus a pro-rata portion of the current month now, and R 1,725.00 incl VAT is then billed automatically to the same card on the 1st of every month until cancelled. The three days between checkout and the start of billing allow for installation at no charge.",
     "terms": [
       "This quote is valid for 14 days from the date of issue.",
       "All prices exclude VAT at 15% unless otherwise stated.",
@@ -127,7 +127,7 @@
     {
       "path": "s1.g0.i0",
       "supplierCost": 0,
-      "note": "100Mbps connectivity @ R2,000 ex VAT/mo — Rocking's own connectivity product, sell price set directly by Shawn (same convention as J2 MSSP QU-J2M-001). FIRST REAL CHECKOUT QUOTE: pays online by card, R2,300 incl VAT recurs on the 1st via stored authorization."
+      "note": "100Mbps connectivity @ R1,500 ex VAT/mo (v2, 2026-08-04 — reduced from R2,000 per Shawn before client paid). Rocking's own connectivity product, sell price set directly. FIRST REAL CHECKOUT QUOTE: R1,725 incl VAT recurs on the 1st via stored authorization."
     }
   ]
 }
