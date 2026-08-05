@@ -43,7 +43,6 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       label: "Account",
       items: [
         { label: "Approvals", href: "/admin/pending" },
-        { label: "Support", href: "https://help.rocking.co.za", external: true },
       ],
     },
   ],
