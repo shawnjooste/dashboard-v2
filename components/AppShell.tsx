@@ -48,7 +48,6 @@ export function AppShell({
   const groups = NAV[role]
     .map((g) => ({ ...g, items: g.items.filter((i) => !gated.has(i.href) || allowed.has(i.href)) }))
     .filter((g) => g.items.length > 0);
-  const supportHref = role === "rocking_staff" ? "https://help.rocking.co.za" : "/support";
   // Staff get the same status page with the post/resolve controls.
   const statusHref = role === "rocking_staff" ? "/admin/status" : "/status";
   const orgLabel = accountName ?? (role === "rocking_staff" ? "Rocking" : email.split("@")[1] ?? "");
@@ -123,13 +122,6 @@ export function AppShell({
                   style={{ background: dotColour(statusType) }}
                 />
                 Status
-              </Link>
-              <Link
-                href={supportHref}
-                {...(role === "rocking_staff" ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="text-[13.5px] font-medium text-ink-3 hover:text-ink"
-              >
-                Support
               </Link>
               <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-ink text-[11.5px] font-semibold text-white">
                 {initials(email)}
