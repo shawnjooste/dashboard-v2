@@ -84,10 +84,13 @@ export async function buildAgreementPdf(input: {
     y -= size * LEADING;
   };
 
-  // Title block
-  drawLine([{ text: input.title, bold: true }], 22);
+  // Title block. Wrapped, because a real agreement title is a phrase rather
+  // than a word — an unwrapped one runs off the right edge of the page.
+  const titleBlock: Block = { kind: "h1", runs: [{ text: input.title, bold: true }] };
+  for (const parts of wrap(titleBlock, fonts, 22, maxWidth)) drawLine(parts, 22);
   y -= 4;
-  drawLine([{ text: `${input.reference} · ${input.clientName}`, bold: false }], 10);
+  const refBlock: Block = { kind: "p", runs: [{ text: `${input.reference} · ${input.clientName}`, bold: false }] };
+  for (const parts of wrap(refBlock, fonts, 10, maxWidth)) drawLine(parts, 10);
   y -= 14;
 
   for (const block of markdownToBlocks(input.bodyMd)) {
@@ -126,7 +129,10 @@ export async function buildAgreementPdf(input: {
     `Reference ${input.reference}`,
     ...(input.signerIp ? [`IP address ${input.signerIp}`] : []),
   ];
-  for (const line of certLines) drawLine([{ text: line, bold: false }], BODY);
+  for (const line of certLines) {
+    const b: Block = { kind: "p", runs: [{ text: line, bold: false }] };
+    for (const parts of wrap(b, fonts, BODY, maxWidth)) drawLine(parts, BODY);
+  }
   y -= 12;
   const note: Block = {
     kind: "p",
