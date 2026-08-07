@@ -85,7 +85,7 @@ export default async function AgreementDetailPage({ params }: { params: Promise<
           <CardHeader
             title="Agreement"
             action={
-              a.hasPdf ? (
+              a.status === "signed" ? (
                 <form action={downloadAgreementPdf.bind(null, a.id)}>
                   <button type="submit" className="text-[13px] font-semibold text-brand hover:underline">
                     Download PDF

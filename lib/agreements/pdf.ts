@@ -48,6 +48,14 @@ export async function buildAgreementPdf(input: {
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`${input.reference} — ${input.title}`);
+  doc.setAuthor("Rocking (Pty) Ltd");
+  doc.setSubject(`Agreement ${input.reference} signed by ${input.signerName}`);
+  // Stamp the document dates with the signature time, not "now". The row is
+  // frozen, so regenerating this PDF later must produce the identical file
+  // rather than one that looks freshly authored.
+  const signedOn = new Date(input.signedAt);
+  doc.setCreationDate(signedOn);
+  doc.setModificationDate(signedOn);
   const fonts: Fonts = {
     regular: await doc.embedFont(StandardFonts.Helvetica),
     bold: await doc.embedFont(StandardFonts.HelveticaBold),

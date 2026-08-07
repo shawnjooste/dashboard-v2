@@ -31,16 +31,16 @@ export default async function ClientAgreementPage({ params }: { params: Promise<
           <span className="text-sm font-semibold text-good">
             Signed by {a.signerName} on {fmtDateTime(a.signedAt)}
           </span>
-          {a.hasPdf && (
-            <form action={downloadAgreementPdf.bind(null, a.id)} className="ml-auto">
-              <button
-                type="submit"
-                className="rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-black"
-              >
-                Download PDF
-              </button>
-            </form>
-          )}
+          {/* Always offered on a signed agreement — the PDF is rebuilt on
+              demand if it was never stored. */}
+          <form action={downloadAgreementPdf.bind(null, a.id)} className="ml-auto">
+            <button
+              type="submit"
+              className="rounded-lg bg-ink px-3.5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-black"
+            >
+              Download PDF
+            </button>
+          </form>
         </div>
       )}
 

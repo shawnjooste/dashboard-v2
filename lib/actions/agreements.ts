@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { buildAgreementPdf } from "@/lib/agreements/pdf";
+import { getAgreementRecipients, agreementPdfUrl } from "@/lib/views/agreements";
 import { sendAgreementForSignature, notifyAgreementSigned } from "@/lib/notify";
 
 const BUCKET = "agreement-pdfs";
@@ -79,17 +80,13 @@ export async function sendAgreement(id: string) {
   // failure must not roll that back or leave the UI claiming otherwise.
   try {
     const service = createServiceClient();
-    const [{ data: managers }, { data: client }] = await Promise.all([
-      service
-        .from("profiles")
-        .select("email")
-        .eq("client_id", data.client_id)
-        .eq("role", "client_manager")
-        .eq("status", "active"),
+    // Same recipient rule the detail page showed before you clicked send.
+    const [recipients, { data: client }] = await Promise.all([
+      getAgreementRecipients(data.client_id),
       service.from("clients").select("name").eq("id", data.client_id).maybeSingle(),
     ]);
     await sendAgreementForSignature({
-      to: (managers ?? []).map((m) => m.email),
+      to: recipients,
       reference: data.reference,
       title: data.title,
       companyName: client?.name ?? "your company",
@@ -217,7 +214,6 @@ export async function signAgreement(id: string, _prev: SignResult | null, formDa
 /** Server-side redirect to a short-lived signed URL, so the PDF link is never
  *  a long-lived public URL sitting in the page source. */
 export async function downloadAgreementPdf(id: string) {
-  const { agreementPdfUrl } = await import("@/lib/views/agreements");
   const url = await agreementPdfUrl(id);
   if (!url) throw new Error("no PDF is available for this agreement");
   redirect(url);

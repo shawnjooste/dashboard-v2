@@ -28,6 +28,12 @@ supabase/.temp/
 # M365 probe token (local only)
 .m365-token.json
 
+# Output of scripts/verify-agreements.mjs (throwaway PDF for inspection)
+verify-agreement.pdf
+
 # Rocky pipeline scratch files (scheduled task)
 scripts/_rocky-run.mjs
 scripts/_rocky-quote.json
+
+# Throwaway state for scripts/verify-agreements-ui.mjs
+scripts/.verify-ui.json
