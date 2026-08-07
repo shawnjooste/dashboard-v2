@@ -97,6 +97,34 @@ export async function getAgreement(id: string): Promise<AgreementDetail | null> 
   };
 }
 
+/** Who will receive the "please sign" email — shown on the staff detail page
+ *  before sending, so recipients are never a surprise. Must match the query in
+ *  sendAgreement(). */
+export async function getAgreementRecipients(clientId: string): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("client_id", clientId)
+    .eq("role", "client_manager")
+    .eq("status", "active")
+    .order("email");
+  return (data ?? []).map((p) => p.email);
+}
+
+/** Active clients, for the "who is this agreement with" picker. Deliberately
+ *  not getClientSummaries() — that only returns clients that have devices, and
+ *  an agreement can be with any client. */
+export async function getAgreementClients(): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("clients")
+    .select("id, name")
+    .eq("status", "active")
+    .order("name");
+  return data ?? [];
+}
+
 /** A short-lived signed URL for the stored PDF. The row is read through the
  *  RLS client first, so a caller can only ever get a URL for an agreement
  *  they're allowed to see; only then does the service client sign it. */

@@ -37,6 +37,7 @@ export const NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { label: "RFQs", href: "/admin/rfqs" },
         { label: "Quotes", href: "/admin/quotes" },
+        { label: "Agreements", href: "/admin/agreements" },
         { label: "Jobs", href: "/admin/jobs" },
         { label: "Tickets", href: "/admin/tickets" },
         { label: "Bookings", href: "/admin/bookings" },
