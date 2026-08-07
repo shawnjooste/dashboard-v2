@@ -8,7 +8,14 @@
  */
 
 export type Run = { text: string; bold: boolean };
-export type Block = { kind: "h1" | "h2" | "h3" | "p" | "bullet" | "number"; runs: Run[] };
+export type Block = {
+  kind: "h1" | "h2" | "h3" | "p" | "bullet" | "number";
+  runs: Run[];
+  /** For `number` blocks: the author's own marker, e.g. "2." or "3)".
+   *  Preserved rather than auto-generated — agreements get referenced by
+   *  clause number, so the numbering must be the author's, not ours. */
+  marker?: string;
+};
 
 export function blockText(b: Block): string {
   return b.runs.map((r) => r.text).join("");
@@ -60,10 +67,10 @@ export function markdownToBlocks(md: string): Block[] {
       blocks.push({ kind: "bullet", runs: toRuns(bullet[1].trim()) });
       continue;
     }
-    const num = /^\d+[.)]\s+(.*)$/.exec(line);
+    const num = /^(\d+[.)])\s+(.*)$/.exec(line);
     if (num) {
       flush();
-      blocks.push({ kind: "number", runs: toRuns(num[1].trim()) });
+      blocks.push({ kind: "number", runs: toRuns(num[2].trim()), marker: num[1] });
       continue;
     }
     para.push(line);
