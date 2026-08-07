@@ -265,3 +265,78 @@ export async function sendCompanyDetailsChanged(opts: {
     </div>`,
   });
 }
+
+/**
+ * Tells a client's managers an agreement is waiting for signature. Client
+ * audience — this lands in their communications history, which is exactly
+ * where a "you were asked to sign this" record belongs.
+ */
+export async function sendAgreementForSignature(opts: {
+  to: string[];
+  reference: string;
+  title: string;
+  companyName: string;
+  agreementId: string;
+  clientId: string | null;
+}): Promise<void> {
+  if (!opts.to.length) return;
+  const url = `${APP_URL}/agreements/${opts.agreementId}`;
+  await sendEmail({
+    to: opts.to,
+    subject: `Please review and sign: ${opts.title}`,
+    replyTo: SUPPORT_EMAIL,
+    category: "agreement",
+    audience: "client",
+    clientId: opts.clientId,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1a1a;">
+        <h2 style="margin:0 0 8px;">An agreement is ready for you</h2>
+        <p style="color:#444;margin:0 0 16px;">
+          We've prepared <strong>${opts.title}</strong> for ${opts.companyName}.
+          You can read it in the portal and sign it there — no printing or scanning.
+        </p>
+        <p style="margin:20px 0 0;">
+          <a href="${url}" style="background:#D7141C;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:600;">
+            Read and sign
+          </a>
+        </p>
+        <p style="color:#666;margin:20px 0 0;font-size:13px;">
+          Reference ${opts.reference}. Once signed you can download a PDF copy, and the
+          agreement stays available in the portal.
+        </p>
+      </div>`,
+  });
+}
+
+/** Tells Rocking an agreement was signed. Internal — never shown to clients. */
+export async function notifyAgreementSigned(opts: {
+  reference: string;
+  title: string;
+  companyName: string;
+  signerName: string;
+  signerEmail: string;
+  agreementId: string;
+  clientId: string | null;
+}): Promise<void> {
+  await sendEmail({
+    to: [ADMIN_EMAIL],
+    subject: `Signed: ${opts.title} — ${opts.companyName}`,
+    category: "agreement",
+    audience: "internal",
+    clientId: opts.clientId,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1a1a;">
+        <h2 style="margin:0 0 8px;">${opts.title} has been signed</h2>
+        <table style="font-size:14px;color:#111;">
+          <tr><td style="color:#888;padding-right:12px;">Company</td><td><strong>${opts.companyName}</strong></td></tr>
+          <tr><td style="color:#888;padding-right:12px;">Signed by</td><td>${opts.signerName} (${opts.signerEmail})</td></tr>
+          <tr><td style="color:#888;padding-right:12px;">Reference</td><td>${opts.reference}</td></tr>
+        </table>
+        <p style="margin:20px 0 0;">
+          <a href="${APP_URL}/admin/agreements/${opts.agreementId}" style="background:#111;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;">
+            Open the agreement
+          </a>
+        </p>
+      </div>`,
+  });
+}

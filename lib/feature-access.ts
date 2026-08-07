@@ -2,12 +2,13 @@
  *  Role gives the defaults; profiles.feature_overrides subtracts (v1 is
  *  subtractive only). Mirrored in SQL by public.has_feature() — keep in sync. */
 
-export const FEATURES = ["connectivity", "billing", "quotes", "team", "devices", "m365", "network"] as const;
+export const FEATURES = ["connectivity", "billing", "quotes", "agreements", "team", "devices", "m365", "network"] as const;
 
 export const FEATURE_LABELS: Record<string, string> = {
   connectivity: "Connectivity",
   billing: "Billing",
   quotes: "Quotes",
+  agreements: "Agreements",
   team: "Team",
   devices: "Devices",
   m365: "Microsoft 365",
@@ -19,6 +20,7 @@ export const FEATURE_HREFS: Record<string, string> = {
   connectivity: "/connectivity",
   billing: "/billing",
   quotes: "/quotes",
+  agreements: "/agreements",
   team: "/team",
   devices: "/devices",
   m365: "/m365",
