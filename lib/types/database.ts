@@ -39,6 +39,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      agreement_counters: {
+        Row: {
+          last_n: number
+          year: number
+        }
+        Insert: {
+          last_n: number
+          year: number
+        }
+        Update: {
+          last_n?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      agreements: {
+        Row: {
+          body_md: string
+          client_id: string
+          created_at: string
+          created_by_profile_id: string | null
+          id: string
+          pdf_path: string | null
+          reference: string
+          sent_at: string | null
+          signed_at: string | null
+          signed_by_profile_id: string | null
+          signer_email: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          status: string
+          title: string
+          updated_at: string
+          void_reason: string | null
+        }
+        Insert: {
+          body_md: string
+          client_id: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          id?: string
+          pdf_path?: string | null
+          reference?: string
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_by_profile_id?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          void_reason?: string | null
+        }
+        Update: {
+          body_md?: string
+          client_id?: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          id?: string
+          pdf_path?: string | null
+          reference?: string
+          sent_at?: string | null
+          signed_at?: string | null
+          signed_by_profile_id?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agreements_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agreements_signed_by_profile_id_fkey"
+            columns: ["signed_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_billing: {
         Row: {
           as_of: string | null
@@ -3414,6 +3514,7 @@ export type Database = {
           source_key: string
         }[]
       }
+      next_agreement_reference: { Args: never; Returns: string }
       next_quote_number: { Args: never; Returns: string }
       record_portal_visit: {
         Args: {
@@ -3442,6 +3543,40 @@ export type Database = {
           p_role: Database["public"]["Enums"]["user_role"]
         }
         Returns: undefined
+      }
+      sign_agreement: {
+        Args: {
+          p_agreement_id: string
+          p_ip: string
+          p_signer_name: string
+          p_user_agent: string
+        }
+        Returns: {
+          body_md: string
+          client_id: string
+          created_at: string
+          created_by_profile_id: string | null
+          id: string
+          pdf_path: string | null
+          reference: string
+          sent_at: string | null
+          signed_at: string | null
+          signed_by_profile_id: string | null
+          signer_email: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          status: string
+          title: string
+          updated_at: string
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "agreements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       upsert_person: {
         Args: {
