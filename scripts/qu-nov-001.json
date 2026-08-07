@@ -1,0 +1,143 @@
+{
+  "clientId": "c961db49-4125-4565-9be4-8fdd6c79c315",
+  "title": "100Mbps Fibre & 3CX VoIP Service",
+  "validUntil": "2026-08-21",
+  "number": "QU-NOV-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Nova Nexus Group",
+      "attention": "Alicia Macicek",
+      "addressLines": [
+        "12 Partridge Place",
+        "Van Riebeeckstrand",
+        "7441, Cape Town"
+      ]
+    },
+    "meta": {
+      "quoteNumber": "QU-NOV-001",
+      "date": "7 August 2026",
+      "validUntil": "21 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "100Mbps Fibre & 3CX VoIP Service",
+    "projectIntro": "This quote covers an Openserve fibre link and a 3CX VoIP line for Nova Nexus Group, provided on a 24-month term and billed monthly, together with the once-off fibre installation. The monthly total below is based on the 100Mbps service; a 200Mbps option is shown should you prefer the faster link. Wi-Fi and 3CX handsets are quoted separately. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "setup",
+        "title": "Section 1 — Once-Off Installation",
+        "subtitle": "Fibre installation",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Fibre Installation — Openserve Link",
+                "detail": "Once-off installation and activation of the Openserve fibre link at your premises, including router configuration and handover. The same charge applies whether you take the 100Mbps or 200Mbps service.",
+                "qty": 1,
+                "unitPrice": 2000.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "recurring",
+        "title": "Section 2 — Monthly Service",
+        "subtitle": "Billed monthly over a 24-month term",
+        "totalLabel": "TOTAL MONTHLY (incl VAT)",
+        "monthly": true,
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "100Mbps Openserve Fibre Link",
+                "detail": "100Mbps uncapped fibre connectivity via Openserve, billed monthly.",
+                "qty": 1,
+                "unitPrice": 2000.0
+              },
+              {
+                "description": "3CX VoIP Line",
+                "detail": "One 3CX VoIP line, billed monthly. Additional lines can be added at any time at the same rate of R99 per line per month ex VAT.",
+                "qty": 1,
+                "unitPrice": 99.0
+              },
+              {
+                "description": "Optional — 200Mbps Openserve Fibre Link",
+                "detail": "Faster alternative to the 100Mbps link above, in place of it rather than in addition to it. Choosing 200Mbps brings the monthly total to R 2 988,85 incl VAT; the installation charge is unchanged.",
+                "qty": null,
+                "unitPrice": null,
+                "usageNote": "R 2 500,00 / month",
+                "totalNote": "Optional upgrade"
+              },
+              {
+                "description": "Call Charges",
+                "detail": "Outgoing calls, billed monthly in arrears. Charged per second, so you pay only for the seconds you actually use.",
+                "qty": null,
+                "unitPrice": null,
+                "usageNote": "R 0,50 / minute",
+                "totalNote": "Billed in arrears"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "The monthly total shown is for the 100Mbps service. The 200Mbps link is an alternative at R2,500 per month ex VAT (R 2 988,85 incl VAT per month in total) — just tell us which you'd prefer and the installation charge stays the same. Call charges are additional and billed monthly in arrears at R0.50 per minute, charged per second. Wi-Fi (Ubiquiti UniFi) and 3CX handsets with the required SBC are not included here and will be quoted separately.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "The fibre and VoIP service is provided on a 24-month term, billed monthly.",
+      "The monthly total is based on the 100Mbps link. The 200Mbps link is available in its place at R2,500 per month ex VAT.",
+      "Calls are billed monthly in arrears at R0.50 per minute, charged per second.",
+      "Additional 3CX VoIP lines may be added at any time at R99 per line per month ex VAT.",
+      "The once-off installation is payable on acceptance, prior to installation.",
+      "Service provisioning is subject to Openserve line feasibility at the site.",
+      "Wi-Fi equipment and 3CX handsets with the required SBC are excluded and will be quoted separately."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": null,
+      "note": "Installation R2,000 ex VAT — revised down from R3,000 by Shawn 2026-08-07. Underlying Openserve/installation cost not supplied, so margin is unrecorded."
+    },
+    {
+      "path": "s1.g0.i0",
+      "supplierCost": null,
+      "note": "100Mbps Openserve fibre R2,000/mo ex VAT — client price set by Shawn. Compare GSR Law QU-GSR-006 (100Mbps Openserve failover, also R2,000/mo ex). Wholesale cost not supplied."
+    },
+    {
+      "path": "s1.g0.i1",
+      "supplierCost": null,
+      "note": "3CX VoIP line R99/mo ex VAT each — client price set by Shawn; 1 line confirmed for now, more to be added at the same rate. Wi-Fi (UniFi) and 3CX handsets + SBC to be quoted later."
+    },
+    {
+      "path": "s1.g0.i2",
+      "supplierCost": null,
+      "note": "200Mbps option R2,500/mo ex VAT — added by Shawn 2026-08-07. Presented as an ALTERNATIVE to the 100Mbps link (usage-style line, excluded from the quoted monthly total). If the client picks it, amend the quote so 200Mbps becomes the priced line: monthly R2,599 ex / R2,988.85 incl. CONFIRM with Shawn if he actually meant a second physical link rather than a speed option."
+    },
+    {
+      "path": "s1.g0.i3",
+      "supplierCost": null,
+      "note": "Calls R0.50/min billed per second, in arrears — usage-based line, correctly excluded from totals."
+    }
+  ]
+}
