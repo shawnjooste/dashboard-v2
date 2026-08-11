@@ -19,6 +19,7 @@
 - **Before `npx tsc --noEmit`, run `find .next -name "* 2.*" -delete`.** Stale duplicated build files cause spurious duplicate-identifier errors.
 - **Migration numbers collide** when parallel sessions add files. Before creating `0086_*.sql`, run `ls supabase/migrations/ | tail -3` and use the next free number.
 - **Vitest must never import `@/lib/supabase/server`.** Pure logic modules stay import-free of server code.
+- **`vitest.config.ts` registers NO path aliases.** Anything in vitest's import graph — a test, or any module a test reaches — must use RELATIVE imports (`../feature-access`), never `@/`. App code, route handlers and server-only modules keep `@/`, which is the repo norm there. Verified: no existing test uses `@/`, and every currently-tested module is a leaf with no imports at all.
 - **No backfill.** Nothing in this plan may enrol an existing profile implicitly. Only new invites, plus the explicit per-client script in Task 6.
 - **Copy rule, applies to every step's wording:** each step must read correctly both as a day-7 tour email and as a "this is now available to you" note months later. No step may reference being new, being welcomed, or the order of other steps.
 
@@ -171,8 +172,8 @@ Create `lib/onboarding/catalogue.test.ts`:
 ```ts
 import { describe, it, expect } from "vitest";
 import { CATALOGUE } from "./catalogue";
-import { FEATURES } from "@/lib/feature-access";
-import { SECTION_LABELS } from "@/lib/activity-helpers";
+import { FEATURES } from "../feature-access";
+import { SECTION_LABELS } from "../activity-helpers";
 
 describe("CATALOGUE", () => {
   it("has unique step keys", () => {
@@ -311,7 +312,7 @@ This is where all the risk lives. Everything else is plumbing.
 - Test: `lib/onboarding/sequence.test.ts`
 
 **Interfaces:**
-- Consumes: `canAccess`, `type Overrides` from `@/lib/feature-access`; `CATALOGUE` from `@/lib/onboarding/catalogue`.
+- Consumes: `canAccess`, `type Overrides` from `../feature-access`; `CATALOGUE` from `./catalogue`. **Relative imports, not `@/`** — see Global Constraints.
 - Produces:
   - `const MIN_DAYS_BETWEEN_SENDS = 4`
   - `type StepDecision = { stepKey: string; outcome: "sent" | "skipped_already_using" }`
@@ -485,8 +486,8 @@ Create `lib/onboarding/sequence.ts`:
 ```ts
 /** The whole onboarding decision, as one pure function. No I/O, no clock of
  *  its own, no Supabase import — so every branch is provable in vitest. */
-import { canAccess, type Overrides } from "@/lib/feature-access";
-import { CATALOGUE } from "@/lib/onboarding/catalogue";
+import { canAccess, type Overrides } from "../feature-access";
+import { CATALOGUE } from "./catalogue";
 
 /** Days a person must go without a step email before the next one. */
 export const MIN_DAYS_BETWEEN_SENDS = 4;
@@ -579,7 +580,7 @@ git commit -m "feat(onboarding): add dueSteps decision function"
 - Test: `lib/onboarding/step-content.test.ts`
 
 **Interfaces:**
-- Consumes: `onboardingEmailHtml`, `type OnboardingFeature` from `@/lib/onboarding-email`; `CATALOGUE` from `@/lib/onboarding/catalogue`.
+- Consumes: `onboardingEmailHtml`, `type OnboardingFeature` from `../onboarding-email`; `CATALOGUE` from `./catalogue`. **Relative imports, not `@/`** — see Global Constraints.
 - Produces: `function stepEmailHtml(stepKey: string, opts: { firstName: string; companyName: string; portalUrl: string }): string | null` — null for an unknown key.
 
 Copy must obey the Global Constraints copy rule: no step may reference being new or welcomed.
@@ -646,7 +647,7 @@ Create `lib/onboarding/step-content.ts`:
  *  time a feature is switched on for someone. So none of them may mention
  *  being new, being welcomed, or where they sit in the sequence — they simply
  *  explain one part of the portal. */
-import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-email";
+import { onboardingEmailHtml, type OnboardingFeature } from "../onboarding-email";
 
 type Copy = {
   headline: string;
