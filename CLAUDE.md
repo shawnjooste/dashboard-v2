@@ -78,7 +78,7 @@ launchd agents on Shawn's Mac (only run while it's awake) — `launchctl list | 
 `com.rocking.datto-pull` 02:15 · `com.rocking.m365-pull` 02:30 ·
 `com.rocking.xero-pull` 02:45 · `com.rocking.security-normalize` 03:00.
 Logs in `~/Library/Logs/rocking-*.log`. Vercel crons handle the weekly time
-nudge and monthly upsell digest.
+nudge, the monthly upsell digest, and the daily onboarding drip (07:00 UTC).
 
 ## Current programmes
 
@@ -86,6 +86,16 @@ nudge and monthly upsell digest.
   (Arctic Wolf model). Sub-projects: A data plane ✅, B SOC console ✅,
   C detection/triage agents (next), D incident workflow, E client-facing
   posture. Specs dated 2026-07-24.
+- **Onboarding sequence** — a daily cron walks everyone enrolled and sends at
+  most one "here's what this section does" email, four days apart, skipping
+  sections they already use. A step failing a feature/data gate writes **no
+  row**, which is what lets it fire when that feature is granted months later
+  — never record a gate failure. Two deliberate decisions, both settled with
+  Shawn and **not** bugs: domain-linked self-signups at `/login` do not enrol
+  (only the two invite screens do), and there is no heartbeat, so a quiet day
+  and a broken cron look the same. Enrolling an existing customer is only ever
+  `scripts/onboarding-enrol.mjs --client "X"` — nothing may enrol anyone
+  implicitly.
 - **Support packages** — the portal is the support gate; the ticket is the
   anchor for all paid/covered work. FreeScout is proxied, never mirrored.
   Spec dated 2026-07-14 plus the 2026-08-01 reshape.
