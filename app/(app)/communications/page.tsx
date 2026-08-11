@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getMyCommunications } from "@/lib/views/communications";
 import { categoryLabel, formatRecipients } from "@/lib/communications-helpers";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
+import { PortalUpdatesToggle } from "@/components/PortalUpdatesToggle";
 
 const fmtDate = (ts: string) => ts.slice(0, 10);
 
@@ -18,6 +19,20 @@ export default async function CommunicationsPage() {
         title="Communications"
         subtitle="Every email we've sent you, in one place — invites, quotes, bookings and updates."
       />
+
+      <Card>
+        <CardHeader title="Portal updates" />
+        <div className="px-4 py-3.5">
+          <PortalUpdatesToggle
+            profileId={me.profile.id}
+            optedOut={me.profile.portal_updates_opt_out}
+          />
+          <p className="mt-2 text-[13px] text-muted">
+            Occasional news about new portal features. Quotes, bookings and support emails are
+            always sent.
+          </p>
+        </div>
+      </Card>
 
       {emails.length === 0 ? (
         <Card>

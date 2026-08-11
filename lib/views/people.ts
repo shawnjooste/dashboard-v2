@@ -48,6 +48,7 @@ export type GlobalPersonRow = PersonRow & {
   /** Active portal profile id — present when "Sign in as" is possible. */
   profileId: string | null;
   featureOverrides: Record<string, boolean> | null;
+  portalUpdatesOptOut: boolean;
 };
 
 /** People across every client (staff-only by RLS), optionally narrowed to one client. */
@@ -55,7 +56,9 @@ export async function getAllPeople(clientId?: string): Promise<GlobalPersonRow[]
   const supabase = await createClient();
   let peopleQ = supabase.from("people").select("id, client_id, email, display_name, is_active");
   let m365Q = supabase.from("m365_users").select("person_id, is_licensed, mfa_strong");
-  let profilesQ = supabase.from("profiles").select("id, person_id, role, status, feature_overrides");
+  let profilesQ = supabase
+    .from("profiles")
+    .select("id, person_id, role, status, feature_overrides, portal_updates_opt_out");
   if (clientId) {
     peopleQ = peopleQ.eq("client_id", clientId);
     m365Q = m365Q.eq("client_id", clientId);
@@ -88,6 +91,7 @@ export async function getAllPeople(clientId?: string): Promise<GlobalPersonRow[]
         clientName: clientBy.get(p.client_id) ?? "—",
         profileId: prof && prof.status === "active" ? prof.id : null,
         featureOverrides: toOverrides(prof?.feature_overrides ?? null),
+        portalUpdatesOptOut: !!prof?.portal_updates_opt_out,
       };
     })
     .sort(

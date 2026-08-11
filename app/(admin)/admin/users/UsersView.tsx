@@ -7,6 +7,7 @@ import { startImpersonation } from "@/app/(admin)/admin/clients/[id]/actions";
 import { setPortalRole } from "./actions";
 import { InviteDialog } from "./InviteDialog";
 import { AccessEditor } from "./AccessEditor";
+import { PortalUpdatesToggle } from "@/components/PortalUpdatesToggle";
 import { clientColor, clientInitials, hashString } from "@/lib/ui/client-avatar";
 
 type ClientRef = { id: string; name: string };
@@ -335,9 +336,16 @@ export function UsersView({
                 )}
               </div>
               {/* Portal */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <PortalRoleCell person={p} />
                 <AccessEditor person={p} />
+                {p.profileId && (
+                  <PortalUpdatesToggle
+                    profileId={p.profileId}
+                    optedOut={p.portalUpdatesOptOut}
+                    label="Updates"
+                  />
+                )}
               </div>
               {/* View as */}
               <div className="text-right">
