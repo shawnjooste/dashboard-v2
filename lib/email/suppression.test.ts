@@ -4,17 +4,27 @@ import { isSuppressible, splitRecipients, SUPPRESSIBLE_CATEGORIES } from "./supp
 const optedOut = new Set(["gavin@keller.education"]);
 
 describe("SUPPRESSIBLE_CATEGORIES", () => {
-  it("contains portal_update and nothing else", () => {
-    expect([...SUPPRESSIBLE_CATEGORIES]).toEqual(["portal_update"]);
+  it("contains portal_update and onboarding_step, and nothing else", () => {
+    expect([...SUPPRESSIBLE_CATEGORIES]).toEqual(["portal_update", "onboarding_step"]);
   });
 });
 
 describe("isSuppressible", () => {
-  it("is true only for portal_update", () => {
+  it("is true only for portal_update and onboarding_step", () => {
     expect(isSuppressible("portal_update")).toBe(true);
+    expect(isSuppressible("onboarding_step")).toBe(true);
     for (const c of ["quote", "booking", "onboarding", "job", "admin_alert", "general", undefined]) {
       expect(isSuppressible(c)).toBe(false);
     }
+  });
+
+  it("suppresses onboarding step emails", () => {
+    expect(isSuppressible("onboarding_step")).toBe(true);
+  });
+
+  // The welcome email carries the sign-in link. It must always send.
+  it("never suppresses the welcome email", () => {
+    expect(isSuppressible("onboarding")).toBe(false);
   });
 });
 

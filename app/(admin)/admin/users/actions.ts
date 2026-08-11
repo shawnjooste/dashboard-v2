@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { sendOnboardingEmail } from "@/lib/notify";
 import { supportOnboardingContent } from "@/lib/onboarding-email";
+import { enrolInOnboarding } from "@/lib/onboarding/enrol";
 import { FEATURES, overridesFromSelection } from "@/lib/feature-access";
 import { revalidatePath } from "next/cache";
 
@@ -114,6 +115,10 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
       clientId,
       ...supportOnboardingContent(client?.name ?? "your company"),
     });
+    // Start the tour. Best-effort — never let this fail an invite. Placed
+    // only after the welcome email actually sent, since the tour follows on
+    // from it.
+    await enrolInOnboarding(userId);
   } catch (e) {
     console.error("onboarding email failed:", e);
     return { ok: false, error: "User set up, but the email failed to send — try again." };
