@@ -145,6 +145,10 @@ export function onboardingEmailHtml(opts: {
   supportNote?: string | null;
   headline?: string;
   ctaLabel?: string;
+  /** Document <title>; defaults to the passwordless-invite framing. Override
+   *  for copy sent outside that context (e.g. a feature note sent months in)
+   *  so the <head> doesn't say "Welcome" for a reader who already has an account. */
+  title?: string;
 }): string {
   const name = esc(opts.firstName);
   const company = esc(opts.companyName);
@@ -175,6 +179,7 @@ export function onboardingEmailHtml(opts: {
     `We&rsquo;ve set up a home for everything Rocking looks after for ${company} &mdash; your support tickets, computers, Microsoft&nbsp;365 and more, all in one simple place. No technical know-how needed.`;
   const eyebrow = esc(opts.eyebrow ?? "What you can do inside");
   const featuresHtml = featureRows(opts.features ?? DEFAULT_FEATURES);
+  const docTitle = esc(opts.title ?? "Welcome to The Portal");
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -185,7 +190,7 @@ export function onboardingEmailHtml(opts: {
   <meta name="x-apple-disable-message-reformatting">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
-  <title>Welcome to The Portal</title>
+  <title>${docTitle}</title>
   <!--[if mso]>
   <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
   <![endif]-->
