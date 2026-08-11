@@ -23,7 +23,14 @@ export default async function AssignTiersPage({
   const service = createServiceClient();
   const [packages, { data: clients }] = await Promise.all([
     getSupportPackages(),
-    service.from("clients").select("id, name, support_package_id, support_plan_label").order("name"),
+    // Active clients only. Archiving a client is how you say "we don't work
+    // with them any more" — they shouldn't turn up in a list whose whole
+    // purpose is deciding what each customer pays for support.
+    service
+      .from("clients")
+      .select("id, name, support_package_id, support_plan_label")
+      .eq("status", "active")
+      .order("name"),
   ]);
   const rows = clients ?? [];
   const defaultPkg = packages.find((p) => p.isDefault);
