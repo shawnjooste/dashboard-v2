@@ -59,14 +59,14 @@ being new, or the order of the other steps.
 
 Two rules, both in the pure decision function:
 
-- **At most one decision per person per run.** Four features granted at once
+- **At most one email per person per run.** Four features granted at once
   produce four emails over a fortnight, in catalogue order — not four that
-  afternoon. A run that settles a skip sends nothing and moves on to the next
-  step tomorrow; slower than settling several skips at once, and simpler to
-  reason about.
+  afternoon. Skips are free: a single pass settles every
+  `skipped_already_using` step it walks past and stops at the first step that
+  would send. This matters most when enrolling an established client, whose
+  steps are mostly skips — they settle at once instead of one per day.
 - **At least four days since that person's last `sent` step.** Skips don't
-  reset the clock, so a run of skipped steps doesn't delay the next real
-  email.
+  reset the clock.
 
 ## Architecture
 
@@ -119,7 +119,8 @@ and no clock of its own:
 ```ts
 export type StepDecision = { stepKey: string; outcome: Outcome };
 
-export function dueStep(input: {
+/** Any number of skips, and at most one send — always last. */
+export function dueSteps(input: {
   now: Date;
   enrolledAt: Date;
   role: string;
@@ -129,15 +130,17 @@ export function dueStep(input: {
   visitedSections: Set<string>;    // from portal_activity
   hasDevices: boolean;
   hasXero: boolean;
-}): StepDecision | null;
+}): StepDecision[];
 ```
 
 It walks the catalogue in order, ignoring steps that already have a row and
 steps whose feature or data gate fails (those stay eligible for a future
-run), and returns the first remaining step whose floor has passed and whose
-pacing gap is satisfied — tagged `sent` or `skipped_already_using`. It
-returns `null` when nothing is due. `suppressed` is decided by the caller,
-which knows the opt-out state.
+run). Every remaining step whose floor has passed and which the person is
+already using is returned as a `skipped_already_using` decision; the walk
+stops at the first step that would actually send, which is returned only if
+the four-day gap is satisfied. So a call returns any number of skips and at
+most one send. It returns an empty list when nothing is due, and
+`suppressed` is decided by the caller, which knows the opt-out state.
 
 The catalogue itself lives beside it as an ordered array of
 `{ key, minDays, feature, dataGate, section, content }`. Editing the tour is
@@ -164,10 +167,33 @@ the PostgREST max-rows trap.
 
 ### Enrolment
 
-Both existing invite paths — `app/(admin)/admin/users/actions.ts:109` and
-`app/(app)/team/actions.ts:74` — insert a state row immediately after the
-welcome email succeeds. Enrolment failure must never block or fail an
-invite: the insert is best-effort and logged.
+Two ways in, and only two.
+
+**Automatic, on invite.** Both existing invite paths —
+`app/(admin)/admin/users/actions.ts:109` and `app/(app)/team/actions.ts:74`
+— insert a state row immediately after the welcome email succeeds. Enrolment
+failure must never block or fail an invite: the insert is best-effort and
+logged.
+
+**Manual, one client at a time** — `scripts/onboarding-enrol.mjs`:
+
+```
+node scripts/onboarding-enrol.mjs --client "GSR" [--dry-run]
+```
+
+Resolves the client by name (refusing ambiguous matches rather than
+guessing), lists every active profile with its role, whether it already has a
+state row, and which step it would receive first, then asks for confirmation
+before writing. `--dry-run` prints the same table and writes nothing. Already
+enrolled profiles are reported and left alone, so re-running is safe.
+
+Enrolling an established client sets `enrolled_at` to now, so the day floors
+run from today. Their steps are mostly `skipped_already_using` and settle in
+the first pass, which means a long-standing client hears only about the parts
+of the portal they have been ignoring. That is the intended behaviour of this
+route, not a side effect.
+
+There is no third way in. Nothing enrols a profile implicitly.
 
 ## Opt-out
 
@@ -191,9 +217,9 @@ around it.
 An autoresponder's failure mode is emailing everybody, so:
 
 1. **No backfill.** The 186 existing users get no state rows and never enter
-   the sequence. Only invites sent after this ships. Running existing clients
-   through it later is a separate script with a printed preview and explicit
-   approval — never a side effect of switching this on.
+   the sequence. Only new invites, plus whatever `onboarding-enrol.mjs` is
+   explicitly pointed at, one client at a time. Switching this on emails
+   nobody who is already on the portal.
 2. **Composite primary key** on `(profile_id, step_key)` — duplicates are
    impossible at the database level.
 3. **Per-run cap of 200 sends**, logging loudly when hit.
@@ -203,12 +229,14 @@ An autoresponder's failure mode is emailing everybody, so:
 
 ## Testing
 
-- **Vitest on `dueStep`**, which is where all the risk lives: not yet due;
+- **Vitest on `dueSteps`**, which is where all the risk lives: not yet due;
   due; settled as `skipped_already_using`; a failed feature gate leaving no
   row and staying eligible; the same for a failed data gate; nothing left;
-  one decision per run; the four-day gap measured on sends only; a feature
-  granted long after enrolment firing on the next run; a settled step never
-  reconsidered.
+  never more than one `sent` in a returned list; several skips settling
+  alongside one send in a single call; the four-day gap measured on sends
+  only; a feature granted long after enrolment firing on the next run; a
+  settled step never reconsidered; an established enrolee settling every skip
+  in one pass.
 - **Vitest on the catalogue** asserting every step's feature is in `FEATURES`
   and every `section` matches a real `portal_activity` section value.
 - **Live:** enrol a throwaway profile, run the dry-run, confirm the predicted
@@ -220,7 +248,13 @@ An autoresponder's failure mode is emailing everybody, so:
 ## Out of scope
 
 Per-step admin UI (the Activity feed and Communications already show every
-send); a second opt-out preference; enrolling existing users; re-sending a
-step whose skip conditions later reverse; branching or conditional content
-within a step; A/B testing subject lines; the finished copy for each step,
-which is drafted and approved separately before the cron is enabled.
+send); an admin screen for enrolment, which the script covers until enrolling
+clients becomes routine; a second opt-out preference; re-sending a step
+settled as `skipped_already_using` if that usage later lapses; branching or
+conditional content within a step; A/B testing subject lines; the finished
+copy for each step, which is drafted and approved separately before the cron
+is enabled.
+
+The catalogue is expected to grow as the portal does. Adding a step is an
+entry in the array plus its copy — no migration, and existing enrolees pick
+it up on the next run, since a step with no row for them is simply eligible.
