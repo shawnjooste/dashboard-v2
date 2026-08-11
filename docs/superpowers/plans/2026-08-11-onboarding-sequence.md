@@ -1378,7 +1378,7 @@ npm run dev
 
 **Files:** none — verification only.
 
-- [ ] **Step 1: Confirm nobody is enrolled yet**
+- [x] **Step 1: Confirm nobody is enrolled yet**
 
 Run:
 
@@ -1393,7 +1393,7 @@ createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_R
 
 Expected: `enrolled: 0`. Anything else means something enrolled people implicitly — stop and find out what before going further.
 
-- [ ] **Step 2: Enrol one throwaway profile**
+- [x] **Step 2: Enrol one throwaway profile**
 
 Use the existing `shawn@jooste.co` test profile on JoosteCo. Find its id and insert a state row backdated 20 days so every floor has passed:
 
@@ -1410,13 +1410,13 @@ console.log(await db.from("onboarding_sequence_state").insert({profile_id:p.id,e
 })();'
 ```
 
-- [ ] **Step 3: Dry-run against production and read the plan**
+- [x] **Step 3: Dry-run against production and read the plan**
 
 Run: `node scripts/onboarding-dry-run.mjs --url http://localhost:3000`
 
 Expected: `Enrolled: 1`, `Would send: 1`, and one decision line naming `shawn@jooste.co` with step `support`. Confirm `Would send` is **1**, not more — the one-email-per-person rule.
 
-- [ ] **Step 4: Run it for real, once**
+- [x] **Step 4: Run it for real, once**
 
 Run:
 
@@ -1427,12 +1427,12 @@ curl -s -X POST -H "authorization: Bearer $(grep '^CRON_SECRET=' .env.local | cu
 
 Expected: `{"enrolled":1,"sent":1,...}`. Check the inbox for `shawn@jooste.co`: one email, subject "Getting help, without the phone tag", with no "welcome" language.
 
-- [ ] **Step 5: Run it again immediately and confirm silence**
+- [x] **Step 5: Run it again immediately and confirm silence**
 
 Run the same curl again.
 Expected: `"sent":0`. The four-day gap holds it back. This is the single most important check — a runner that re-sends on every invocation would email everybody repeatedly.
 
-- [ ] **Step 6: Confirm the recorded row**
+- [x] **Step 6: Confirm the recorded row**
 
 ```bash
 node -e '
@@ -1444,11 +1444,11 @@ createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.SUPABASE_SERVICE_R
 
 Expected: exactly one row, `step_key: "support"`, `outcome: "sent"`.
 
-- [ ] **Step 7: Confirm it appears in the client's Communications**
+- [x] **Step 7: Confirm it appears in the client's Communications**
 
 Open `http://localhost:3000/communications` signed in as the test user (or check `sent_emails` for the row). Expected: the step email is listed — it went through `sendEmail`, so the client history is complete.
 
-- [ ] **Step 8: Delete the throwaway rows**
+- [x] **Step 8: Delete the throwaway rows**
 
 ```bash
 node -e '
@@ -1464,12 +1464,12 @@ console.log(await db.from("onboarding_sequence_state").delete().eq("profile_id",
 
 Expected: both deletes succeed. Re-run Step 1 and confirm `enrolled: 0` again.
 
-- [ ] **Step 9: Full suite and build**
+- [x] **Step 9: Full suite and build**
 
 Run: `find .next -name "* 2.*" -delete; npx tsc --noEmit && npx vitest run && npm run build`
 Expected: all green.
 
-- [ ] **Step 10: Commit and push**
+- [x] **Step 10: Commit and push**
 
 Stage explicit paths only — a parallel session may own other files in this repo, and `git add -A` would sweep their work into your commit.
 
