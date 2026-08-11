@@ -4,6 +4,8 @@
 // call THIS — a send that bypasses it is invisible to the client's history.
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isSuppressible, splitRecipients } from "@/lib/email/suppression";
+import { portalUpdateFooterHtml } from "@/lib/email/portal-update-footer";
 
 export const DEFAULT_FROM = '"Rocking" <no-reply@send.rocking.one>';
 
@@ -40,20 +42,44 @@ export type SendEmailOptions = {
  *  that need a threading header format it themselves), or null when the send
  *  was skipped for want of an API key. Throws only if Resend rejects the send;
  *  a logging failure never propagates. */
-export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string | null }> {
+export async function sendEmail(
+  opts: SendEmailOptions,
+): Promise<{ id: string | null; suppressed: string[] }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email:", opts.subject);
-    return { id: null };
+    return { id: null, suppressed: [] };
   }
+
+  // Honour Portal Update opt-outs here, at the one door every email goes
+  // through — a hand-written script that forgets to filter still cannot reach
+  // someone who switched these off. Transactional mail is never filtered.
+  let to = opts.to;
+  let suppressed: string[] = [];
+  if (isSuppressible(opts.category)) {
+    const lowered = opts.to.map((e) => e.trim().toLowerCase());
+    const { data: outRows } = await createServiceClient()
+      .from("profiles")
+      .select("email")
+      .eq("portal_updates_opt_out", true)
+      .in("email", lowered);
+    const optedOut = new Set((outRows ?? []).map((r) => r.email.trim().toLowerCase()));
+    ({ send: to, suppressed } = splitRecipients(opts.to, opts.category, optedOut));
+    // Everyone opted out: nothing was sent, so record nothing. A sent_emails
+    // row here would show up in a client's history for mail they never got.
+    if (to.length === 0) return { id: null, suppressed };
+  }
+
+  const html = isSuppressible(opts.category) ? opts.html + portalUpdateFooterHtml() : opts.html;
+
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: opts.from ?? DEFAULT_FROM,
-      to: opts.to,
+      to,
       subject: opts.subject,
-      html: opts.html,
+      html,
       ...(opts.cc?.length ? { cc: opts.cc } : {}),
       ...(opts.bcc?.length ? { bcc: opts.bcc } : {}),
       ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
@@ -73,7 +99,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string | 
         rfq_id: opts.rfqId ?? null,
         // Addresses are lowercased so member visibility (which compares against
         // the lowercased current_user_email()) can never fail on casing.
-        to_emails: [...opts.to, ...(opts.cc ?? [])].map((e) => e.trim().toLowerCase()),
+        to_emails: [...to, ...(opts.cc ?? [])].map((e) => e.trim().toLowerCase()),
         subject: opts.subject,
         html: opts.recordHtml ?? opts.html,
         category: opts.category ?? "general",
@@ -85,5 +111,5 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string | 
   } catch (e) {
     console.error("sent_emails log failed:", e);
   }
-  return { id };
+  return { id, suppressed };
 }
