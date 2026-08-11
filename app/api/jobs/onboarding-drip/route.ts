@@ -34,7 +34,10 @@ async function fetchAll<T>(
   }
 }
 
-const ID_CHUNK = 250;
+// 150 UUIDs × ~37 bytes ≈ 5.5 KB of query string — real headroom under the
+// common 8 KB nginx/Kong request-line buffer this chunking exists to stay
+// under. 250 (~9.3 KB) was already over that limit.
+const ID_CHUNK = 150;
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -120,7 +123,24 @@ async function runDrip(req: Request) {
       .order("profile_id")
       .range(f, t),
   );
-  if (state.length === 0) return NextResponse.json({ enrolled: 0, sent: 0, settled: 0 });
+  if (state.length === 0) {
+    // Honour `dry` here too — Task 7's dry-run script reads wouldSend /
+    // wouldSettle / wouldStop / capped / decisions, and an empty portal
+    // (the state this route is first run against) is exactly when this
+    // early return fires.
+    if (dry) {
+      return NextResponse.json({
+        dryRun: true,
+        enrolled: 0,
+        wouldSend: 0,
+        wouldSettle: 0,
+        wouldStop: 0,
+        capped: false,
+        decisions: [],
+      });
+    }
+    return NextResponse.json({ enrolled: 0, sent: 0, settled: 0, stopped: 0, capped: false });
+  }
 
   const ids = state.map((s) => s.profile_id);
 
@@ -271,16 +291,26 @@ async function runDrip(req: Request) {
           audience: "client",
           clientId: p.client_id,
         });
-        if (result.id === null) {
-          // sendEmail didn't throw but also didn't send (missing API key —
-          // already guarded above — or every recipient was suppressed at
-          // the send layer). Either way nothing went out: no row, so this
-          // step is still due tomorrow instead of being marked sent forever.
-          console.error("onboarding drip: send did not go out for", p.email, d.stepKey);
+        // sendEmail throws on any non-2xx Resend response (lib/email/send.ts:88),
+        // so reaching this line means the mail was accepted for delivery —
+        // a null `id` here is NOT "nothing was sent". The only genuine
+        // no-send path is every recipient being suppressed (opted out,
+        // possibly a race against our profiles read from earlier in this
+        // run); that's the one case with a non-empty `suppressed` array.
+        if (result.suppressed.length > 0) {
+          await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "suppressed" });
+          settled++;
           continue;
         }
-        // Row written only after the send resolved with a real message id —
-        // an unsent step must stay eligible for tomorrow's run.
+        if (result.id === null) {
+          // Delivered, but Resend's response body didn't parse into the
+          // expected shape — worth knowing about, but the mail is already
+          // gone, so the row is still written as sent. Treating this as
+          // not-sent would re-mail everyone on the run's send path daily.
+          console.error("onboarding drip: sendEmail returned a null id (delivered; response body didn't parse) for", p.email, d.stepKey);
+        }
+        // Row written only after the send resolved — an unsent step (the
+        // catch block below) must stay eligible for tomorrow's run.
         await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "sent" });
         sent++;
       } catch (e) {
@@ -306,11 +336,16 @@ async function runDrip(req: Request) {
     });
   }
 
-  if (stopped.length) {
-    await service
+  // Chunked for the same reason the reads above are: round 1's role gate
+  // means every staff enrollee lands in `stopped` too, so this list scales
+  // with total enrollment, not just recent deactivations, and an unbounded
+  // `.in()` can exceed the proxy's request-line limit.
+  for (const idChunk of chunk(stopped, ID_CHUNK)) {
+    const { error } = await service
       .from("onboarding_sequence_state")
       .update({ status: "stopped" })
-      .in("profile_id", stopped);
+      .in("profile_id", idChunk);
+    if (error) console.error("onboarding drip: stopping sequences failed", error.message);
   }
 
   return NextResponse.json({
