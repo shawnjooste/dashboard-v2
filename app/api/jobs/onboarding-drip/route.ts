@@ -70,68 +70,119 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Alerts an admin when a decision row could not be written even after
- *  retries. This is the one case that causes a duplicate send: with no row
- *  written, the step reads as unsettled AND `lastSentAt` is unchanged, so
- *  tomorrow's run sends the identical email again. Wrapped so a failing
- *  alert can never break the run. */
-async function alertRecordDecisionFailed(
-  row: { profile_id: string; step_key: string; outcome: string },
-  errorMessage: string,
+const RETRIES = 2;
+const RETRY_DELAY_MS = 500;
+/** Postgres' unique-violation code (supabase-js surfaces it on `error.code`).
+ *  A duplicate key on (profile_id, step_key) means the row already exists —
+ *  the step IS settled, which is the outcome the insert was trying to
+ *  produce. Self-healing, not actionable: never retry it, never alert on it. */
+const PG_UNIQUE_VIOLATION = "23505";
+/** Once this many decisions in a row have exhausted their retries, stop
+ *  retrying for the rest of the run — the database is clearly not coming
+ *  back within this invocation, and paying the full retry tax (3 inserts +
+ *  1s of sleep each) on every remaining decision risks blowing `maxDuration`
+ *  and re-triggering the exact duplicate-send bug retries exist to prevent. */
+const CONSECUTIVE_FAILURE_THRESHOLD = 5;
+
+/** Threaded through every `recordDecision` call in a run: tracks consecutive
+ *  exhausted-retry failures (to trip the backoff above) and collects every
+ *  failure for a single end-of-run alert, instead of one email per row. */
+type DripRunState = {
+  consecutiveFailures: number;
+  failedDecisions: { profile_id: string; step_key: string; outcome: string; error: string }[];
+};
+
+/** Alerts an admin once per run when one or more decision rows could not be
+ *  written even after retries. This is the one case that causes a duplicate
+ *  send: with no row written, the affected steps read as unsettled AND
+ *  `lastSentAt` is unchanged, so tomorrow's run sends the identical emails
+ *  again. Capped at one email regardless of how many decisions failed — a
+ *  systemic write failure (e.g. an overlapping run hitting duplicate keys
+ *  everywhere, or a saturated pooler) must not become an alert storm.
+ *  Wrapped so a failing alert can never break the run. */
+async function alertRecordDecisionsFailed(
+  failures: DripRunState["failedDecisions"],
 ): Promise<void> {
+  const SHOWN = 25;
+  const rows = failures
+    .slice(0, SHOWN)
+    .map(
+      (f) => `<tr>
+          <td style="color:#888; padding-right:12px;">${f.profile_id}</td>
+          <td style="color:#888; padding-right:12px;">${f.step_key}</td>
+          <td style="color:#888; padding-right:12px;">${f.outcome}</td>
+          <td>${f.error}</td>
+        </tr>`,
+    )
+    .join("");
+  const more = failures.length > SHOWN ? `<p style="color:#888; margin:12px 0 0;">…and ${failures.length - SHOWN} more.</p>` : "";
   try {
     await sendEmail({
       category: "admin_alert",
       audience: "internal",
       to: [ADMIN_EMAIL],
-      subject: `Onboarding drip: decision insert failed — ${row.step_key}`,
+      subject: `Onboarding drip: ${failures.length} decision${failures.length === 1 ? "" : "s"} failed to record`,
       html: `
-        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">
-          <h2 style="margin:0 0 8px;">Onboarding drip: recording a decision failed</h2>
+        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 640px;">
+          <h2 style="margin:0 0 8px;">Onboarding drip: ${failures.length} decision${failures.length === 1 ? "" : "s"} failed to record</h2>
           <p style="color:#444; margin:0 0 16px;">
-            The insert into onboarding_sequence_sends failed after retries. The step will read
-            as unsettled tomorrow and lastSentAt won't have moved either, so the identical email
-            is likely to go out again — this needs a human look.
+            These inserts into onboarding_sequence_sends failed after retries. Each affected step
+            will read as unsettled tomorrow and lastSentAt won't have moved either, so the
+            identical email is likely to go out again — this needs a human look.
           </p>
-          <table style="font-size:14px; color:#111;">
-            <tr><td style="color:#888; padding-right:12px;">Profile ID</td><td><strong>${row.profile_id}</strong></td></tr>
-            <tr><td style="color:#888; padding-right:12px;">Step key</td><td><strong>${row.step_key}</strong></td></tr>
-            <tr><td style="color:#888; padding-right:12px;">Outcome</td><td>${row.outcome}</td></tr>
-            <tr><td style="color:#888; padding-right:12px;">Error</td><td>${errorMessage}</td></tr>
+          <table style="font-size:14px; color:#111; border-collapse:collapse;">
+            <tr style="text-align:left;"><th>Profile ID</th><th>Step key</th><th>Outcome</th><th>Error</th></tr>
+            ${rows}
           </table>
+          ${more}
         </div>`,
     });
   } catch (e) {
-    console.error("onboarding drip: admin alert for failed decision insert also failed", e);
+    console.error("onboarding drip: admin alert for failed decision inserts also failed", e);
   }
 }
 
 /** Writes one settled decision immediately, retrying transient failures a
- *  couple of times before giving up. A failure here is logged (and, once
- *  retries are exhausted, alerted) rather than thrown, so it costs only this
- *  one row, not the rest of the run — see the module doc for why a bulk
- *  end-of-run insert is the wrong shape. */
+ *  couple of times before giving up — unless the run has already seen
+ *  `CONSECUTIVE_FAILURE_THRESHOLD` exhausted failures in a row, in which case
+ *  this call gets a single attempt so the loop stays cheap. A duplicate-key
+ *  violation is treated as success (see PG_UNIQUE_VIOLATION doc) and never
+ *  retried. Any other exhausted failure is logged and queued onto
+ *  `state.failedDecisions` for one end-of-run alert, rather than thrown, so
+ *  it costs only this one row, not the rest of the run — see the module doc
+ *  for why a bulk end-of-run insert is the wrong shape. */
 async function recordDecision(
   service: ReturnType<typeof createServiceClient>,
   row: { profile_id: string; step_key: string; outcome: string },
+  state: DripRunState,
 ): Promise<void> {
-  const RETRIES = 2;
-  const RETRY_DELAY_MS = 500;
+  const retriesAllowed = state.consecutiveFailures < CONSECUTIVE_FAILURE_THRESHOLD;
+  const maxAttempts = retriesAllowed ? RETRIES + 1 : 1;
   let lastMessage = "";
-  for (let attempt = 0; attempt <= RETRIES; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const { error } = await service.from("onboarding_sequence_sends").insert(row);
-    if (!error) return;
+    if (!error) {
+      state.consecutiveFailures = 0;
+      return;
+    }
+    if (error.code === PG_UNIQUE_VIOLATION) {
+      // The row already exists — the step is already settled. Not a
+      // database-health signal either way, so leave consecutiveFailures alone.
+      console.error("onboarding drip: decision already recorded (duplicate key) — treating as settled", row.profile_id, row.step_key);
+      return;
+    }
     lastMessage = error.message;
     console.error(
       "onboarding drip: recording decision failed",
       row.profile_id,
       row.step_key,
-      `(attempt ${attempt + 1}/${RETRIES + 1})`,
+      `(attempt ${attempt + 1}/${maxAttempts})`,
       error.message,
     );
-    if (attempt < RETRIES) await sleep(RETRY_DELAY_MS);
+    if (attempt < maxAttempts - 1) await sleep(RETRY_DELAY_MS);
   }
-  await alertRecordDecisionFailed(row, lastMessage);
+  state.consecutiveFailures++;
+  state.failedDecisions.push({ ...row, error: lastMessage });
 }
 
 /**
@@ -283,6 +334,7 @@ async function runDrip(req: Request) {
   let sent = 0;
   let settled = 0;
   let capped = false;
+  const dripState: DripRunState = { consecutiveFailures: 0, failedDecisions: [] };
 
   for (const s of state) {
     const p = profileById.get(s.profile_id);
@@ -309,7 +361,7 @@ async function runDrip(req: Request) {
     for (const d of decisions) {
       if (d.outcome === "skipped_already_using") {
         preview.push({ email: p.email, step: d.stepKey, outcome: d.outcome });
-        if (!dry) await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: d.outcome });
+        if (!dry) await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: d.outcome }, dripState);
         settled++;
         continue;
       }
@@ -318,7 +370,7 @@ async function runDrip(req: Request) {
         // Record it so their sequence advances instead of stalling here
         // forever. sendEmail would suppress it anyway; not calling is cleaner.
         preview.push({ email: p.email, step: d.stepKey, outcome: "suppressed" });
-        if (!dry) await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "suppressed" });
+        if (!dry) await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "suppressed" }, dripState);
         settled++;
         continue;
       }
@@ -368,7 +420,7 @@ async function runDrip(req: Request) {
         // possibly a race against our profiles read from earlier in this
         // run); that's the one case with a non-empty `suppressed` array.
         if (result.suppressed.length > 0) {
-          await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "suppressed" });
+          await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "suppressed" }, dripState);
           settled++;
           continue;
         }
@@ -381,7 +433,7 @@ async function runDrip(req: Request) {
         }
         // Row written only after the send resolved — an unsent step (the
         // catch block below) must stay eligible for tomorrow's run.
-        await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "sent" });
+        await recordDecision(service, { profile_id: p.id, step_key: d.stepKey, outcome: "sent" }, dripState);
         sent++;
       } catch (e) {
         // No row: an unsent step must stay eligible for tomorrow's run.
@@ -392,6 +444,11 @@ async function runDrip(req: Request) {
 
   if (capped) {
     console.error(`onboarding drip: hit the ${MAX_SENDS_PER_RUN}-send cap — some steps deferred`);
+  }
+
+  // One alert for the whole run, never one per row — see alertRecordDecisionsFailed's doc.
+  if (dripState.failedDecisions.length > 0) {
+    await alertRecordDecisionsFailed(dripState.failedDecisions);
   }
 
   if (dry) {
