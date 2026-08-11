@@ -32,6 +32,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile> {
         decline_reason: null,
         person_id: null,
         feature_overrides: null,
+        portal_updates_opt_out: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },

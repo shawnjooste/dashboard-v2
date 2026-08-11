@@ -2213,6 +2213,7 @@ export type Database = {
           id: string
           pending_notified_at: string | null
           person_id: string | null
+          portal_updates_opt_out: boolean
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
@@ -2227,6 +2228,7 @@ export type Database = {
           id: string
           pending_notified_at?: string | null
           person_id?: string | null
+          portal_updates_opt_out?: boolean
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
@@ -2241,6 +2243,7 @@ export type Database = {
           id?: string
           pending_notified_at?: string | null
           person_id?: string | null
+          portal_updates_opt_out?: boolean
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
