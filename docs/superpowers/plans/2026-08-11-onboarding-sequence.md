@@ -1369,6 +1369,12 @@ git commit -m "feat(onboarding): add enrolment and dry-run scripts"
 
 Local dev reads `.env.local` and therefore talks to **production** Supabase. Everything here uses a throwaway profile that is deleted at the end. Do not run the enrolment script against a real client during this task.
 
+**The route is not deployed yet** — the push is Step 10. So every call below goes to a **local** dev server, which still reads production Supabase and still sends real email through Resend. Start it first and leave it running:
+
+```bash
+npm run dev
+```
+
 **Files:** none — verification only.
 
 - [ ] **Step 1: Confirm nobody is enrolled yet**
@@ -1405,7 +1411,7 @@ console.log(await db.from("onboarding_sequence_state").insert({profile_id:p.id,e
 
 - [ ] **Step 3: Dry-run against production and read the plan**
 
-Run: `node scripts/onboarding-dry-run.mjs`
+Run: `node scripts/onboarding-dry-run.mjs --url http://localhost:3000`
 
 Expected: `Enrolled: 1`, `Would send: 1`, and one decision line naming `shawn@jooste.co` with step `support`. Confirm `Would send` is **1**, not more — the one-email-per-person rule.
 
@@ -1415,7 +1421,7 @@ Run:
 
 ```bash
 curl -s -X POST -H "authorization: Bearer $(grep '^CRON_SECRET=' .env.local | cut -d= -f2- | tr -d '"')" \
-  https://portal.rocking.one/api/jobs/onboarding-drip
+  http://localhost:3000/api/jobs/onboarding-drip
 ```
 
 Expected: `{"enrolled":1,"sent":1,...}`. Check the inbox for `shawn@jooste.co`: one email, subject "Getting help, without the phone tag", with no "welcome" language.
@@ -1439,7 +1445,7 @@ Expected: exactly one row, `step_key: "support"`, `outcome: "sent"`.
 
 - [ ] **Step 7: Confirm it appears in the client's Communications**
 
-Open `https://portal.rocking.one/communications` signed in as the test user (or check `sent_emails` for the row). Expected: the step email is listed — it went through `sendEmail`, so the client history is complete.
+Open `http://localhost:3000/communications` signed in as the test user (or check `sent_emails` for the row). Expected: the step email is listed — it went through `sendEmail`, so the client history is complete.
 
 - [ ] **Step 8: Delete the throwaway rows**
 
@@ -1464,11 +1470,16 @@ Expected: all green.
 
 - [ ] **Step 10: Commit and push**
 
+Stage explicit paths only — a parallel session may own other files in this repo, and `git add -A` would sweep their work into your commit.
+
 ```bash
-git add -A
-git commit -m "test(onboarding): verified drip end to end against production"
+git status --porcelain
+git add docs/superpowers/plans/2026-08-11-onboarding-sequence.md
+git commit -m "docs(onboarding): verified drip end to end"
 git push
 ```
+
+If `git status` shows changes you did not make, leave them unstaged and say so in your report.
 
 ---
 
