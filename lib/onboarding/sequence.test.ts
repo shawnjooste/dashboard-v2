@@ -23,7 +23,7 @@ function input(over: Partial<SequenceInput> = {}): SequenceInput {
 
 describe("dueSteps", () => {
   it("sends nothing before the first floor", () => {
-    expect(dueSteps(input({ enrolledAt: daysAgo(1) }))).toEqual([]);
+    expect(dueSteps(input({ enrolledAt: daysAgo(2) }))).toEqual([]);
   });
 
   it("offers the first due step", () => {
@@ -88,6 +88,29 @@ describe("dueSteps", () => {
       input({ hasDevices: false, visitedSections: new Set(["support"]) }),
     );
     expect(decisions.map((d) => d.stepKey)).not.toContain("devices");
+    expect(decisions).toEqual([
+      { stepKey: "support", outcome: "skipped_already_using" },
+      { stepKey: "billing", outcome: "sent" },
+    ]);
+  });
+
+  it("leaves NO decision for a failed xero data gate, so it stays eligible", () => {
+    // No Xero connection: billing is passed over silently (not merely
+    // skipped), so connectivity — the next step in the catalogue — is what
+    // actually sends. `devices` is pre-settled (from an earlier run) purely
+    // to get it out of the way, since it precedes billing in the catalogue
+    // and would otherwise be the one that sends.
+    const decisions = dueSteps(
+      input({
+        hasXero: false,
+        settled: new Set(["devices"]),
+        visitedSections: new Set(["support"]),
+      }),
+    );
+    expect(decisions).toEqual([
+      { stepKey: "support", outcome: "skipped_already_using" },
+      { stepKey: "connectivity", outcome: "sent" },
+    ]);
   });
 
   it("fires a step whose feature is granted long after enrolment", () => {
@@ -107,7 +130,7 @@ describe("dueSteps", () => {
   });
 
   it("holds the send until the gap has passed", () => {
-    expect(dueSteps(input({ lastSentAt: daysAgo(1) }))).toEqual([]);
+    expect(dueSteps(input({ lastSentAt: daysAgo(3) }))).toEqual([]);
   });
 
   it("sends once the gap has passed", () => {
@@ -126,9 +149,13 @@ describe("dueSteps", () => {
   });
 
   it("does not let a later step jump the queue while the gap holds", () => {
-    // support is sendable but gap-blocked; devices must NOT go instead.
-    const decisions = dueSteps(input({ lastSentAt: daysAgo(1) }));
-    expect(decisions.map((d) => d.stepKey)).not.toContain("devices");
+    // support is unvisited and gap-blocked, so the walk stops there: nothing
+    // is settled, even though billing (later in the catalogue) is already
+    // in use and would otherwise settle for free.
+    const decisions = dueSteps(
+      input({ lastSentAt: daysAgo(1), visitedSections: new Set(["billing"]) }),
+    );
+    expect(decisions).toEqual([]);
   });
 
   it("gives a member only the support step", () => {
