@@ -26,6 +26,14 @@ describe("stepEmailHtml", () => {
     expect(html).not.toContain("<script>");
   });
 
+  // firstName can now be an arbitrary email local-part (see the drip route's
+  // fallback when display_name is null), and `intro` interpolates it as raw
+  // HTML — it must go through the same `esc` as companyName.
+  it("escapes the first name", () => {
+    const html = stepEmailHtml("support", { ...opts, firstName: "<script>alert(1)</script>" });
+    expect(html).not.toContain("<script>");
+  });
+
   // These land months later for someone granted a feature late, so they must
   // not pretend the reader has just arrived.
   it("never talks about being new", () => {

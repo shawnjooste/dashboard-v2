@@ -7,10 +7,16 @@ import { dueSteps } from "@/lib/onboarding/sequence";
 import { stepEmailHtml } from "@/lib/onboarding/step-content";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
+const SUPPORT_EMAIL = "support@rocking.co.za"; // FreeScout helpdesk inbox — replies land as tickets
+const ADMIN_EMAIL = "shawn@rocking.one";
 
 /** A bug here emails hundreds of real customers, so a run can never exceed
  *  this many sends. Hitting it is logged loudly rather than silently truncated. */
 const MAX_SENDS_PER_RUN = 200;
+
+/** Vercel's default is 10s; a fully sequential loop of up to
+ *  MAX_SENDS_PER_RUN sequential sends easily exceeds that. */
+export const maxDuration = 300;
 
 /** Only client-facing roles are ever due an onboarding email. `canAccess`
  *  treats "rocking_staff" as able to see every feature, so a staff profile
@@ -60,17 +66,72 @@ async function fetchAllForIds<T>(
   return out;
 }
 
-/** Writes one settled decision immediately. A failure here is logged and
- *  swallowed so it costs only this one row, not the rest of the run — see
- *  the module doc for why a bulk end-of-run insert is the wrong shape. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Alerts an admin when a decision row could not be written even after
+ *  retries. This is the one case that causes a duplicate send: with no row
+ *  written, the step reads as unsettled AND `lastSentAt` is unchanged, so
+ *  tomorrow's run sends the identical email again. Wrapped so a failing
+ *  alert can never break the run. */
+async function alertRecordDecisionFailed(
+  row: { profile_id: string; step_key: string; outcome: string },
+  errorMessage: string,
+): Promise<void> {
+  try {
+    await sendEmail({
+      category: "admin_alert",
+      audience: "internal",
+      to: [ADMIN_EMAIL],
+      subject: `Onboarding drip: decision insert failed — ${row.step_key}`,
+      html: `
+        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px;">
+          <h2 style="margin:0 0 8px;">Onboarding drip: recording a decision failed</h2>
+          <p style="color:#444; margin:0 0 16px;">
+            The insert into onboarding_sequence_sends failed after retries. The step will read
+            as unsettled tomorrow and lastSentAt won't have moved either, so the identical email
+            is likely to go out again — this needs a human look.
+          </p>
+          <table style="font-size:14px; color:#111;">
+            <tr><td style="color:#888; padding-right:12px;">Profile ID</td><td><strong>${row.profile_id}</strong></td></tr>
+            <tr><td style="color:#888; padding-right:12px;">Step key</td><td><strong>${row.step_key}</strong></td></tr>
+            <tr><td style="color:#888; padding-right:12px;">Outcome</td><td>${row.outcome}</td></tr>
+            <tr><td style="color:#888; padding-right:12px;">Error</td><td>${errorMessage}</td></tr>
+          </table>
+        </div>`,
+    });
+  } catch (e) {
+    console.error("onboarding drip: admin alert for failed decision insert also failed", e);
+  }
+}
+
+/** Writes one settled decision immediately, retrying transient failures a
+ *  couple of times before giving up. A failure here is logged (and, once
+ *  retries are exhausted, alerted) rather than thrown, so it costs only this
+ *  one row, not the rest of the run — see the module doc for why a bulk
+ *  end-of-run insert is the wrong shape. */
 async function recordDecision(
   service: ReturnType<typeof createServiceClient>,
   row: { profile_id: string; step_key: string; outcome: string },
 ): Promise<void> {
-  const { error } = await service.from("onboarding_sequence_sends").insert(row);
-  if (error) {
-    console.error("onboarding drip: recording decision failed", row.profile_id, row.step_key, error.message);
+  const RETRIES = 2;
+  const RETRY_DELAY_MS = 500;
+  let lastMessage = "";
+  for (let attempt = 0; attempt <= RETRIES; attempt++) {
+    const { error } = await service.from("onboarding_sequence_sends").insert(row);
+    if (!error) return;
+    lastMessage = error.message;
+    console.error(
+      "onboarding drip: recording decision failed",
+      row.profile_id,
+      row.step_key,
+      `(attempt ${attempt + 1}/${RETRIES + 1})`,
+      error.message,
+    );
+    if (attempt < RETRIES) await sleep(RETRY_DELAY_MS);
   }
+  await alertRecordDecisionFailed(row, lastMessage);
 }
 
 /**
@@ -272,7 +333,12 @@ async function runDrip(req: Request) {
       }
       const step = CATALOGUE.find((c) => c.key === d.stepKey)!;
       const person = Array.isArray(p.people) ? p.people[0] : p.people;
-      const firstName = (person?.display_name ?? p.email).split(" ")[0];
+      // Matches the welcome email's handling (app/(admin)/admin/users/actions.ts):
+      // display_name's first word when present, otherwise the email's local
+      // part — never the whole email, which splitting on a space would return
+      // since an address has no space in it.
+      const displayName = person?.display_name ?? null;
+      const firstName = (displayName ? displayName.split(/\s+/)[0] : p.email.split("@")[0]) || "there";
       const html = stepEmailHtml(d.stepKey, {
         firstName,
         companyName: client?.name ?? "your company",
@@ -290,6 +356,10 @@ async function runDrip(req: Request) {
           category: "onboarding_step",
           audience: "client",
           clientId: p.client_id,
+          // The template's default support copy tells the reader to reply —
+          // route that reply into the FreeScout helpdesk inbox instead of
+          // DEFAULT_FROM (no-reply@), which cannot receive mail at all.
+          replyTo: SUPPORT_EMAIL,
         });
         // sendEmail throws on any non-2xx Resend response (lib/email/send.ts:88),
         // so reaching this line means the mail was accepted for delivery —
