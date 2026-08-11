@@ -80,14 +80,15 @@ export async function inviteTeamMember(
       clientId: me.profile.client_id,
       ...supportOnboardingContent(company),
     });
-    // Start the tour. Best-effort — never let this fail an invite. Placed
-    // only after the welcome email actually sent, since the tour follows on
-    // from it.
-    await enrolInOnboarding(userId);
   } catch (e) {
     console.error("team invite email failed:", e);
     return { ok: false, error: "Added, but the welcome email didn't send — they can still sign in at the portal." };
   }
+
+  // Start the tour. Best-effort — never let this fail an invite. Kept
+  // structurally decoupled from the email try/catch above (best-effort by
+  // its own design, not by borrowing that catch).
+  await enrolInOnboarding(userId);
 
   revalidatePath("/team");
   return { ok: true, email };
