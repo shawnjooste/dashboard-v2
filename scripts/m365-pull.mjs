@@ -86,16 +86,35 @@ async function pullOne(conn) {
   const users = await graphAll(
     at, "/users?$select=id,displayName,userPrincipalName,accountEnabled,assignedLicenses&$top=999",
   );
+  // Fallback for auth-methods fetch failures below: the last-known MFA
+  // posture per user, so a transient error doesn't get recorded as "no MFA".
+  const { data: prevUsers } = await sb.from("m365_users")
+    .select("m365_user_id, mfa_methods, mfa_strong").eq("client_id", conn.client_id);
+  const prevMfaById = new Map((prevUsers ?? []).map((p) => [p.m365_user_id, p]));
+
   const userRows = [];
+  let authMethodFailures = 0;
   for (const u of users) {
     const isLicensed = (u.assignedLicenses?.length ?? 0) > 0;
     let methods = [];
+    let mfaStrong = false;
     if (u.accountEnabled) {
       // Auth methods work without Entra P1; only fetch for enabled accounts.
-      const m = await graphGet(at, `/users/${u.id}/authentication/methods`);
-      if (m.ok) methods = (m.body.value ?? []).map((x) => x["@odata.type"] ?? "");
+      let m = await graphGet(at, `/users/${u.id}/authentication/methods`);
+      if (!m.ok) m = await graphGet(at, `/users/${u.id}/authentication/methods`); // one retry — routine 429s
+      if (m.ok) {
+        methods = (m.body.value ?? []).map((x) => x["@odata.type"] ?? "");
+        mfaStrong = methods.some((t) => !t.toLowerCase().includes("password"));
+      } else {
+        // Still failing — don't record this as "signs in with password only"
+        // (downstream security-normalize.mjs treats an empty array as
+        // CRITICAL). Keep whatever was stored from the last successful pull.
+        const prev = prevMfaById.get(u.id);
+        methods = prev?.mfa_methods ?? [];
+        mfaStrong = prev?.mfa_strong ?? false;
+        authMethodFailures++;
+      }
     }
-    const mfaStrong = methods.some((t) => !t.toLowerCase().includes("password"));
 
     // Real humans (enabled + licensed) with an email become canonical people.
     let personId = null;
@@ -117,6 +136,7 @@ async function pullOne(conn) {
   }
   if (userRows.length) await sb.from("m365_users").upsert(userRows, { onConflict: "client_id,m365_user_id" });
   counts.users = userRows.length;
+  if (authMethodFailures) counts.skipped.push(`authMethods(${authMethodFailures})`);
 
   // security posture
   const sd = await graphGet(at, "/policies/identitySecurityDefaultsEnforcementPolicy");

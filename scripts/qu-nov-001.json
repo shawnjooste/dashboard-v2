@@ -1,6 +1,6 @@
 {
   "clientId": "c961db49-4125-4565-9be4-8fdd6c79c315",
-  "title": "100Mbps Fibre & 3CX VoIP Service",
+  "title": "100Mbps Fibre, 3CX VoIP & Handset",
   "validUntil": "2026-08-21",
   "number": "QU-NOV-001",
   "doc": {
@@ -30,22 +30,34 @@
       "validUntil": "21 August 2026",
       "preparedBy": "Shawn Jooste"
     },
-    "projectTitle": "100Mbps Fibre & 3CX VoIP Service",
-    "projectIntro": "This quote covers an Openserve fibre link and a 3CX VoIP line for Nova Nexus Group, provided on a 24-month term and billed monthly, together with the once-off fibre installation. The monthly total below is based on the 100Mbps service; a 200Mbps option is shown should you prefer the faster link. Wi-Fi and 3CX handsets are quoted separately. All prices exclude VAT (15%).",
+    "projectTitle": "100Mbps Fibre, 3CX VoIP & Handset",
+    "projectIntro": "This quote covers a 100Mbps Openserve fibre link and a 3CX VoIP line for Nova Nexus Group, provided on a 24-month term and billed monthly, together with the once-off fibre installation and a cordless VoIP handset. Wi-Fi is quoted separately. All prices exclude VAT (15%).",
     "sections": [
       {
         "id": "setup",
-        "title": "Section 1 — Once-Off Installation",
-        "subtitle": "Fibre installation",
+        "title": "Section 1 — Once-Off Installation & Hardware",
+        "subtitle": "Installation and VoIP handsets",
         "totalLabel": "TOTAL (incl VAT)",
         "groups": [
           {
+            "name": "Installation",
             "items": [
               {
                 "description": "Fibre Installation — Openserve Link",
-                "detail": "Once-off installation and activation of the Openserve fibre link at your premises, including router configuration and handover. The same charge applies whether you take the 100Mbps or 200Mbps service.",
+                "detail": "Once-off installation and activation of the Openserve fibre link at your premises, including router configuration and handover.",
                 "qty": 1,
                 "unitPrice": 2000.0
+              }
+            ]
+          },
+          {
+            "name": "VoIP Hardware",
+            "items": [
+              {
+                "description": "Fanvil W610D — 20SIP Portable DECT IP Phone",
+                "detail": "Cordless DECT handset with base station, supporting up to 20 SIP accounts. Supplied configured and registered to your 3CX system.",
+                "qty": 1,
+                "unitPrice": 2095.0
               }
             ]
           }
@@ -64,21 +76,13 @@
                 "description": "100Mbps Openserve Fibre Link",
                 "detail": "100Mbps uncapped fibre connectivity via Openserve, billed monthly.",
                 "qty": 1,
-                "unitPrice": 2000.0
+                "unitPrice": 1900.0
               },
               {
                 "description": "3CX VoIP Line",
                 "detail": "One 3CX VoIP line, billed monthly. Additional lines can be added at any time at the same rate of R99 per line per month ex VAT.",
                 "qty": 1,
                 "unitPrice": 99.0
-              },
-              {
-                "description": "Optional — 200Mbps Openserve Fibre Link",
-                "detail": "Faster alternative to the 100Mbps link above, in place of it rather than in addition to it. Choosing 200Mbps brings the monthly total to R 2 988,85 incl VAT; the installation charge is unchanged.",
-                "qty": null,
-                "unitPrice": null,
-                "usageNote": "R 2 500,00 / month",
-                "totalNote": "Optional upgrade"
               },
               {
                 "description": "Call Charges",
@@ -93,17 +97,17 @@
         ]
       }
     ],
-    "summaryNote": "The monthly total shown is for the 100Mbps service. The 200Mbps link is an alternative at R2,500 per month ex VAT (R 2 988,85 incl VAT per month in total) — just tell us which you'd prefer and the installation charge stays the same. Call charges are additional and billed monthly in arrears at R0.50 per minute, charged per second. Wi-Fi (Ubiquiti UniFi) and 3CX handsets with the required SBC are not included here and will be quoted separately.",
+    "summaryNote": "Call charges are additional and billed monthly in arrears at R0.50 per minute, charged per second. Wi-Fi (Ubiquiti UniFi) is not included here and will be quoted separately.",
     "terms": [
       "This quote is valid for 14 days from the date of issue.",
       "All prices exclude VAT at 15% unless otherwise stated.",
       "The fibre and VoIP service is provided on a 24-month term, billed monthly.",
-      "The monthly total is based on the 100Mbps link. The 200Mbps link is available in its place at R2,500 per month ex VAT.",
       "Calls are billed monthly in arrears at R0.50 per minute, charged per second.",
       "Additional 3CX VoIP lines may be added at any time at R99 per line per month ex VAT.",
-      "The once-off installation is payable on acceptance, prior to installation.",
+      "The once-off installation and hardware are payable on acceptance, prior to installation.",
       "Service provisioning is subject to Openserve line feasibility at the site.",
-      "Wi-Fi equipment and 3CX handsets with the required SBC are excluded and will be quoted separately."
+      "Manufacturer warranty applies to all hardware supplied.",
+      "Wi-Fi equipment is excluded and will be quoted separately."
     ],
     "banking": {
       "bank": "First National Bank",
@@ -117,25 +121,25 @@
     {
       "path": "s0.g0.i0",
       "supplierCost": null,
-      "note": "Installation R2,000 ex VAT — revised down from R3,000 by Shawn 2026-08-07. Underlying Openserve/installation cost not supplied, so margin is unrecorded."
+      "note": "Installation R2,000 ex VAT — revised down from R3,000 by Shawn 2026-08-07. Underlying cost not supplied, so margin is unrecorded."
+    },
+    {
+      "path": "s0.g1.i0",
+      "supplierCost": 1095,
+      "note": "Fanvil W610D (FAN-W610D) — dealer R1,095 ex VAT. Client price R2,095 ex VAT set by Shawn 2026-08-07 = R1,000 margin (well above the standard cost-incl-VAT rule, which would give R1,259.25). NOTE: Fanvil's suggested retail is R1,495 incl VAT (R1,300 ex), so the client price is materially above retail — flagged to Shawn, who confirmed the figure. The Fanvil V62G desk phone / SBC was removed from this quote on the same instruction; the once-off total is unchanged from the two-device version. Stock: CPT 10 / DBN 7 / JHB 17."
     },
     {
       "path": "s1.g0.i0",
       "supplierCost": null,
-      "note": "100Mbps Openserve fibre R2,000/mo ex VAT — client price set by Shawn. Compare GSR Law QU-GSR-006 (100Mbps Openserve failover, also R2,000/mo ex). Wholesale cost not supplied."
+      "note": "100Mbps Openserve fibre PRICE MATCHED to a competing quote at R1,900/mo ex VAT (was R2,000) on Shawn's instruction 2026-08-07. Note GSR Law QU-GSR-006 pays R2,000/mo ex for the same 100Mbps Openserve service. Wholesale cost not supplied."
     },
     {
       "path": "s1.g0.i1",
       "supplierCost": null,
-      "note": "3CX VoIP line R99/mo ex VAT each — client price set by Shawn; 1 line confirmed for now, more to be added at the same rate. Wi-Fi (UniFi) and 3CX handsets + SBC to be quoted later."
+      "note": "3CX VoIP line R99/mo ex VAT each — client price set by Shawn; 1 line for now, more at the same rate."
     },
     {
       "path": "s1.g0.i2",
-      "supplierCost": null,
-      "note": "200Mbps option R2,500/mo ex VAT — added by Shawn 2026-08-07. Presented as an ALTERNATIVE to the 100Mbps link (usage-style line, excluded from the quoted monthly total). If the client picks it, amend the quote so 200Mbps becomes the priced line: monthly R2,599 ex / R2,988.85 incl. CONFIRM with Shawn if he actually meant a second physical link rather than a speed option."
-    },
-    {
-      "path": "s1.g0.i3",
       "supplierCost": null,
       "note": "Calls R0.50/min billed per second, in arrears — usage-based line, correctly excluded from totals."
     }

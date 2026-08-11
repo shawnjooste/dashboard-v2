@@ -153,9 +153,9 @@ A thin shell around the pure function:
 1. Load `active` state rows, joined to profile role, overrides, opt-out and
    client.
 2. For each, gather `visitedSections`, `lastSentAt`, `hasDevices`, `hasXero`.
-3. Call `dueStep`. If it returns a step with outcome `sent`, send via
-   `sendEmail` and insert the row; if it returns a skip, insert the row and
-   send nothing.
+3. Call `dueSteps`. Insert a row for every decision returned; for the one
+   tagged `sent`, if any, send via `sendEmail` first and record `suppressed`
+   instead when the person has opted out.
 4. Stop (`status = 'stopped'`) any row whose profile is no longer `active`.
 
 Scheduled `0 7 * * *` (09:00 SAST) in `vercel.json`, alongside the four
