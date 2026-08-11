@@ -115,14 +115,17 @@ export async function inviteUser(_prev: InviteResult | null, formData: FormData)
       clientId,
       ...supportOnboardingContent(client?.name ?? "your company"),
     });
-    // Start the tour. Best-effort — never let this fail an invite. Placed
-    // only after the welcome email actually sent, since the tour follows on
-    // from it.
-    await enrolInOnboarding(userId);
   } catch (e) {
     console.error("onboarding email failed:", e);
     return { ok: false, error: "User set up, but the email failed to send — try again." };
   }
+
+  // No backfill: a magiclink fallback means this address already existed, so
+  // re-sending a link must never start the tour for an established customer.
+  // Enrolling them is the per-client script's job, not this path's. Kept
+  // structurally decoupled from the email try/catch above (best-effort by
+  // its own design, not by borrowing that catch).
+  if (linkType === "invite") await enrolInOnboarding(userId);
 
   revalidatePath("/admin/users");
   return { ok: true, email };
