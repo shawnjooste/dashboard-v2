@@ -2086,6 +2086,61 @@ export type Database = {
           },
         ]
       }
+      onboarding_sequence_sends: {
+        Row: {
+          decided_at: string
+          outcome: string
+          profile_id: string
+          step_key: string
+        }
+        Insert: {
+          decided_at?: string
+          outcome: string
+          profile_id: string
+          step_key: string
+        }
+        Update: {
+          decided_at?: string
+          outcome?: string
+          profile_id?: string
+          step_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_sequence_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_sequence_state: {
+        Row: {
+          enrolled_at: string
+          profile_id: string
+          status: string
+        }
+        Insert: {
+          enrolled_at?: string
+          profile_id: string
+          status?: string
+        }
+        Update: {
+          enrolled_at?: string
+          profile_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_sequence_state_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           client_id: string
