@@ -1,0 +1,83 @@
+{
+  "clientId": "25b10cc1-1058-45ba-8527-cf67cf71a676",
+  "title": "50Mbps Connectivity Service",
+  "validUntil": "2026-08-31",
+  "number": "QU-OAK-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Oakdene Recruitment",
+      "attention": "",
+      "addressLines": [
+        "Unit A8, Westlake Square",
+        "1 Westlake Drive",
+        "Westlake, Cape Town, 7945"
+      ]
+    },
+    "meta": {
+      "quoteNumber": "QU-OAK-001",
+      "date": "7 August 2026",
+      "validUntil": "31 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "50Mbps Connectivity Service",
+    "projectIntro": "This quote covers a 50Mbps connectivity service for Oakdene Recruitment, billed monthly by card. You are already paid up for August, so accepting this quote costs you nothing today — your first payment is on 1 September 2026. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "recurring",
+        "title": "Section 1 — Monthly Connectivity",
+        "subtitle": "Billed monthly",
+        "totalLabel": "TOTAL MONTHLY (incl VAT)",
+        "monthly": true,
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "50Mbps Connectivity Service",
+                "detail": "50Mbps line, billed monthly. Priced on a 30% committed rate measured at the 95th percentile — the note below explains what that means in practice.",
+                "qty": 1,
+                "unitPrice": 1000.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Nothing is charged when you accept — August is already covered, and your first payment of R 1 150,00 incl VAT runs on 1 September 2026, then on the 1st of each month after that. What \"30% at the 95th percentile\" means: your line is 50Mbps. Through the month we take a reading of how much of it you are actually using, every few minutes. At month end we line all of those readings up and ignore the busiest 5% of them — so one big download, or a single hectic Monday morning, never counts against you. The highest reading left after that is your usage figure for the month, and this price is based on that figure sitting at or below 30% of the line, which is roughly 15Mbps. The full 50Mbps stays available to you the whole time, so you can burst up to it whenever you need to.",
+    "terms": [
+      "This quote is valid until 31 August 2026.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Payment is by credit or debit card only.",
+      "August is already paid for, so nothing is charged when you accept. The monthly fee is billed automatically to your card on the 1st of each month, starting 1 September 2026, until cancelled.",
+      "To confirm your card is valid, our payment provider charges R1,00 and refunds it immediately.",
+      "The service is priced on a committed rate of 30% of the 50Mbps line speed (approximately 15Mbps), measured at the 95th percentile.",
+      "Usage is sampled throughout the month and the busiest 5% of samples are discarded before the 95th-percentile figure is calculated.",
+      "The full 50Mbps line speed remains available for bursts at any time.",
+      "Service provisioning is subject to line feasibility at the site."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": null,
+      "note": "50Mbps @ R1,000/mo ex VAT — client price set by Shawn 2026-08-07, with a 30% CIR at the 95th percentile. Underlying wholesale cost not supplied, so margin is unrecorded. Percentile wording drafted by Rocky (no house precedent existed) — reading is 30% OF the 50Mbps line = ~15Mbps committed, confirmed by Shawn. No overage consequence stated because none was specified; no contract term stated either. CARD-ONLY checkout with billing_starts_next_month: accepting captures the card via a R1 verification that is refunded immediately, and the first real charge (R1,150 incl) runs 1 Sep 2026 — August is already paid. Oakdene had R4,700 fully overdue at the time of quoting."
+    }
+  ]
+}
