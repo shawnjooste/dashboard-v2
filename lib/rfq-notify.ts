@@ -81,7 +81,10 @@ export async function notifyInboundRfqEmail(opts: {
   }
 }
 
-/** RFQ created in the portal → tell Shawn, unless he created it himself. */
+/** RFQ created in the portal → tell Shawn, unless he created it himself.
+ *  Matched on his exact staff address, not a `shawn@` prefix: clients raise
+ *  RFQs through this too (the Connectivity enquiry), and a customer contact
+ *  who happens to be shawn@their-firm.co.za must still reach him. */
 export async function notifyRfqCreated(opts: {
   rfqId: string;
   title: string;
@@ -90,7 +93,7 @@ export async function notifyRfqCreated(opts: {
   description: string | null;
   creatorEmail: string;
 }): Promise<void> {
-  if (opts.creatorEmail.toLowerCase().startsWith("shawn@")) return;
+  if (opts.creatorEmail.toLowerCase() === ADMIN_EMAIL) return;
   const cc = opts.creatorEmail.toLowerCase() === ACCOUNTS_EMAIL ? undefined : [ACCOUNTS_EMAIL];
   try {
     await sendEmail({
