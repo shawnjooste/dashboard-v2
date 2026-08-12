@@ -1,0 +1,147 @@
+{
+  "clientId": "6362f421-5113-4497-9975-a3a38c4300a1",
+  "title": "100Mbps Fibre, 3CX VoIP & Handset",
+  "validUntil": "2026-08-25",
+  "number": "QU-BOO-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "NNG Cafe Bootleggers Haasendal",
+      "attention": "Alicia Macicek",
+      "addressLines": [
+        "2 Haasendal Boulevard",
+        "Corner Saxdowns and Bottelary Road",
+        "Kuilsriver, Western Cape, 7580"
+      ]
+    },
+    "meta": {
+      "quoteNumber": "QU-BOO-001",
+      "date": "11 August 2026",
+      "validUntil": "25 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "100Mbps Fibre, 3CX VoIP & Handset",
+    "projectIntro": "This quote covers a 100Mbps Openserve fibre link and a 3CX VoIP line for the new Bootlegger at Haasendal, provided on a 24-month term and billed monthly, together with the once-off fibre installation and a cordless VoIP handset. Wi-Fi is quoted separately. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "setup",
+        "title": "Section 1 — Once-Off Installation & Hardware",
+        "subtitle": "Installation and VoIP handsets",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "name": "Installation",
+            "items": [
+              {
+                "description": "Fibre Installation — Openserve Link",
+                "detail": "Once-off installation and activation of the Openserve fibre link at the Haasendal store, including router configuration and handover.",
+                "qty": 1,
+                "unitPrice": 2000.0
+              }
+            ]
+          },
+          {
+            "name": "VoIP Hardware",
+            "items": [
+              {
+                "description": "Fanvil W610D — 20SIP Portable DECT IP Phone",
+                "detail": "Cordless DECT handset with base station, supporting up to 20 SIP accounts. Supplied configured and registered to your 3CX system.",
+                "qty": 1,
+                "unitPrice": 2095.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "recurring",
+        "title": "Section 2 — Monthly Service",
+        "subtitle": "Billed monthly over a 24-month term",
+        "totalLabel": "TOTAL MONTHLY (incl VAT)",
+        "monthly": true,
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "100Mbps Openserve Fibre Link",
+                "detail": "100Mbps uncapped fibre connectivity via Openserve, billed monthly.",
+                "qty": 1,
+                "unitPrice": 1900.0
+              },
+              {
+                "description": "3CX VoIP Line",
+                "detail": "One 3CX VoIP line, billed monthly. Additional lines can be added at any time at the same rate of R99 per line per month ex VAT.",
+                "qty": 1,
+                "unitPrice": 99.0
+              },
+              {
+                "description": "Call Charges",
+                "detail": "Outgoing calls, billed monthly in arrears. Charged per second, so you pay only for the seconds you actually use.",
+                "qty": null,
+                "unitPrice": null,
+                "usageNote": "R 0,50 / minute",
+                "totalNote": "Billed in arrears"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Call charges are additional and billed monthly in arrears at R0.50 per minute, charged per second. Wi-Fi (Ubiquiti UniFi) is not included here and will be quoted separately.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "The fibre and VoIP service is provided on a 24-month term, billed monthly.",
+      "Calls are billed monthly in arrears at R0.50 per minute, charged per second.",
+      "Additional 3CX VoIP lines may be added at any time at R99 per line per month ex VAT.",
+      "The once-off installation and hardware are payable on acceptance, prior to installation.",
+      "Service provisioning is subject to Openserve line feasibility at the site.",
+      "Manufacturer warranty applies to all hardware supplied.",
+      "Wi-Fi equipment is excluded and will be quoted separately."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": null,
+      "note": "Installation R2,000 ex VAT. Re-issue of QU-NOV-001 under the correct legal entity: the service is for the new Bootlegger cafe (reg 2026/273934/07), not the Nova Nexus Group holding company that carries the existing FTTH line."
+    },
+    {
+      "path": "s0.g1.i0",
+      "supplierCost": 1095,
+      "note": "Fanvil W610D (FAN-W610D) — dealer R1,095 ex VAT, client R2,095 ex = R1,000 margin. Above Fanvil retail (R1,495 incl / R1,300 ex); confirmed by Shawn. The V62G desk phone / SBC was removed on his instruction, so no SBC is quoted here."
+    },
+    {
+      "path": "s1.g0.i0",
+      "supplierCost": null,
+      "note": "100Mbps Openserve fibre price-matched at R1,900/mo ex VAT (GSR Law pays R2,000/mo ex for the same service). Wholesale cost not supplied."
+    },
+    {
+      "path": "s1.g0.i1",
+      "supplierCost": null,
+      "note": "3CX VoIP line R99/mo ex VAT each; 1 line for now, more at the same rate."
+    },
+    {
+      "path": "s1.g0.i2",
+      "supplierCost": null,
+      "note": "Calls R0.50/min billed per second, in arrears — usage line, excluded from totals."
+    }
+  ]
+}
