@@ -70,6 +70,21 @@ export async function verifyTransaction(reference: string): Promise<{
   };
 }
 
+/** Refund a transaction in full. Used to reverse the R1 card-verification
+ *  charge the moment the authorization is captured — Paystack will not
+ *  tokenize a card without a real transaction, so the R1 is charged and
+ *  immediately given back. Returns false rather than throwing: the card is
+ *  already captured by this point and a failed refund must not undo that. */
+export async function refundTransaction(reference: string): Promise<boolean> {
+  try {
+    await ps("/refund", { method: "POST", body: JSON.stringify({ transaction: reference }) });
+    return true;
+  } catch (e) {
+    console.error("refund failed:", reference, e);
+    return false;
+  }
+}
+
 /** Charge a stored (reusable) card authorization — the recurring engine.
  *  Synchronous result. A DECLINE is HTTP 200 with data.status !== "success",
  *  so it is returned, not thrown; only transport/API errors throw (callers

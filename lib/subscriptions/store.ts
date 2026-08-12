@@ -5,13 +5,15 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { computeTotals, type QuoteDoc } from "@/lib/quotes/doc";
-import { initializeTransaction } from "@/lib/paystack";
+import { initializeTransaction, refundTransaction } from "@/lib/paystack";
 import { sendEmail } from "@/lib/email/send";
 import { sendPaymentReceipt } from "@/lib/receipts";
 import {
+  VERIFICATION_AMOUNT_CENTS,
   chargeReference,
   computeInitialBreakdown,
   firstOfNextMonth,
+  firstOfThisMonth,
 } from "@/lib/subscriptions/billing";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
@@ -32,7 +34,7 @@ export async function startCheckout(opts: {
   const service = createServiceClient();
   const { data: quote } = await service
     .from("quotes")
-    .select("id, client_id, quote_number, status, checkout_enabled, current_version")
+    .select("id, client_id, quote_number, status, checkout_enabled, current_version, billing_starts_next_month")
     .eq("id", opts.quoteId)
     .maybeSingle();
   if (!quote || !quote.checkout_enabled) return { ok: false, error: "checkout isn't enabled on this quote" };
@@ -56,12 +58,23 @@ export async function startCheckout(opts: {
   }
   const monthlyVatCents = Math.round((monthlyExCents * doc.vatPercent) / 100);
 
+  // Card-verification checkout: nothing is owed today (the client is paid up
+  // for the current month), so we take the R1 minimum purely to tokenize the
+  // card and refund it on confirmation. Stamped with the CURRENT month so it
+  // can never be mistaken for the first billed period.
+  const verifyOnly = quote.billing_starts_next_month === true;
+  if (verifyOnly && monthlyExCents <= 0) {
+    return { ok: false, error: "this quote has no monthly amount to bill" };
+  }
+
   const breakdown = computeInitialBreakdown({
     onceOffExCents,
     monthlyExCents,
     vatPercent: doc.vatPercent,
     today: new Date(),
   });
+  const chargeAmountCents = verifyOnly ? VERIFICATION_AMOUNT_CENTS : breakdown.totalCents;
+  const chargePeriod = verifyOnly ? firstOfThisMonth(new Date()) : breakdown.billingPeriod;
 
   // One subscription per quote: reuse a pending hold, refuse anything live.
   const { data: existing } = await service
@@ -95,23 +108,24 @@ export async function startCheckout(opts: {
     subId = sub.id;
   }
 
+  const chargeType = verifyOnly ? "verification" : "initial";
   const { data: priorInitial } = await service
     .from("quote_subscription_charges")
     .select("attempt_number")
     .eq("subscription_id", subId)
-    .eq("charge_type", "initial")
+    .eq("charge_type", chargeType)
     .order("attempt_number", { ascending: false })
     .limit(1)
     .maybeSingle();
   const attempt = (priorInitial?.attempt_number ?? 0) + 1;
-  const reference = chargeReference(subId, breakdown.billingPeriod, attempt);
+  const reference = chargeReference(subId, chargePeriod, attempt);
 
   const { error: chErr } = await service.from("quote_subscription_charges").insert({
     subscription_id: subId,
-    charge_type: "initial",
-    billing_period: breakdown.billingPeriod,
-    amount_cents: breakdown.exVatCents,
-    vat_cents: breakdown.vatCents,
+    charge_type: chargeType,
+    billing_period: chargePeriod,
+    amount_cents: verifyOnly ? VERIFICATION_AMOUNT_CENTS : breakdown.exVatCents,
+    vat_cents: verifyOnly ? 0 : breakdown.vatCents,
     paystack_reference: reference,
     attempt_number: attempt,
   });
@@ -120,7 +134,7 @@ export async function startCheckout(opts: {
   try {
     const url = await initializeTransaction({
       email: opts.email,
-      amountCents: breakdown.totalCents,
+      amountCents: chargeAmountCents,
       reference,
       callbackUrl: `${APP_URL}/quotes/${quote.id}`,
       channels: ["card"], // card-only → reusable authorization
@@ -241,20 +255,37 @@ export async function confirmSubscriptionCharge(
   } | null;
   if (!sub) return "confirmed";
 
-  // Winning the flip above means THIS caller owns the one receipt for this
-  // payment — webhook, verify-fallback and cron sweep can never double-send.
-  try {
-    await sendChargeReceipt(sub, {
-      chargeType: row.charge_type as "initial" | "recurring",
-      billingPeriod: row.billing_period,
-      exVatCents: row.amount_cents,
-      vatCents: row.vat_cents,
-      reference,
-      payerEmail: auth?.payerEmail ?? null,
-      recurring: sub.monthly_amount_cents > 0,
-    });
-  } catch (e) {
-    console.error("receipt failed (payment recorded):", e);
+  const isVerification = row.charge_type === "verification";
+
+  // A verification charge is not revenue — give the R1 straight back and never
+  // receipt it. The refund is best-effort: the card is already captured and a
+  // failed refund must not unwind that (it is visible in the admin charge log).
+  if (isVerification) {
+    const refunded = await refundTransaction(reference);
+    if (refunded) {
+      await service
+        .from("quote_subscription_charges")
+        .update({ refunded_at: new Date().toISOString() })
+        .eq("id", row.id);
+    } else {
+      console.error(`verification charge ${reference} NOT refunded — refund by hand`);
+    }
+  } else {
+    // Winning the flip above means THIS caller owns the one receipt for this
+    // payment — webhook, verify-fallback and cron sweep can never double-send.
+    try {
+      await sendChargeReceipt(sub, {
+        chargeType: row.charge_type as "initial" | "recurring",
+        billingPeriod: row.billing_period,
+        exVatCents: row.amount_cents,
+        vatCents: row.vat_cents,
+        reference,
+        payerEmail: auth?.payerEmail ?? null,
+        recurring: sub.monthly_amount_cents > 0,
+      });
+    } catch (e) {
+      console.error("receipt failed (payment recorded):", e);
+    }
   }
 
   try {
@@ -296,21 +327,32 @@ export async function confirmSubscriptionCharge(
           quote_id: sub.quote_id,
           version: quote.current_version,
           event: "accepted",
-          comment: `Paid via checkout (ref ${reference})`,
+          comment: isVerification
+            ? `Accepted via checkout — card captured, R1 verification refunded (ref ${reference})`
+            : `Paid via checkout (ref ${reference})`,
         });
       }
       if (quote) {
+        const monthlyIncl = ((sub.monthly_amount_cents + (row.vat_cents || 0)) / 100).toFixed(2);
         await sendEmail({
           from: FROM,
           to: [ADMIN_EMAIL],
-          subject: `Quote ${quote.quote_number} PAID via checkout`,
+          subject: isVerification
+            ? `Quote ${quote.quote_number} ACCEPTED — card captured`
+            : `Quote ${quote.quote_number} PAID via checkout`,
           html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;">
-            <h2 style="margin:0 0 8px;">Checkout complete</h2>
-            <p style="color:#444;">Quote <strong>${quote.quote_number}</strong> (${quote.title}) was paid —
-            R ${(due / 100).toFixed(2)} incl VAT. ${
-              sub.monthly_amount_cents > 0
-                ? "Monthly billing starts on the 1st."
-                : "Once-off payment — nothing recurs."
+            <h2 style="margin:0 0 8px;">${isVerification ? "Card captured" : "Checkout complete"}</h2>
+            <p style="color:#444;">${
+              isVerification
+                ? `Quote <strong>${quote.quote_number}</strong> (${quote.title}) was accepted and the client's
+                   card is now on file. Nothing was charged — the R1 verification has been refunded.
+                   First billing runs on ${firstOfNextMonth(new Date())}.`
+                : `Quote <strong>${quote.quote_number}</strong> (${quote.title}) was paid —
+                   R ${(due / 100).toFixed(2)} incl VAT. ${
+                     sub.monthly_amount_cents > 0
+                       ? `Monthly billing (R ${monthlyIncl}) starts on the 1st.`
+                       : "Once-off payment — nothing recurs."
+                   }`
             }</p>
             <p style="margin:20px 0 0;"><a href="${APP_URL}/admin/quotes/${sub.quote_id}"
               style="background:#D7141C;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">View the quote</a></p>

@@ -95,6 +95,7 @@ export type QuoteDetail = {
   validUntil: string | null;
   poNumber: string | null;
   checkoutEnabled: boolean;
+  billingStartsNextMonth: boolean;
   decision: QuoteDecision;
 };
 
@@ -169,7 +170,7 @@ export async function getQuoteDetail(quoteId: string): Promise<QuoteDetail | nul
   const supabase = await createClient();
   const { data: q } = await supabase
     .from("quotes")
-    .select("id, client_id, quote_number, title, status, current_version, po_number, checkout_enabled")
+    .select("id, client_id, quote_number, title, status, current_version, po_number, checkout_enabled, billing_starts_next_month")
     .eq("id", quoteId)
     .maybeSingle();
   if (!q) return null;
@@ -197,6 +198,7 @@ export async function getQuoteDetail(quoteId: string): Promise<QuoteDetail | nul
     validUntil: v.valid_until,
     poNumber: q.po_number ?? null,
     checkoutEnabled: q.checkout_enabled ?? false,
+    billingStartsNextMonth: q.billing_starts_next_month ?? false,
     decision,
   };
 }

@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getQuoteDetail } from "@/lib/views/quotes";
 import { computeTotals, fmtMoney, STATUS_LABEL } from "@/lib/quotes/doc";
 import { notifyQuoteViewed } from "@/lib/quote-emails";
-import { computeInitialBreakdown } from "@/lib/subscriptions/billing";
+import { computeInitialBreakdown, firstOfNextMonth } from "@/lib/subscriptions/billing";
 import { confirmSubscriptionCharge } from "@/lib/subscriptions/store";
 import { getSubscriptionForQuote } from "@/lib/views/subscriptions";
 import { verifyTransaction } from "@/lib/paystack";
@@ -104,6 +104,8 @@ export default async function QuotePage({
   let checkout: {
     onceOff: string; proRata: string; periodStart: string | null; periodEnd: string | null;
     monthlyIncl: string | null; totalIncl: string;
+    /** Card-verification checkout: nothing payable today, billing starts the 1st. */
+    verifyOnly?: boolean; firstChargeDate?: string;
   } | null = null;
   if (quote.checkoutEnabled && quote.status === "sent" && (!subscription || subscription.status === "pending_payment")) {
     const totals = computeTotals(quote.doc);
@@ -123,6 +125,16 @@ export default async function QuotePage({
         monthlyIncl: monthlyExCents > 0 ? fmtMoney(monthlyIncl / 100) : null,
         totalIncl: fmtMoney(b.totalCents / 100),
       };
+      if (quote.billingStartsNextMonth && monthlyExCents > 0) {
+        checkout = {
+          ...checkout,
+          verifyOnly: true,
+          periodStart: null,
+          periodEnd: null,
+          totalIncl: fmtMoney(0),
+          firstChargeDate: firstOfNextMonth(new Date()),
+        };
+      }
     }
   }
 

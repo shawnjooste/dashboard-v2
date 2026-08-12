@@ -4,6 +4,8 @@ import {
   computeInitialBreakdown,
   decideCharge,
   firstOfNextMonth,
+  firstOfThisMonth,
+  VERIFICATION_AMOUNT_CENTS,
   type ChargeRow,
 } from "./billing";
 
@@ -123,5 +125,36 @@ describe("decideCharge", () => {
 
   it("pending (in-flight) row → wait", () => {
     expect(decideCharge([row({ status: "pending" })], d("2026-09-01"))).toEqual({ action: "wait" });
+  });
+});
+
+describe("card-verification checkout", () => {
+  it("charges the Paystack minimum, never zero", () => {
+    // Paystack rejects amount 0 outright ("Invalid Amount Sent"), so the
+    // verification has to be a real charge that is refunded afterwards.
+    expect(VERIFICATION_AMOUNT_CENTS).toBe(100);
+    expect(VERIFICATION_AMOUNT_CENTS).toBeGreaterThan(0);
+  });
+
+  it("stamps the verification with the CURRENT month", () => {
+    // Critical: if it were stamped with the first BILLED month, decideCharge
+    // would see a success for that period and skip the client's first real
+    // charge entirely.
+    expect(firstOfThisMonth(d("2026-08-07"))).toBe("2026-08-01");
+    expect(firstOfThisMonth(d("2026-12-31"))).toBe("2026-12-01");
+    expect(firstOfThisMonth(d("2026-01-01"))).toBe("2026-01-01");
+  });
+
+  it("the first billed period is the month after the verification", () => {
+    const verified = d("2026-08-07");
+    expect(firstOfThisMonth(verified)).toBe("2026-08-01");
+    expect(firstOfNextMonth(verified)).toBe("2026-09-01");
+  });
+
+  it("a verification success does not satisfy the first billed period", () => {
+    // The cron looks only at rows for the period it is charging. August's
+    // verification must leave September untouched.
+    const septemberRows: ChargeRow[] = [];
+    expect(decideCharge(septemberRows, d("2026-09-01"))).toEqual({ action: "charge", attempt: 1 });
   });
 });

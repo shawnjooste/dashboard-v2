@@ -56,6 +56,16 @@ export function computeInitialBreakdown(opts: {
   };
 }
 
+/** Paystack rejects a zero-amount transaction, and a reusable authorization
+ *  only comes from a completed one — so a card-verification checkout charges
+ *  the smallest amount Paystack accepts (R1) and refunds it immediately. */
+export const VERIFICATION_AMOUNT_CENTS = 100;
+
+/** "yyyy-mm-01" of the month containing the given date. */
+export function firstOfThisMonth(d: Date): string {
+  return iso(d.getUTCFullYear(), d.getUTCMonth(), 1);
+}
+
 /** "yyyy-mm-01" of the month after the given date. */
 export function firstOfNextMonth(d: Date): string {
   const y = d.getUTCFullYear();

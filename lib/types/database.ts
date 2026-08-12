@@ -2426,6 +2426,7 @@ export type Database = {
           failure_reason: string | null
           id: string
           paystack_reference: string
+          refunded_at: string | null
           status: string
           subscription_id: string
           vat_cents: number
@@ -2440,6 +2441,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           paystack_reference: string
+          refunded_at?: string | null
           status?: string
           subscription_id: string
           vat_cents: number
@@ -2454,6 +2456,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           paystack_reference?: string
+          refunded_at?: string | null
           status?: string
           subscription_id?: string
           vat_cents?: number
@@ -2587,6 +2590,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          billing_starts_next_month: boolean
           booking_link_created_at: string | null
           booking_url: string | null
           checkout_enabled: boolean
@@ -2603,6 +2607,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_starts_next_month?: boolean
           booking_link_created_at?: string | null
           booking_url?: string | null
           checkout_enabled?: boolean
@@ -2619,6 +2624,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_starts_next_month?: boolean
           booking_link_created_at?: string | null
           booking_url?: string | null
           checkout_enabled?: boolean

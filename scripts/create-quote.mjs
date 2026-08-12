@@ -7,6 +7,8 @@
 //                                                        #   (Paystack card checkout; once-off +
 //                                                        #   pro-rata now, monthly billed on the 1st)
 //                                                        #   instead of clicking Accept
+//   ... --billing-next-month                             # checkout captures the card with a
+//                                                        #   refunded R1; billing starts on the 1st
 //   ... --pending-review                                # status pending_review, notify
 //                                                        #   shawn@/kelle@rocking.one instead of
 //                                                        #   emailing the client — for quotes built
@@ -65,6 +67,9 @@ const amendId = amendIdx !== -1 ? rest[amendIdx + 1] : null;
 const noEmail = rest.includes("--no-email");
 const pendingReview = rest.includes("--pending-review");
 const checkoutEnabled = rest.includes("--checkout");
+// Client is paid up for the current month: checkout captures the card via a
+// refunded R1 verification and billing starts on the 1st of next month.
+const billingNextMonth = rest.includes("--billing-next-month");
 const initialStatus = pendingReview ? "pending_review" : "sent";
 const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
@@ -104,7 +109,7 @@ if (amendId) {
   if (vErr) throw vErr;
   await insertInternal(v.id);
   const { error: uErr } = await sb.from("quotes")
-    .update({ current_version: version, status: initialStatus, title, ...(checkoutEnabled ? { checkout_enabled: true } : {}) }).eq("id", quoteId);
+    .update({ current_version: version, status: initialStatus, title, ...(checkoutEnabled ? { checkout_enabled: true } : {}), ...(billingNextMonth ? { billing_starts_next_month: true } : {}) }).eq("id", quoteId);
   if (uErr) throw uErr;
   await sb.from("quote_events").insert({ quote_id: quoteId, version, event: initialStatus });
 } else {
@@ -122,6 +127,7 @@ if (amendId) {
   const { data: q, error: qErr } = await sb.from("quotes").insert({
     client_id: clientId, quote_number: quoteNumber, title, status: initialStatus,
     checkout_enabled: checkoutEnabled,
+    billing_starts_next_month: billingNextMonth,
   }).select("id").single();
   if (qErr) throw qErr;
   quoteId = q.id;
@@ -303,5 +309,6 @@ if (noEmail) {
 
 console.log(`${amendId ? "Amended" : "Created"} ${quoteNumber} v${version} — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)}/mo` : ""}`);
 if (checkoutEnabled) console.log("Checkout: ENABLED (client pays instead of accepting)");
+if (billingNextMonth) console.log("Billing: starts 1st of next month (R1 card verification, refunded)");
 console.log(`Manager view: ${url}`);
 console.log(`Admin view:   ${APP_URL}/admin/quotes/${quoteId}`);

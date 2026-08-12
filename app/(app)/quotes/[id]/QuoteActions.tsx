@@ -13,6 +13,10 @@ export type CheckoutBreakdown = {
   /** Null on once-off-only quotes — nothing recurs after payment. */
   monthlyIncl: string | null;
   totalIncl: string;
+  /** Card-verification checkout: nothing is charged today. */
+  verifyOnly?: boolean;
+  /** yyyy-mm-dd of the first real charge, when verifyOnly. */
+  firstChargeDate?: string;
 };
 
 export function QuoteActions({
@@ -85,7 +89,7 @@ export function QuoteActions({
               disabled={pending}
               className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
             >
-              {checkout ? "Checkout" : "Accept quote"}
+              {checkout ? (checkout.verifyOnly ? "Accept & add card" : "Checkout") : "Accept quote"}
             </button>
             <button
               type="button"
@@ -114,7 +118,51 @@ export function QuoteActions({
         </button>
       </div>
 
-      {mode === "checkout" && canAct && checkout && (
+      {mode === "checkout" && canAct && checkout?.verifyOnly && (
+        <div className="rounded-lg border border-line bg-card p-4">
+          <p className="text-[13px] font-semibold text-ink">Set up payment for quote {quoteNumber}</p>
+          <dl className="mt-3 space-y-1.5 text-[13.5px]">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Payable today</dt>
+              <dd className="font-semibold text-ink">R 0,00</dd>
+            </div>
+            <div className="flex justify-between gap-4 border-t border-line-soft pt-1.5">
+              <dt className="text-muted">First payment on {checkout.firstChargeDate}</dt>
+              <dd className="font-medium text-ink-2">{checkout.monthlyIncl}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
+            You are already paid up for this month, so there is nothing to pay now. Adding your card
+            here sets up the monthly payment: {checkout.monthlyIncl} incl VAT will be billed
+            automatically on the 1st of every month, starting {checkout.firstChargeDate}, until
+            cancelled.
+          </p>
+          <p className="mt-2 text-[12.5px] text-muted">
+            To confirm the card is valid, our payment provider charges R1,00 and refunds it
+            immediately — you may briefly see it on your statement.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={submitCheckout}
+              disabled={pending}
+              className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
+            >
+              {pending ? "Opening…" : "Add card & accept"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("none")}
+              disabled={pending}
+              className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 hover:bg-line-soft"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === "checkout" && canAct && checkout && !checkout.verifyOnly && (
         <div className="rounded-lg border border-line bg-card p-4">
           <p className="text-[13px] font-semibold text-ink">Pay quote {quoteNumber}</p>
           <dl className="mt-3 space-y-1.5 text-[13.5px]">
