@@ -22,11 +22,18 @@ export type EnquiryInput = {
 export type EnquiryPayload = { title: string; description: string; requestedBy: string };
 
 const MAX_FIELD = 1200;
+const MAX_NAME = 80;
 
 /** One line, trimmed, capped. */
-function clean(s: string): string {
+function clean(s: string, max = MAX_FIELD): string {
   const flat = s.replace(/\s+/g, " ").trim();
-  return flat.length > MAX_FIELD ? `${flat.slice(0, MAX_FIELD)}…` : flat;
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
+
+/** The contact name is rendered as `Name <email>` in `requested_by`, so angle
+ *  brackets would let it forge a second recipient. Stripped, and kept short. */
+function cleanName(s: string): string {
+  return clean(s.replace(/[<>]/g, " "), MAX_NAME);
 }
 
 export function buildEnquiry(
@@ -43,7 +50,7 @@ export function buildEnquiry(
     return { ok: false, error: "Enter a valid contact email address." };
   }
 
-  const name = clean(input.contactName);
+  const name = cleanName(input.contactName);
   const provider = clean(input.provider);
   const speed = clean(input.speed);
   const note = clean(input.note);

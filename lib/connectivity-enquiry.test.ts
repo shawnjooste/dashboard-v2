@@ -106,6 +106,22 @@ describe("buildEnquiry", () => {
     expect(out.payload.description).toContain("Site address: 12 Long Street Cape Town, 8001");
   });
 
+  // requested_by reads `Name <email>`, so angle brackets in the name would let
+  // it forge a second recipient for a staff member skim-reading the board.
+  it("strips angle brackets from the contact name", () => {
+    const out = buildEnquiry("Acme Legal", input({ contactName: "Sam <real@evil.com>" }));
+    if (!out.ok) throw new Error("expected ok");
+    expect(out.payload.requestedBy).toBe("Sam real@evil.com <sam@acme.co.za>");
+    expect(out.payload.requestedBy.split("<")).toHaveLength(2);
+  });
+
+  it("caps the contact name so it cannot push the real address out of view", () => {
+    const out = buildEnquiry("Acme Legal", input({ contactName: "N".repeat(300) }));
+    if (!out.ok) throw new Error("expected ok");
+    expect(out.payload.requestedBy).toContain("<sam@acme.co.za>");
+    expect(out.payload.requestedBy.length).toBeLessThan(120);
+  });
+
   it("keeps the title on one line even if the client name has newlines", () => {
     const out = buildEnquiry("Acme\nLegal", input());
     if (!out.ok) throw new Error("expected ok");
