@@ -7,8 +7,9 @@
 //                                                        #   (Paystack card checkout; once-off +
 //                                                        #   pro-rata now, monthly billed on the 1st)
 //                                                        #   instead of clicking Accept
-//   ... --billing-next-month                             # checkout captures the card with a
-//                                                        #   refunded R1; billing starts on the 1st
+//   ... --billing-next-month                             # no pro-rata: collect the once-off at
+//                                                        #   checkout (or a refunded R1 if there is
+//                                                        #   none); monthly billing starts on the 1st
 //   ... --pending-review                                # status pending_review, notify
 //                                                        #   shawn@/kelle@rocking.one instead of
 //                                                        #   emailing the client — for quotes built
@@ -309,6 +310,6 @@ if (noEmail) {
 
 console.log(`${amendId ? "Amended" : "Created"} ${quoteNumber} v${version} — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)}/mo` : ""}`);
 if (checkoutEnabled) console.log("Checkout: ENABLED (client pays instead of accepting)");
-if (billingNextMonth) console.log("Billing: starts 1st of next month (R1 card verification, refunded)");
+if (billingNextMonth) console.log("Billing: no pro-rata — once-off collected at checkout (or a refunded R1 if there is none); monthly starts on the 1st");
 console.log(`Manager view: ${url}`);
 console.log(`Admin view:   ${APP_URL}/admin/quotes/${quoteId}`);

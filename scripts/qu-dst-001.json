@@ -1,0 +1,101 @@
+{
+  "clientId": "ece727dd-1e62-4072-a098-2ee69268edc1",
+  "title": "100Mbps Fibre Connectivity",
+  "validUntil": "2026-08-27",
+  "number": "QU-DST-001",
+  "doc": {
+    "vatPercent": 15,
+    "company": {
+      "name": "Rocking (PTY) LTD",
+      "addressLines": [
+        "Unit A3, Westlake Square",
+        "Westlake Drive, Westlake, 7945"
+      ],
+      "vat": "4810312173",
+      "regNumber": "2013/047237/07",
+      "registeredOffice": "Unit A3, Westlake Square, Westlake Drive, Westlake, 7945, South Africa"
+    },
+    "client": {
+      "name": "Data Smart Technologies",
+      "attention": "Juan von Wielligh",
+      "addressLines": []
+    },
+    "meta": {
+      "quoteNumber": "QU-DST-001",
+      "date": "13 August 2026",
+      "validUntil": "27 August 2026",
+      "preparedBy": "Shawn Jooste"
+    },
+    "projectTitle": "100Mbps Fibre Connectivity",
+    "projectIntro": "This quote covers a 100Mbps fibre link for Data Smart Technologies: a once-off installation, and the monthly service billed on the 1st of each month. Payment is online by card. All prices exclude VAT (15%).",
+    "sections": [
+      {
+        "id": "setup",
+        "title": "Section 1 — Once-Off Installation",
+        "subtitle": "Payable at checkout",
+        "totalLabel": "TOTAL (incl VAT)",
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "Fibre Installation & Activation",
+                "detail": "Once-off installation and activation of the 100Mbps fibre link at your premises, including handover of the connection details.",
+                "qty": 1,
+                "unitPrice": 2500.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "recurring",
+        "title": "Section 2 — Monthly Connectivity",
+        "subtitle": "Billed on the 1st of each month",
+        "totalLabel": "TOTAL MONTHLY (incl VAT)",
+        "monthly": true,
+        "groups": [
+          {
+            "items": [
+              {
+                "description": "100Mbps Fibre Link",
+                "detail": "100Mbps fibre connectivity, including a public IP address. Billed monthly on the 1st.",
+                "qty": 1,
+                "unitPrice": 2500.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summaryNote": "Please note: no router or Wi-Fi solution is included in this quote — the service is delivered as a connection only, and you provide your own router and wireless equipment. The link comes with a public IP address. At checkout you pay the once-off installation; there is no part-month charge, and the monthly fee starts on the 1st of the following month.",
+    "terms": [
+      "This quote is valid for 14 days from the date of issue.",
+      "All prices exclude VAT at 15% unless otherwise stated.",
+      "Payment is online by credit or debit card.",
+      "The once-off installation is paid at checkout. No pro-rata is charged for the remainder of the current month.",
+      "The monthly fee is billed automatically to the same card on the 1st of every month until cancelled.",
+      "No router or Wi-Fi solution is included — customer premises equipment is your own.",
+      "A public IP address is included with the service.",
+      "Service provisioning is subject to line feasibility at the site."
+    ],
+    "banking": {
+      "bank": "First National Bank",
+      "branch": "Blue Route Mall, Tokai Road, Tokai, 7945",
+      "account": "63023869192",
+      "branchCode": "250655",
+      "reference": "Please use quote number as payment reference."
+    }
+  },
+  "internal": [
+    {
+      "path": "s0.g0.i0",
+      "supplierCost": null,
+      "note": "Installation R2,500 ex VAT — client price set by Shawn 2026-08-13. Collected at checkout (deferred-billing checkout: once-off now, no pro-rata). Underlying cost not supplied, so margin is unrecorded."
+    },
+    {
+      "path": "s1.g0.i0",
+      "supplierCost": null,
+      "note": "100Mbps @ R2,500/mo ex VAT — client price set by Shawn. Compare GSR Law QU-GSR-006 (100Mbps Openserve, R2,000/mo ex) and Nova Nexus QU-BOO-001 (100Mbps Openserve, R1,900/mo ex price-matched). Includes a public IP. NO router or Wi-Fi quoted — connection only, per Shawn. Wholesale cost not supplied."
+    }
+  ]
+}
