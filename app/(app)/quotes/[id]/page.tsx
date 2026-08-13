@@ -156,7 +156,7 @@ export default async function QuotePage({
   const canAct = quote.status === "sent";
 
   return (
-    <div className={`space-y-5 ${canAct ? "pb-32 md:pb-0" : ""}`}>
+    <div className={`space-y-5 ${canAct ? "pb-32 md:pb-0 print:pb-0" : ""}`}>
       <div className="print:hidden">
         <PageHeader
           breadcrumb={

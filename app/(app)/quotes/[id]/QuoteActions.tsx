@@ -99,7 +99,7 @@ export function QuoteActions({
                 setError(null);
               }}
               disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50 md:flex-none"
+              className="min-h-[44px] flex-1 rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50 md:min-h-0 md:flex-none"
             >
               {checkout
                 ? checkout.verifyOnly && checkout.cardVerificationOnly
@@ -111,7 +111,7 @@ export function QuoteActions({
               type="button"
               onClick={() => { setMode(mode === "amend" ? "none" : "amend"); setError(null); }}
               disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50 md:flex-none"
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50 md:min-h-0 md:flex-none"
             >
               Request changes
             </button>
@@ -119,7 +119,7 @@ export function QuoteActions({
               type="button"
               onClick={() => { setMode(mode === "decline" ? "none" : "decline"); setError(null); }}
               disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50 md:flex-none"
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50 md:min-h-0 md:flex-none"
             >
               Decline
             </button>
@@ -130,7 +130,7 @@ export function QuoteActions({
           onClick={() => window.print()}
           className={
             canAct
-              ? "ml-auto min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft md:flex-none"
+              ? "ml-auto min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft md:min-h-0 md:flex-none"
               : "ml-auto rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
           }
         >
