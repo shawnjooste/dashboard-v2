@@ -4,6 +4,7 @@
 // later send()/amend() may do that. Marker-free and alias-free so a plain
 // Node script can import it directly — the Supabase client is passed in,
 // never constructed here.
+import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Actor, QuoteStatus } from "./policy.ts";
 import { decideCreateStatus, decideAmendStatus, canSendFrom, canRetryDelivery } from "./policy.ts";
@@ -128,6 +129,27 @@ function sentEmailHtml(
         </div>`;
 }
 
+/** Staff-only alert for the one failure mode a customer must never pay for
+ *  twice: Resend confirmed delivery, but the confirmation couldn't be
+ *  recorded, so the quote reads as unconfirmed and a routine retry would
+ *  re-send mail the client already has. */
+function doubleSendAlertHtml(quoteNumber: string, title: string, quoteId: string): string {
+  const adminUrl = `${APP_URL}/admin/quotes/${quoteId}`;
+  return `
+        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
+          <h2 style="margin:0 0 8px;">Quote ${quoteNumber} sent but not recorded</h2>
+          <p style="color:#444; margin:0 0 16px;">
+            <strong>${title}</strong> was delivered to the client, but recording that in
+            quote_events failed. The quote now reads as unconfirmed, so the next retry
+            (automatic or manual) would email the client a second copy. Please check
+            before it's retried.
+          </p>
+          <p style="margin:20px 0 0;">
+            <a href="${adminUrl}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">View the quote</a>
+          </p>
+        </div>`;
+}
+
 /** Deletes everything create() may have written, child-before-parent, so a
  *  failure partway through never leaves an orphan quote with no version.
  *  Safe to call even when some of these rows were never created — a delete
@@ -165,6 +187,26 @@ async function compensate(sb: Sb, quoteId: string): Promise<void> {
     await sb.from("quotes").delete().eq("id", quoteId);
   } catch (e) {
     console.error("compensate: failed to delete quotes:", e);
+  }
+}
+
+/** Best-effort: releases a send() delivery claim back to null (see send()'s
+ *  step 3), guarded so it can only ever release the caller's OWN claim.
+ *  Never throws — a failed release must not turn a reportable send failure
+ *  into an unhandled one, and would otherwise leave the quote permanently
+ *  stuck (worse than the double-send the claim exists to prevent). */
+async function releaseClaim(sb: Sb, quoteId: string, version: number, claimToken: string): Promise<void> {
+  try {
+    const { error } = await sb
+      .from("quote_events")
+      .update({ resend_message_id: null })
+      .eq("quote_id", quoteId)
+      .eq("version", version)
+      .eq("event", "sent")
+      .eq("resend_message_id", claimToken);
+    if (error) console.error("send: failed to release delivery claim:", error.message);
+  } catch (e) {
+    console.error("send: failed to release delivery claim:", e);
   }
 }
 
@@ -348,10 +390,20 @@ export function makeQuoteService(sb: Sb) {
       return { ok: false, error: `cannot send a quote in status "${currentStatus}"` };
     }
 
+    // 3. Claim the delivery BEFORE calling deliverEmail, so two concurrent
+    // callers (two admin clicks, or a click racing the retry CLI) can never
+    // both dispatch mail for the same quote. The claim is a non-null
+    // placeholder written into resend_message_id: canRetryDelivery only ever
+    // treats a NULL id as retryable, so from the moment a claim lands, every
+    // other concurrent caller reads this quote as "cannot send" rather than
+    // "retryable" — there is no window where two callers both see null.
+    const claimToken = `claiming:${crypto.randomUUID()}`;
     if (!isRetry) {
-      // 3. First send: flip the status atomically (only if it's still the
-      // status we just read) and record the event. A retry skips both — the
-      // quote is already 'sent' and the event already exists.
+      // First send: flip the status atomically (only if it's still the
+      // status we just read), then record the 'sent' event WITH the claim
+      // token already in place. The insert itself IS the claim — there is no
+      // separate gap between "event exists" and "claim recorded" for a
+      // concurrent retry to slip through.
       const { data: updated } = await sb
         .from("quotes")
         .update({ status: "sent" })
@@ -359,15 +411,32 @@ export function makeQuoteService(sb: Sb) {
         .eq("status", currentStatus)
         .select("id")
         .maybeSingle();
-      if (!updated) return { ok: false, error: "this quote was just sent elsewhere" };
+      if (!updated) return { ok: false, error: "this quote's status changed before it could be sent" };
 
       const { error: evErr } = await sb.from("quote_events").insert({
         quote_id: quoteId,
         version: currentVersion,
         event: "sent",
         actor_profile_id: actor.id,
+        resend_message_id: claimToken,
       });
       if (evErr) return { ok: false, error: evErr.message };
+    } else {
+      // Retry: claim by conditionally overwriting the null resend_message_id
+      // — the compare-and-swap equivalent of the first-send flip above. A
+      // 0-row result means another caller (another retry, or another send()
+      // racing this one) already claimed it first.
+      const { data: claimed, error: claimErr } = await sb
+        .from("quote_events")
+        .update({ resend_message_id: claimToken })
+        .eq("quote_id", quoteId)
+        .eq("version", currentVersion)
+        .eq("event", "sent")
+        .is("resend_message_id", null)
+        .select("id")
+        .maybeSingle();
+      if (claimErr) return { ok: false, error: claimErr.message };
+      if (!claimed) return { ok: false, error: "this quote is already being sent" };
     }
 
     // 4. Booking link + recipients. Never throws — a quote must still go
@@ -381,7 +450,13 @@ export function makeQuoteService(sb: Sb) {
       .eq("role", "client_manager")
       .eq("status", "active");
     const to = ((managers ?? []) as { email: string }[]).map((m) => m.email);
-    if (to.length === 0) return { ok: false, error: "client has no active managers" };
+    if (to.length === 0) {
+      // No mail was even attempted — release the claim so the quote stays
+      // retryable once a manager exists, exactly as it did before delivery
+      // claiming existed.
+      await releaseClaim(sb, quoteId, currentVersion, claimToken);
+      return { ok: false, error: "client has no active managers" };
+    }
 
     const { data: versionRow } = await sb
       .from("quote_versions")
@@ -391,9 +466,22 @@ export function makeQuoteService(sb: Sb) {
       .maybeSingle();
     const grandTotal = (versionRow?.grand_total as number | null | undefined) ?? null;
     const monthlyTotal = (versionRow?.monthly_total as number | null | undefined) ?? null;
-    // A quote only ever reaches version > 1 via amend(), so this is a fair
-    // stand-in for "the client has seen a version of this quote before".
-    const isRevision = currentVersion > 1;
+
+    // A quote is a "revision" to the client only once they have actually
+    // received a previous version — not merely once it has been amended.
+    // current_version > 1 would mislabel a quote amended twice while still
+    // in draft (never seen by anyone outside Rocking) as "Updated quote" on
+    // its first-ever send, so instead: has a 'sent' event ever been written
+    // for an earlier version of this same quote?
+    const { data: priorSent } = await sb
+      .from("quote_events")
+      .select("version")
+      .eq("quote_id", quoteId)
+      .eq("event", "sent")
+      .lt("version", currentVersion)
+      .limit(1)
+      .maybeSingle();
+    const isRevision = !!priorSent;
 
     let delivered: { id: string | null; suppressed: string[] };
     try {
@@ -408,26 +496,58 @@ export function makeQuoteService(sb: Sb) {
         clientId: quote.client_id,
       });
     } catch (e) {
-      // deliverEmail THROWS on a Resend rejection. The quote is already
-      // 'sent' with no resend_message_id — exactly the state canRetryDelivery
-      // watches for, so a later retry picks this up rather than the mail
-      // being lost silently or the quote being stuck unsendable.
+      // deliverEmail THROWS on a Resend rejection. Release the claim — a
+      // failed send must not leave the quote permanently unretryable, which
+      // would be a worse failure mode than the double-send the claim exists
+      // to prevent.
+      await releaseClaim(sb, quoteId, currentVersion, claimToken);
       return { ok: false, error: e instanceof Error ? e.message : "failed to send quote email" };
     }
 
-    // 5. This is what makes the retry check work — without recording it, a
-    // successful send looks like a failed one forever.
+    // 5. Confirm the claim with the real message id — this is what makes the
+    // retry check work — without it a successful send looks like a failed
+    // one forever.
     const formattedMessageId = delivered.id ? `<${delivered.id}@send.rocking.one>` : null;
+    let finalizeError: string | null = null;
     try {
       const { error } = await sb
         .from("quote_events")
         .update({ resend_message_id: formattedMessageId })
         .eq("quote_id", quoteId)
         .eq("version", currentVersion)
-        .eq("event", "sent");
-      if (error) console.error("send: failed to record resend_message_id:", error.message);
+        .eq("event", "sent")
+        .eq("resend_message_id", claimToken);
+      if (error) finalizeError = error.message;
     } catch (e) {
-      console.error("send: failed to record resend_message_id:", e);
+      finalizeError = e instanceof Error ? e.message : String(e);
+    }
+
+    if (finalizeError) {
+      // Resend confirmed delivery, but we could not record it. The brief
+      // anticipated this exact case ("without it a successful send looks
+      // like a failed one forever") and accepts that the quote reads as
+      // unconfirmed until a human intervenes — so revert the claim to null
+      // to preserve that retryability, but this is a genuine double-send
+      // trap: the NEXT legitimate retry will re-email a customer who
+      // already has their quote. A console line is too quiet for that, so
+      // raise it as a staff alert too. Best-effort throughout: the email is
+      // already gone, so none of this may turn a successful send into a
+      // failure.
+      console.error("send: failed to record resend_message_id — the next retry will double-send:", finalizeError);
+      await releaseClaim(sb, quoteId, currentVersion, claimToken);
+      try {
+        await deliverEmail(sb, {
+          from: QUOTE_FROM,
+          to: [ADMIN_EMAIL],
+          cc: [ACCOUNTS_EMAIL],
+          subject: `Quote ${quote.quote_number} sent but not recorded — a retry would double-send`,
+          html: doubleSendAlertHtml(quote.quote_number, quote.title, quoteId),
+          category: "quote",
+          audience: "internal",
+        });
+      } catch (alertErr) {
+        console.error("send: failed to raise the double-send alert:", alertErr);
+      }
     }
 
     const suppressedLower = new Set(delivered.suppressed.map((e) => e.trim().toLowerCase()));
@@ -504,7 +624,14 @@ export function makeQuoteService(sb: Sb) {
         event: "pending_review",
         actor_profile_id: actor.id,
       });
-      if (eErr) return { ok: false, error: eErr.message };
+      if (eErr) {
+        // quotes.status is already pending_review at this point (step 4), so
+        // this isn't a data-safety issue — but it IS an audit-trail gap
+        // (no record of when/who requested review), and that must not pass
+        // unnoticed as a plain return value alone.
+        console.error("amend: failed to record pending_review event — audit trail gap:", eErr.message);
+        return { ok: false, error: eErr.message };
+      }
     }
 
     return { ok: true, version: newVersion, status: newStatus };
