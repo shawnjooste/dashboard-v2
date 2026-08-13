@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { POST_LOGIN_PATH, resolveLandingPath, staffRedirectFor, type RouteInput } from "../routing";
+import { POST_LOGIN_PATH, resolveLandingPath, staffRedirectFor, safeNext, type RouteInput } from "../routing";
 
 const base: RouteInput = {
   authenticated: true,
@@ -51,5 +51,45 @@ describe("staffRedirectFor", () => {
   it("does not match paths that merely start with /status", () => {
     expect(staffRedirectFor("/statusboard")).toBe("/admin");
     expect(staffRedirectFor("/status/x")).toBe("/admin");
+  });
+});
+
+describe("safeNext", () => {
+  it("keeps a relative path, including its query string", () => {
+    expect(safeNext("/quotes/abc")).toBe("/quotes/abc");
+    expect(safeNext("/quotes/abc?reference=qs-123")).toBe("/quotes/abc?reference=qs-123");
+  });
+
+  it("falls back when nothing was asked for", () => {
+    expect(safeNext(null)).toBe(POST_LOGIN_PATH);
+    expect(safeNext(undefined)).toBe(POST_LOGIN_PATH);
+    expect(safeNext("")).toBe(POST_LOGIN_PATH);
+  });
+
+  // Everything below is an attack. next= travels in emailed URLs, so each of
+  // these is something a third party could put in front of a client.
+  it("refuses a protocol-relative URL", () => {
+    expect(safeNext("//evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("//evil.com/quotes/abc")).toBe(POST_LOGIN_PATH);
+  });
+
+  it("refuses an absolute URL", () => {
+    expect(safeNext("https://evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("http://evil.com")).toBe(POST_LOGIN_PATH);
+  });
+
+  it("refuses a backslash path — browsers treat \\ as /", () => {
+    expect(safeNext("/\\evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/\\/evil.com")).toBe(POST_LOGIN_PATH);
+  });
+
+  it("refuses a scheme that isn't a path at all", () => {
+    expect(safeNext("javascript:alert(1)")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("data:text/html,<script>")).toBe(POST_LOGIN_PATH);
+  });
+
+  it("refuses anything that doesn't start with a single slash", () => {
+    expect(safeNext("quotes/abc")).toBe(POST_LOGIN_PATH);
+    expect(safeNext(" /quotes/abc")).toBe(POST_LOGIN_PATH);
   });
 });
