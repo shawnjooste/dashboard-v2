@@ -175,8 +175,14 @@
    fixed 48/110/120px numeric columns. On a 375px viewport the padding alone
    eats ~136px and the numeric columns then exceed what's left, collapsing the
    description to nothing. Below 768px the tables become stacked cards.
-   @media print re-asserts everything, so the PDF is untouched. ---- */
-@media (max-width: 767px) {
+   Scoped to `screen` — printing never evaluates `max-width` against the
+   browser viewport, it evaluates against the page box (A4 ≈ 794px, well
+   over 767px), but this stylesheet has no `@page` rule pinning that, and the
+   pre-existing `@media (max-width: 820px)` block below already proves a
+   sub-820px page box is reachable in print. `screen` makes this block's
+   print-neutrality true by construction — no width math required — rather
+   than relying on re-asserting every property in a second print block. ---- */
+@media screen and (max-width: 767px) {
   .page { padding: 14px; }
 
   .lines, .compTable { table-layout: auto; display: block; }
@@ -214,55 +220,4 @@
   .grandRow { background: var(--accent); color: #fff; padding: 9px 11px; border-radius: 6px; }
   .brandLogo { width: 120px; }
   .projectIntro { font-size: 11px; }
-}
-
-/* ---- Belt-and-braces for print. The @media print block near the top of this
-   file (next to .page) already pins print geometry, but it sits BEFORE the
-   phone block above in source order, and equal-specificity CSS resolves ties
-   by source order. If a printing engine ever evaluates width media features
-   against the viewport rather than the physical page box — some mobile
-   "share > print > save PDF" paths do exactly that — the phone rules above,
-   being later in the file, would win. This block sits after the phone block
-   so print always wins instead, restoring every property the phone block
-   touches back to its original value.
-   Two deliberate deviations from a naive mirror of the phone block:
-   - `.compTable` is left out of the `table-layout: fixed` re-assertion. The
-     base rule never sets `.compTable`'s table-layout (default: auto); forcing
-     it to `fixed` here would be a NEW change to the comparison table that
-     print never had, not a restoration.
-   - Cell `padding` is intentionally not re-asserted here. The phone block's
-     padding override carries `!important`, and matching that would require
-     `!important` on every distinct td variant (plain / group-header row /
-     footer row / grand-total row) at equal-or-greater specificity — verified
-     that a naive version of this (making `.groupRow td` padding `!important`)
-     also promotes its `border-top`, wrongly overriding the sibling rule that
-     suppresses that border when the group header is the first row. Given
-     `@media print` widths are evaluated against the ~793px A4 page box in
-     standards-compliant browsers (Chromium/Firefox/Safari), never against a
-     375px viewport, this combination is not reachable in normal desktop
-     printing; it is left as a documented residual for the exotic mobile PDF
-     path rather than risking a new bug to close a gap that can't occur in the
-     primary flow this project ships (Cmd+P / browser print-to-PDF). ---- */
-@media print {
-  .page { padding: 16mm 18mm 18mm; }
-
-  .lines, .compTable { display: table; }
-  .lines { table-layout: fixed; }
-  .lines colgroup, .compTable colgroup { display: table-column-group; }
-  .lines thead, .compTable thead { display: table-header-group; }
-  .lines tbody, .compTable tbody { display: table-row-group; }
-  .lines tfoot, .compTable tfoot { display: table-footer-group; }
-  .lines tr, .compTable tr { display: table-row; padding: 0; border-bottom: 0; }
-  .lines td, .compTable td { display: table-cell; border-bottom: 1px solid var(--q-rule2); }
-  .lines td:first-child, .compTable td:first-child {
-    display: table-cell;
-    font-weight: normal;
-    margin-bottom: 0;
-  }
-  .lines td[data-label]::before { content: none; }
-  .totLabel { text-align: right; padding-right: 16px !important; }
-  .grandRow { background: none; color: inherit; padding: 0; border-radius: 0; }
-  .grandRow td { background: var(--accent); color: #fff; }
-  .brandLogo { width: 160px; }
-  .projectIntro { font-size: 9.5pt; }
 }
