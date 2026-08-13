@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MOBILE_NAV } from "@/lib/nav";
+import { MOBILE_TABS } from "@/lib/nav";
 
-/** Fixed two-tab bar — the entire navigation on a phone. Hidden at md+ where
- *  the sidebar takes over. Same active rule as the sidebar: prefix match, so a
- *  ticket thread keeps Tickets lit. */
+/** Fixed four-tab bar — the primary navigation on a phone. Hidden at md+ where
+ *  the sidebar takes over. Prefix match keeps Tickets lit inside a thread;
+ *  Home is exact, or every route would light it. */
 export function MobileTabBar() {
   const pathname = usePathname();
   return (
@@ -14,8 +14,11 @@ export function MobileTabBar() {
       className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card md:hidden print:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {MOBILE_NAV.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+      {MOBILE_TABS.map((item) => {
+        const active =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link
             key={item.href}

@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/types/domain";
+import { FEATURE_HREFS } from "@/lib/feature-access";
 
 export type NavItem = { label: string; href: string; external?: boolean };
 export type NavGroup = { label: string; items: NavItem[] };
@@ -89,12 +90,47 @@ export const NAV: Record<UserRole, NavGroup[]> = {
   ],
 };
 
-/** What a phone shows a signed-in client: tickets and service status, nothing
- *  else. Deliberately two items — the other sections stay desktop-only and are
- *  hidden from mobile navigation entirely (they still render by direct URL).
- *  Keep this list here rather than in the shell so "what mobile offers" is one
- *  editable place. */
-export const MOBILE_NAV: NavItem[] = [
+/** The four tabs on a phone. Home is the needs-you list, so it earns its slot;
+ *  everything else lives behind More. Kept here rather than in the tab bar so
+ *  "what mobile leads with" is one editable place. */
+export const MOBILE_TABS: NavItem[] = [
+  { label: "Home", href: "/" },
   { label: "Tickets", href: "/support" },
   { label: "Status", href: "/status" },
+  { label: "More", href: "/more" },
 ];
+
+type NavOpts = {
+  role: UserRole;
+  allowedHrefs?: string[];
+  billingEnabled?: boolean;
+  pendingMode?: "pending" | "rejected";
+};
+
+/** The nav this user is actually entitled to. Single source of truth for the
+ *  desktop sidebar and the mobile More page — if these two ever computed
+ *  entitlement separately, a feature hidden on desktop could leak on mobile. */
+export function visibleNavGroups({
+  role,
+  allowedHrefs,
+  billingEnabled = false,
+  pendingMode,
+}: NavOpts): NavGroup[] {
+  const gated = new Set(Object.values(FEATURE_HREFS));
+  const allowed = new Set(allowedHrefs ?? [...gated]);
+  if (!billingEnabled) allowed.delete("/billing"); // needs a Xero link too
+  // No company: neither the role nav nor feature filtering means anything.
+  const source = pendingMode ? (pendingMode === "pending" ? PENDING_NAV : []) : NAV[role];
+  return source
+    .map((g) => ({ ...g, items: g.items.filter((i) => !gated.has(i.href) || allowed.has(i.href)) }))
+    .filter((g) => g.items.length > 0);
+}
+
+/** What the More page lists: everything they're entitled to that isn't already
+ *  a tab. */
+export function mobileMenuGroups(opts: NavOpts): NavGroup[] {
+  const tabs = new Set(MOBILE_TABS.map((t) => t.href));
+  return visibleNavGroups(opts)
+    .map((g) => ({ ...g, items: g.items.filter((i) => !tabs.has(i.href)) }))
+    .filter((g) => g.items.length > 0);
+}
