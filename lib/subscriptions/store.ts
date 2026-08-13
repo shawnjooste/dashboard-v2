@@ -58,12 +58,14 @@ export async function startCheckout(opts: {
   }
   const monthlyVatCents = Math.round((monthlyExCents * doc.vatPercent) / 100);
 
-  // Card-verification checkout: nothing is owed today (the client is paid up
-  // for the current month), so we take the R1 minimum purely to tokenize the
-  // card and refund it on confirmation. Stamped with the CURRENT month so it
-  // can never be mistaken for the first billed period.
-  const verifyOnly = quote.billing_starts_next_month === true;
-  if (verifyOnly && monthlyExCents <= 0) {
+  // Deferred billing: no pro-rata at all, recurring starts on the 1st. Today we
+  // collect the once-off items if there are any; if there is nothing to collect
+  // we still need a card on file, and Paystack will not tokenize one without a
+  // transaction — hence the R1 verification, refunded on confirmation. Either
+  // way the charge is stamped with the CURRENT month so it can never be
+  // mistaken for the first billed period.
+  const deferBilling = quote.billing_starts_next_month === true;
+  if (deferBilling && monthlyExCents <= 0) {
     return { ok: false, error: "this quote has no monthly amount to bill" };
   }
 
@@ -73,8 +75,22 @@ export async function startCheckout(opts: {
     vatPercent: doc.vatPercent,
     today: new Date(),
   });
-  const chargeAmountCents = verifyOnly ? VERIFICATION_AMOUNT_CENTS : breakdown.totalCents;
-  const chargePeriod = verifyOnly ? firstOfThisMonth(new Date()) : breakdown.billingPeriod;
+  const onceOffVatCents = Math.round((onceOffExCents * doc.vatPercent) / 100);
+  const onceOffInclCents = onceOffExCents + onceOffVatCents;
+  const cardVerification = deferBilling && onceOffInclCents <= 0;
+
+  const chargeAmountCents = deferBilling
+    ? cardVerification
+      ? VERIFICATION_AMOUNT_CENTS
+      : onceOffInclCents
+    : breakdown.totalCents;
+  const chargeExCents = cardVerification
+    ? VERIFICATION_AMOUNT_CENTS
+    : deferBilling
+      ? onceOffExCents
+      : breakdown.exVatCents;
+  const chargeVatCents = cardVerification ? 0 : deferBilling ? onceOffVatCents : breakdown.vatCents;
+  const chargePeriod = deferBilling ? firstOfThisMonth(new Date()) : breakdown.billingPeriod;
 
   // One subscription per quote: reuse a pending hold, refuse anything live.
   const { data: existing } = await service
@@ -108,7 +124,7 @@ export async function startCheckout(opts: {
     subId = sub.id;
   }
 
-  const chargeType = verifyOnly ? "verification" : "initial";
+  const chargeType = cardVerification ? "verification" : "initial";
   const { data: priorInitial } = await service
     .from("quote_subscription_charges")
     .select("attempt_number")
@@ -124,8 +140,8 @@ export async function startCheckout(opts: {
     subscription_id: subId,
     charge_type: chargeType,
     billing_period: chargePeriod,
-    amount_cents: verifyOnly ? VERIFICATION_AMOUNT_CENTS : breakdown.exVatCents,
-    vat_cents: verifyOnly ? 0 : breakdown.vatCents,
+    amount_cents: chargeExCents,
+    vat_cents: chargeVatCents,
     paystack_reference: reference,
     attempt_number: attempt,
   });
@@ -230,7 +246,7 @@ export async function confirmSubscriptionCharge(
   const service = createServiceClient();
   const { data: row } = await service
     .from("quote_subscription_charges")
-    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, charge_type, quote_subscriptions(id, quote_id, client_id, status, monthly_amount_cents)")
+    .select("id, subscription_id, billing_period, amount_cents, vat_cents, status, charge_type, quote_subscriptions(id, quote_id, client_id, status, monthly_amount_cents, vat_cents)")
     .eq("paystack_reference", reference)
     .maybeSingle();
   if (!row) return "not_found";
@@ -251,11 +267,20 @@ export async function confirmSubscriptionCharge(
   if (!flipped) return "already";
 
   const sub = row.quote_subscriptions as unknown as {
-    id: string; quote_id: string; client_id: string; status: string; monthly_amount_cents: number;
+    id: string; quote_id: string; client_id: string; status: string;
+    monthly_amount_cents: number; vat_cents: number;
   } | null;
   if (!sub) return "confirmed";
 
   const isVerification = row.charge_type === "verification";
+  // Deferred-billing quotes never include a pro-rata, so the receipt must not
+  // claim one — it covers the once-off items alone.
+  const { data: quoteFlags } = await service
+    .from("quotes")
+    .select("billing_starts_next_month")
+    .eq("id", sub.quote_id)
+    .maybeSingle();
+  const deferBilling = quoteFlags?.billing_starts_next_month === true;
 
   // A verification charge is not revenue — give the R1 straight back and never
   // receipt it. The refund is best-effort: the card is already captured and a
@@ -281,7 +306,7 @@ export async function confirmSubscriptionCharge(
         vatCents: row.vat_cents,
         reference,
         payerEmail: auth?.payerEmail ?? null,
-        recurring: sub.monthly_amount_cents > 0,
+        recurring: sub.monthly_amount_cents > 0 && !deferBilling,
       });
     } catch (e) {
       console.error("receipt failed (payment recorded):", e);
@@ -333,7 +358,9 @@ export async function confirmSubscriptionCharge(
         });
       }
       if (quote) {
-        const monthlyIncl = ((sub.monthly_amount_cents + (row.vat_cents || 0)) / 100).toFixed(2);
+        // The subscription's own VAT — NOT the charge's, which on a deferred
+        // quote is the once-off's VAT and would misstate the monthly figure.
+        const monthlyIncl = ((sub.monthly_amount_cents + sub.vat_cents) / 100).toFixed(2);
         await sendEmail({
           from: FROM,
           to: [ADMIN_EMAIL],

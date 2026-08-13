@@ -158,3 +158,36 @@ describe("card-verification checkout", () => {
     expect(decideCharge(septemberRows, d("2026-09-01"))).toEqual({ action: "charge", attempt: 1 });
   });
 });
+
+describe("deferred billing (no pro-rata, starts on the 1st)", () => {
+  const vat = (ex: number) => Math.round(ex * 0.15);
+
+  it("collects the once-off only — never a pro-rata", () => {
+    // Data Smart shape: R2,500 setup + R2,500/mo, accepted mid-month.
+    const onceOffEx = 250000;
+    const monthlyEx = 250000;
+    const b = computeInitialBreakdown({
+      onceOffExCents: onceOffEx, monthlyExCents: monthlyEx, vatPercent: 15, today: d("2026-08-13"),
+    });
+    // The standard flow WOULD add a pro-rata; deferred billing must not.
+    expect(b.proRataCents).toBeGreaterThan(0);
+    const deferredTotal = onceOffEx + vat(onceOffEx);
+    expect(deferredTotal).toBe(287500);
+    expect(deferredTotal).toBeLessThan(b.totalCents);
+  });
+
+  it("falls back to the R1 verification only when there is no once-off", () => {
+    const b = computeInitialBreakdown({
+      onceOffExCents: 0, monthlyExCents: 100000, vatPercent: 15, today: d("2026-08-13"),
+    });
+    const onceOffIncl = b.onceOffCents + vat(b.onceOffCents);
+    expect(onceOffIncl).toBe(0);
+    // Nothing to collect → tokenize with the Paystack minimum instead.
+    expect(VERIFICATION_AMOUNT_CENTS).toBe(100);
+  });
+
+  it("first monthly charge is the 1st of next month either way", () => {
+    expect(firstOfNextMonth(d("2026-08-13"))).toBe("2026-09-01");
+    expect(firstOfThisMonth(d("2026-08-13"))).toBe("2026-08-01");
+  });
+});

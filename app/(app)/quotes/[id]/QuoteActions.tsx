@@ -13,10 +13,12 @@ export type CheckoutBreakdown = {
   /** Null on once-off-only quotes — nothing recurs after payment. */
   monthlyIncl: string | null;
   totalIncl: string;
-  /** Card-verification checkout: nothing is charged today. */
+  /** Deferred billing: no pro-rata, monthly starts on the 1st. */
   verifyOnly?: boolean;
-  /** yyyy-mm-dd of the first real charge, when verifyOnly. */
+  /** yyyy-mm-dd of the first monthly charge, when verifyOnly. */
   firstChargeDate?: string;
+  /** Nothing payable today — the refunded R1 card check applies. */
+  cardVerificationOnly?: boolean;
 };
 
 export function QuoteActions({
@@ -89,7 +91,11 @@ export function QuoteActions({
               disabled={pending}
               className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
             >
-              {checkout ? (checkout.verifyOnly ? "Accept & add card" : "Checkout") : "Accept quote"}
+              {checkout
+                ? checkout.verifyOnly && checkout.cardVerificationOnly
+                  ? "Accept & add card"
+                  : "Checkout"
+                : "Accept quote"}
             </button>
             <button
               type="button"
@@ -122,25 +128,34 @@ export function QuoteActions({
         <div className="rounded-lg border border-line bg-card p-4">
           <p className="text-[13px] font-semibold text-ink">Set up payment for quote {quoteNumber}</p>
           <dl className="mt-3 space-y-1.5 text-[13.5px]">
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted">Payable today</dt>
-              <dd className="font-semibold text-ink">R 0,00</dd>
-            </div>
+            {!checkout.cardVerificationOnly && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted">Once-off (installation &amp; setup)</dt>
+                <dd className="font-medium text-ink-2">{checkout.onceOff}</dd>
+              </div>
+            )}
             <div className="flex justify-between gap-4 border-t border-line-soft pt-1.5">
-              <dt className="text-muted">First payment on {checkout.firstChargeDate}</dt>
+              <dt className="font-semibold text-ink">Payable today (incl VAT)</dt>
+              <dd className="font-semibold text-ink">{checkout.totalIncl}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">First monthly payment on {checkout.firstChargeDate}</dt>
               <dd className="font-medium text-ink-2">{checkout.monthlyIncl}</dd>
             </div>
           </dl>
           <p className="mt-3 rounded-md bg-line-soft px-3 py-2 text-[12.5px] font-medium text-ink-2">
-            You are already paid up for this month, so there is nothing to pay now. Adding your card
-            here sets up the monthly payment: {checkout.monthlyIncl} incl VAT will be billed
-            automatically on the 1st of every month, starting {checkout.firstChargeDate}, until
-            cancelled.
+            {checkout.cardVerificationOnly
+              ? "There is nothing to pay now. Adding your card here sets up the monthly payment: "
+              : "Today you pay the once-off amount above — there is no part-month charge. Your card is then kept on file for the monthly payment: "}
+            {checkout.monthlyIncl} incl VAT will be billed automatically on the 1st of every month,
+            starting {checkout.firstChargeDate}, until cancelled.
           </p>
-          <p className="mt-2 text-[12.5px] text-muted">
-            To confirm the card is valid, our payment provider charges R1,00 and refunds it
-            immediately — you may briefly see it on your statement.
-          </p>
+          {checkout.cardVerificationOnly && (
+            <p className="mt-2 text-[12.5px] text-muted">
+              To confirm the card is valid, our payment provider charges R1,00 and refunds it
+              immediately — you may briefly see it on your statement.
+            </p>
+          )}
           <div className="mt-3 flex items-center gap-2">
             <button
               type="button"
@@ -148,7 +163,7 @@ export function QuoteActions({
               disabled={pending}
               className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
             >
-              {pending ? "Opening…" : "Add card & accept"}
+              {pending ? "Opening…" : checkout.cardVerificationOnly ? "Add card & accept" : "Pay setup & accept"}
             </button>
             <button
               type="button"

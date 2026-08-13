@@ -104,8 +104,10 @@ export default async function QuotePage({
   let checkout: {
     onceOff: string; proRata: string; periodStart: string | null; periodEnd: string | null;
     monthlyIncl: string | null; totalIncl: string;
-    /** Card-verification checkout: nothing payable today, billing starts the 1st. */
+    /** Deferred billing: no pro-rata, recurring starts on the 1st. */
     verifyOnly?: boolean; firstChargeDate?: string;
+    /** Nothing at all payable today — the R1 card verification applies. */
+    cardVerificationOnly?: boolean;
   } | null = null;
   if (quote.checkoutEnabled && quote.status === "sent" && (!subscription || subscription.status === "pending_payment")) {
     const totals = computeTotals(quote.doc);
@@ -125,13 +127,18 @@ export default async function QuotePage({
         monthlyIncl: monthlyExCents > 0 ? fmtMoney(monthlyIncl / 100) : null,
         totalIncl: fmtMoney(b.totalCents / 100),
       };
+      // Deferred billing: no pro-rata. Today they pay the once-off items only
+      // (or nothing at all, when the quote is monthly-only).
       if (quote.billingStartsNextMonth && monthlyExCents > 0) {
+        const onceOffInclCents =
+          onceOffExCents + Math.round((onceOffExCents * quote.doc.vatPercent) / 100);
         checkout = {
           ...checkout,
           verifyOnly: true,
+          cardVerificationOnly: onceOffInclCents <= 0,
           periodStart: null,
           periodEnd: null,
-          totalIncl: fmtMoney(0),
+          totalIncl: fmtMoney(onceOffInclCents / 100),
           firstChargeDate: firstOfNextMonth(new Date()),
         };
       }
