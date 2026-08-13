@@ -17,7 +17,11 @@
 - **Desktop must not change** except for the `NeedsYou` block on Home. Any other desktop movement is a regression.
 - **Printed quote output must stay byte-identical.** `components/QuoteDocument.module.css` is what clients receive as a PDF.
 - **Design tokens only** — `bg-card border-line text-ink/ink-2/ink-3 text-muted text-faint text-brand bg-warn-tint text-warn-ink bg-brand-tint text-good`. No raw `gray-*` values.
-- **Branch:** work on `preview`. Never commit directly to `main`.
+- **Branch:** `main`, per this repo's CLAUDE.md ("All development happens directly on
+  `main`"). The `preview` convention belongs to the older Dashboard repo, not this one.
+- **Parallel sessions work this repo.** Before adding a migration check `ls
+  supabase/migrations` for collisions. A concurrent session is editing `lib/quotes/*`,
+  `lib/email/*`, and `lib/quote-emails.ts` — do not touch those files.
 - **The local dev server points at the production database.** Never test destructive actions against real client rows.
 - Run `npm test`, `npx tsc --noEmit`, and `npm run build` before every commit.
 
