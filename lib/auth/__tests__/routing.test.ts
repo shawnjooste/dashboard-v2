@@ -92,4 +92,14 @@ describe("safeNext", () => {
     expect(safeNext("quotes/abc")).toBe(POST_LOGIN_PATH);
     expect(safeNext(" /quotes/abc")).toBe(POST_LOGIN_PATH);
   });
+
+  // Browsers strip tab/LF/CR from a URL before parsing, so "/\t/evil.com"
+  // becomes protocol-relative after our checks would have run. Verified:
+  // new URL("/\t/evil.com", "https://portal.rocking.one/login") -> https://evil.com/
+  it("refuses control characters that become protocol-relative once parsed", () => {
+    expect(safeNext("/\t/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/\n/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/\r/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/quotes\t/abc")).toBe(POST_LOGIN_PATH);
+  });
 });

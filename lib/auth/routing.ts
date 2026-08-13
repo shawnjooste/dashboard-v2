@@ -24,13 +24,20 @@ export const POST_LOGIN_PATH = "/status";
  *  This guards an open redirect on a URL that travels in emails, so it fails
  *  closed — an unrecognised shape is rejected, never sanitised and used. The
  *  protocol-relative case is the one that bites: Next's redirect() treats
- *  "//evil.com" as off-site, so it must never reach it. */
+ *  "//evil.com" as off-site, so it must never reach it. Tab/LF/CR are
+ *  rejected outright rather than stripped: the WHATWG URL parser (and every
+ *  browser) strips them before parsing, so "/\t/evil.com" is indistinguishable
+ *  from "//evil.com" by the time it's resolved — stripping here and continuing
+ *  would just re-open the same hole one step later. */
 export function safeNext(param: string | null | undefined): string {
   if (!param) return POST_LOGIN_PATH;
   if (!param.startsWith("/")) return POST_LOGIN_PATH;
   // "//host" is protocol-relative; "/\host" is the same thing to browsers
   // that normalise backslashes.
   if (param.startsWith("//") || param.startsWith("/\\")) return POST_LOGIN_PATH;
+  // Tab/LF/CR anywhere in the value get stripped by URL parsing before the
+  // "//" check above would see them — reject rather than sanitise.
+  if (/[\t\n\r]/.test(param)) return POST_LOGIN_PATH;
   return param;
 }
 
