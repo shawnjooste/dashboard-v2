@@ -70,3 +70,18 @@ export async function getSubscriptionAdminDetail(quoteId: string): Promise<SubAd
     })),
   };
 }
+
+/** Subscriptions stuck in 'failed' for one client. Service client, matching
+ *  getSubscriptionForQuote above — quote_subscriptions carries client_id, so
+ *  the scope is explicit here rather than relying on RLS. */
+export async function getFailedSubscriptions(
+  clientId: string,
+): Promise<{ id: string; quoteId: string }[]> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("quote_subscriptions")
+    .select("id, quote_id")
+    .eq("client_id", clientId)
+    .eq("status", "failed");
+  return (data ?? []).map((r) => ({ id: r.id, quoteId: r.quote_id }));
+}
