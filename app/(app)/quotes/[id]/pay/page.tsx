@@ -53,12 +53,12 @@ export default async function PayArrearsPage({ params }: { params: Promise<{ id:
           The monthly payment for <strong>{sub.failedPeriod.slice(0, 7)}</strong> didn&apos;t go
           through. Paying it below also saves your new card for future monthly billing.
         </p>
-        <dl className="mt-4 flex justify-between text-sm">
+        <dl className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
           <dt className="font-semibold text-ink">Outstanding (incl VAT)</dt>
           <dd className="font-semibold text-ink">{fmtMoney(sub.monthlyInclCents / 100)}</dd>
         </dl>
         <form action={pay} className="mt-4">
-          <button className="w-full rounded-lg bg-good px-4 py-[10px] text-[14px] font-semibold text-white transition-colors hover:bg-[#116c33]">
+          <button className="min-h-[44px] w-full rounded-lg bg-good px-4 py-[10px] text-[14px] font-semibold text-white transition-colors hover:bg-[#116c33] md:min-h-0">
             Pay {fmtMoney(sub.monthlyInclCents / 100)} by card
           </button>
         </form>

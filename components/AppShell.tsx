@@ -114,8 +114,8 @@ export function AppShell({
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-12 items-center gap-5 border-b border-line bg-card px-4 md:px-6 print:hidden">
-            {/* Mobile: logo doubles as "home" — on a phone, tickets IS home. */}
-            <Link href="/support" className="md:hidden">
+            {/* Mobile: logo doubles as "home" — links to the Home tab, which now exists. */}
+            <Link href="/" className="md:hidden">
               <Image src={logo} alt="Rocking" priority className="h-5 w-auto" />
             </Link>
             <div className="ml-auto flex items-center gap-4 md:gap-5">

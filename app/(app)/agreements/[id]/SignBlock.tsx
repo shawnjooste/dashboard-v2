@@ -26,7 +26,7 @@ export function SignBlock({ agreementId }: { agreementId: string }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Jane Mokoena"
-          className="mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-ink outline-none focus:border-faint"
+          className="mt-1 w-full rounded-lg border border-line bg-canvas px-3 py-2 text-base text-ink outline-none focus:border-faint md:text-sm"
         />
       </label>
 
@@ -50,7 +50,7 @@ export function SignBlock({ agreementId }: { agreementId: string }) {
       <button
         type="submit"
         disabled={!ready || pending}
-        className="rounded-lg bg-brand px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-brand px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0 md:w-auto"
       >
         {pending ? "Signing…" : "Sign agreement"}
       </button>

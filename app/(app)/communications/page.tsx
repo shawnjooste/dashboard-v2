@@ -49,11 +49,11 @@ export default async function CommunicationsPage() {
                 <span className="shrink-0 rounded bg-line-soft px-1.5 py-0.5 text-[11px] font-medium text-ink-3">
                   {categoryLabel(e.category)}
                 </span>
-                <span className="min-w-0 text-sm font-medium text-ink">{e.subject}</span>
+                <span className="min-w-0 break-words text-sm font-medium text-ink">{e.subject}</span>
                 <span className="ml-auto shrink-0 font-mono text-xs text-faint">{fmtDate(e.sentAt)}</span>
               </summary>
               <div className="px-4 pb-4">
-                <p className="mb-2 text-xs text-muted">To: {formatRecipients(e.toEmails)}</p>
+                <p className="mb-2 break-words text-xs text-muted">To: {formatRecipients(e.toEmails)}</p>
                 {/* Stored HTML renders in a sandboxed frame — never injected into
                     this document — so a templated email can't script the portal. */}
                 <iframe

@@ -62,7 +62,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
                 : booking.status[0].toUpperCase() + booking.status.slice(1)
             }
           />
-          <p className="text-sm text-ink-2">
+          <p className="break-words text-sm text-ink-2">
             {fmtRands(booking.amountCents + booking.vatCents)} incl VAT · ref {booking.reference}
           </p>
           {paid ? (
