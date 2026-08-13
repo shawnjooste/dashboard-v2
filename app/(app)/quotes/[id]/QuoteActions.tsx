@@ -78,7 +78,17 @@ export function QuoteActions({
 
   return (
     <div className="space-y-3 print:hidden">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Pinned above the mobile tab bar only while there's a decision to make
+          (canAct). On a decided/expired quote the row is just the Print
+          button — pinning it would waste permanent screen space for a single
+          low-priority action, so it stays in normal flow instead. */}
+      <div
+        className={
+          canAct
+            ? "fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-50 flex flex-wrap items-center gap-2 border-t border-line bg-card px-4 py-3 md:static md:inset-auto md:z-auto md:border-0 md:bg-transparent md:px-0 md:py-0"
+            : "flex flex-wrap items-center gap-2"
+        }
+      >
         {canAct && (
           <>
             <button
@@ -89,7 +99,7 @@ export function QuoteActions({
                 setError(null);
               }}
               disabled={pending}
-              className="rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50"
+              className="min-h-[44px] flex-1 rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50 md:flex-none"
             >
               {checkout
                 ? checkout.verifyOnly && checkout.cardVerificationOnly
@@ -101,7 +111,7 @@ export function QuoteActions({
               type="button"
               onClick={() => { setMode(mode === "amend" ? "none" : "amend"); setError(null); }}
               disabled={pending}
-              className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50"
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50 md:flex-none"
             >
               Request changes
             </button>
@@ -109,7 +119,7 @@ export function QuoteActions({
               type="button"
               onClick={() => { setMode(mode === "decline" ? "none" : "decline"); setError(null); }}
               disabled={pending}
-              className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50"
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50 md:flex-none"
             >
               Decline
             </button>
@@ -118,7 +128,11 @@ export function QuoteActions({
         <button
           type="button"
           onClick={() => window.print()}
-          className="ml-auto rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
+          className={
+            canAct
+              ? "ml-auto min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft md:flex-none"
+              : "ml-auto rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
+          }
         >
           Print / Save PDF
         </button>

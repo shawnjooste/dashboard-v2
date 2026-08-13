@@ -150,8 +150,13 @@ export default async function QuotePage({
     quote.decision &&
     (quote.status === "accepted" || quote.status === "rejected" || quote.status === "changes_requested");
 
+  // Actionable quotes get a fixed mobile action bar (see QuoteActions); the
+  // bottom clearance only needs to exist to clear that bar, so it's tied to
+  // the same condition — otherwise a decided quote gets dead space for no bar.
+  const canAct = quote.status === "sent";
+
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${canAct ? "pb-32 md:pb-0" : ""}`}>
       <div className="print:hidden">
         <PageHeader
           breadcrumb={
@@ -167,6 +172,17 @@ export default async function QuotePage({
             </span>
           }
         />
+      </div>
+
+      {/* Phone: the two facts someone decides on, above the document. Desktop
+          gets them from the document itself without scrolling. */}
+      <div className="rounded-lg border border-line bg-card px-4 py-3.5 md:hidden print:hidden">
+        <p className="text-[22px] font-bold leading-none tracking-[-0.5px] text-ink">
+          {fmtMoney(quote.grandTotal)}
+        </p>
+        <p className="mt-1.5 text-[13px] text-muted">
+          incl VAT · valid until {quote.doc.meta.validUntil}
+        </p>
       </div>
 
       {subscription && subscription.status === "active" && subscription.monthlyInclCents > 0 && (
@@ -227,7 +243,7 @@ export default async function QuotePage({
         quoteNumber={quote.quoteNumber}
         clientName={quote.doc.client.name}
         totalInclVat={fmtMoney(quote.grandTotal)}
-        canAct={quote.status === "sent"}
+        canAct={canAct}
         checkout={checkout}
       />
 
