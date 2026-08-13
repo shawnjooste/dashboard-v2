@@ -4,6 +4,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/send";
+import { agreementForSignatureEmail } from "@/lib/email/agreement-email";
 import { onboardingEmailHtml, type OnboardingFeature } from "@/lib/onboarding-email";
 import type { DetailChange } from "@/lib/company-details-helpers";
 
@@ -280,31 +281,15 @@ export async function sendAgreementForSignature(opts: {
   clientId: string | null;
 }): Promise<void> {
   if (!opts.to.length) return;
-  const url = `${APP_URL}/agreements/${opts.agreementId}`;
+  const { subject, html } = agreementForSignatureEmail({ ...opts, appUrl: APP_URL });
   await sendEmail({
     to: opts.to,
-    subject: `Please review and sign: ${opts.title}`,
+    subject,
     replyTo: SUPPORT_EMAIL,
     category: "agreement",
     audience: "client",
     clientId: opts.clientId,
-    html: `
-      <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#1a1a1a;">
-        <h2 style="margin:0 0 8px;">An agreement is ready for you</h2>
-        <p style="color:#444;margin:0 0 16px;">
-          We've prepared <strong>${opts.title}</strong> for ${opts.companyName}.
-          You can read it in the portal and sign it there — no printing or scanning.
-        </p>
-        <p style="margin:20px 0 0;">
-          <a href="${url}" style="background:#D7141C;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:600;">
-            Read and sign
-          </a>
-        </p>
-        <p style="color:#666;margin:20px 0 0;font-size:13px;">
-          Reference ${opts.reference}. Once signed you can download a PDF copy, and the
-          agreement stays available in the portal.
-        </p>
-      </div>`,
+    html,
   });
 }
 
