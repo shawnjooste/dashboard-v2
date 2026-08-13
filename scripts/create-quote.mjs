@@ -31,6 +31,9 @@
 
 import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
+import { computeTotals } from "../lib/quotes/doc.ts";
+import { deliverEmail } from "../lib/email/deliver.ts";
+import { ensureQuoteBookingLink } from "../lib/quotes/booking-link.ts";
 
 // ---------- env ----------
 for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8").split("\n")) {
@@ -42,21 +45,6 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 });
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
-// ---------- totals (keep in sync with lib/quotes/doc.ts computeTotals) ----------
-function computeTotals(doc) {
-  const rate = doc.vatPercent / 100;
-  let subtotal = 0, vat = 0, monthly = null;
-  for (const s of doc.sections) {
-    let secSub = 0;
-    for (const g of s.groups)
-      for (const it of g.items)
-        if (it.qty != null && it.unitPrice != null) secSub += it.qty * it.unitPrice;
-    const secGrand = secSub * (1 + rate);
-    if (s.monthly ?? s.id === "recurring") monthly = (monthly ?? 0) + secGrand;
-    else { subtotal += secSub; vat += secSub * rate; }
-  }
-  return { subtotal, vat, grand: subtotal + vat, monthly };
-}
 const fmtMoney = (n) =>
   "R " + Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -146,64 +134,6 @@ if (amendId) {
   ]);
 }
 
-// ---------- single-use booking link (mirrors lib/calendly.ts) ----------
-// Calendly caps these at one booking, so the link belongs to the quote: the
-// first recipient to click consumes it. Stored on the quote so a re-send
-// reuses it rather than splitting bookings across two links. Unused links
-// expire after 90 days, hence the staleness check.
-// Per-person token: the link is minted on that host's Calendly and lands in
-// their diary. Quote calls are with Shawn. (Mirrors lib/calendly.ts.)
-const CALENDLY_TOKEN_ENV = "CALENDLY_API_TOKEN_SHAWN";
-const CALENDLY_EVENT_TYPE = "https://api.calendly.com/event_types/81ecffd2-21f7-414f-a480-9da2ad101ddc";
-const LINK_TTL_MS = 90 * 24 * 60 * 60 * 1000;
-
-async function ensureBookingLink(qid) {
-  const { data: q } = await sb
-    .from("quotes")
-    .select("booking_url, booking_link_created_at")
-    .eq("id", qid)
-    .maybeSingle();
-  const existing = q?.booking_url ?? null;
-  const fresh =
-    existing &&
-    q.booking_link_created_at &&
-    Date.now() - new Date(q.booking_link_created_at).getTime() < LINK_TTL_MS;
-  if (fresh) return existing;
-  if (!process.env[CALENDLY_TOKEN_ENV]) {
-    console.warn(`${CALENDLY_TOKEN_ENV} not set — no booking link on this quote`);
-    return existing;
-  }
-  try {
-    const res = await fetch("https://api.calendly.com/scheduling_links", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env[CALENDLY_TOKEN_ENV]}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        max_event_count: 1,
-        owner: CALENDLY_EVENT_TYPE,
-        owner_type: "EventType",
-      }),
-    });
-    if (!res.ok) {
-      console.error(`Calendly link failed (${res.status}) — quote still sends`);
-      return existing;
-    }
-    const url = (await res.json())?.resource?.booking_url ?? null;
-    if (url) {
-      await sb
-        .from("quotes")
-        .update({ booking_url: url, booking_link_created_at: new Date().toISOString() })
-        .eq("id", qid);
-    }
-    return url ?? existing;
-  } catch (e) {
-    console.error("Calendly link error — quote still sends:", e.message);
-    return existing;
-  }
-}
-
 const bookingCta = (url) =>
   url
     ? `
@@ -233,14 +163,7 @@ if (noEmail) {
 } else if (pendingReview) {
   const reviewUrl = `${APP_URL}/admin/quotes/${quoteId}`;
   const reviewers = ["shawn@rocking.one", "kelle@rocking.one"];
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
-      to: reviewers, cc: ["accounts@rocking.one"],
-      subject: `Quote ${quoteNumber} ready for review — ${doc.client.name}`,
-      html: `
+  const reviewHtml = `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">Quote ready for review</h2>
           <p style="color:#444; margin:0 0 16px;">
@@ -252,15 +175,26 @@ if (noEmail) {
             <a href="${reviewUrl}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">Review the quote</a>
           </p>
           <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
-        </div>`,
-    }),
-  });
-  console.log(res.ok ? `Review requested from ${reviewers.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created, pending review`);
+        </div>`;
+  try {
+    await deliverEmail(sb, {
+      from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
+      to: reviewers,
+      cc: ["accounts@rocking.one"],
+      subject: `Quote ${quoteNumber} ready for review — ${doc.client.name}`,
+      html: reviewHtml,
+      category: "quote",
+      audience: "internal",
+    });
+    console.log(`Review requested from ${reviewers.join(", ")}`);
+  } catch (e) {
+    console.error(`EMAIL FAILED — quote still created, pending review:`, e.message);
+  }
 } else if (to.length && process.env.RESEND_API_KEY) {
   const heading = amendId
     ? `Updated quote from Rocking — ${quoteNumber}`
     : `New quote from Rocking — ${quoteNumber}`;
-  const bookingUrl = await ensureBookingLink(quoteId);
+  const bookingUrl = await ensureQuoteBookingLink(sb, quoteId);
   const clientHtml = `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">${heading}</h2>
@@ -274,35 +208,25 @@ if (noEmail) {
           </p>${bookingCta(bookingUrl)}
           <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
         </div>`;
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
+  try {
+    const { id } = await deliverEmail(sb, {
       from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
-      to, cc: ["shawn@rocking.one", "accounts@rocking.one"], subject: `${heading}: ${title}`,
-      html: clientHtml,
-    }),
-  });
-  console.log(res.ok ? `Emailed ${to.join(", ")}` : `EMAIL FAILED (${res.status}) — quote still created`);
-  if (res.ok) {
-    const sent = await res.json();
-    if (sent?.id) {
-      await sb.from("quote_events")
-        .update({ resend_message_id: `<${sent.id}@send.rocking.one>` })
-        .eq("quote_id", quoteId).eq("version", version).eq("event", "sent");
-    }
-    // Record it for /communications and the admin activity feed (best-effort).
-    // Mirrors lib/email/send.ts — this script can't import the TS helper, so
-    // the two write paths must be kept in sync by hand.
-    await sb.from("sent_emails").insert({
-      client_id: clientId,
-      to_emails: [...to, "shawn@rocking.one", "accounts@rocking.one"].map((e) => e.trim().toLowerCase()),
+      to,
+      cc: ["shawn@rocking.one", "accounts@rocking.one"],
       subject: `${heading}: ${title}`,
       html: clientHtml,
+      clientId,
       category: "quote",
       audience: "client",
-      resend_id: sent?.id ?? null,
-    }).then(({ error }) => { if (error) console.error("sent_emails log failed:", error.message); });
+    });
+    console.log(`Emailed ${to.join(", ")}`);
+    if (id) {
+      await sb.from("quote_events")
+        .update({ resend_message_id: `<${id}@send.rocking.one>` })
+        .eq("quote_id", quoteId).eq("version", version).eq("event", "sent");
+    }
+  } catch (e) {
+    console.error(`EMAIL FAILED — quote still created:`, e.message);
   }
 } else {
   console.log("No manager emails sent", to.length ? "(no RESEND_API_KEY)" : "(client has no active managers)");
