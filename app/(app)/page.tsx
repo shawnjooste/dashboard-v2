@@ -17,6 +17,11 @@ import {
 } from "@/lib/freescout";
 import { filterConversations } from "@/lib/freescout-scope";
 import { DeviceHealthCard } from "@/components/DeviceHealthCard";
+import { getAgreements } from "@/lib/views/agreements";
+import { getFailedSubscriptions } from "@/lib/views/subscriptions";
+import { getVisibleQuotes } from "@/lib/views/quotes";
+import { buildNeedsYou } from "@/lib/needs-you";
+import { NeedsYou } from "@/components/NeedsYou";
 import {
   PageHeader,
   PrimaryLink,
@@ -144,6 +149,22 @@ export default async function AppHome() {
     });
   }
 
+  // clientId comes from the authenticated profile, never a param or prop —
+  // getFailedSubscriptions reads with the service client (bypasses RLS), so
+  // this is the only thing scoping it to this client.
+  const clientId = me.profile.client_id;
+  const [quotes, agreements, failedPayments] = clientId
+    ? await Promise.all([
+        getVisibleQuotes(clientId),
+        getAgreements({ clientId }),
+        getFailedSubscriptions(clientId),
+      ])
+    : [[], [], []];
+
+  // Reuses the `tickets` already fetched above via loadTickets() — FreeScout
+  // is a remote call behind Cloudflare Access, so it's fetched once per page.
+  const needsYou = buildNeedsYou({ quotes, agreements, failedPayments, tickets });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -157,6 +178,12 @@ export default async function AppHome() {
         }
       />
 
+      <NeedsYou items={needsYou} />
+
+      {/* Desktop-only. These queries still run on mobile — a server component
+          can't see the viewport — so this saves page weight, not server time.
+          If mobile Home proves slow, split the route rather than guessing. */}
+      <div className="hidden md:block space-y-6">
       {billing.enabled && billing.outstanding > 0 && (
         <Link
           href="/billing"
@@ -414,6 +441,7 @@ export default async function AppHome() {
           ))
         )}
       </Card>
+      </div>
     </div>
   );
 }
