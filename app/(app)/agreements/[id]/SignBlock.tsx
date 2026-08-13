@@ -30,7 +30,7 @@ export function SignBlock({ agreementId }: { agreementId: string }) {
         />
       </label>
 
-      <label className="flex max-w-xl items-start gap-2.5">
+      <label className="flex max-w-xl items-start gap-2.5 py-3 md:py-0">
         <input
           type="checkbox"
           name="intent"

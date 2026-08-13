@@ -58,7 +58,7 @@ export default async function PayArrearsPage({ params }: { params: Promise<{ id:
           <dd className="font-semibold text-ink">{fmtMoney(sub.monthlyInclCents / 100)}</dd>
         </dl>
         <form action={pay} className="mt-4">
-          <button className="min-h-[44px] w-full rounded-lg bg-good px-4 py-[10px] text-[14px] font-semibold text-white transition-colors hover:bg-[#116c33] md:min-h-0">
+          <button className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-good px-4 py-[10px] text-[14px] font-semibold text-white transition-colors hover:bg-[#116c33] md:min-h-0">
             Pay {fmtMoney(sub.monthlyInclCents / 100)} by card
           </button>
         </form>
