@@ -37,3 +37,4 @@ scripts/_rocky-quote.json
 
 # Throwaway state for scripts/verify-agreements-ui.mjs
 scripts/.verify-ui.json
+.superpowers/
