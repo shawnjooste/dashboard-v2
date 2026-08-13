@@ -1104,7 +1104,7 @@ to:
       <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-50 flex flex-wrap items-center gap-2 border-t border-line bg-card px-4 py-3 md:static md:inset-auto md:z-auto md:border-0 md:bg-transparent md:px-0 md:py-0">
 ```
 
-The tab bar from Task 3 is `z-40` at 56px plus safe-area inset, so `bottom-[calc(56px+…)]` with `z-50` sits directly above it without overlap. Give each `<button>` in that row `min-h-[44px] flex-1 md:flex-none`.
+The tab bar from Task 3 is `z-40` at 56px plus safe-area inset, so `bottom-[calc(56px+…)]` with `z-50` sits directly above it without overlap. Give each `<button>` in that row `min-h-[44px] flex-1 md:min-h-0 md:flex-none`. **Every mobile-only utility needs a matching `md:` reset** — an earlier version of this step omitted `md:min-h-0` and silently grew desktop buttons from ~33-38px to 44px. Before committing, list each mobile-only class you added and name its reset.
 
 - [ ] **Step 3: Add bottom clearance**
 
