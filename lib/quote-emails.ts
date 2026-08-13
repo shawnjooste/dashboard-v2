@@ -4,7 +4,7 @@
 // quote mail keeps its own FROM because quotes@ is the inbound-reply address.
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail as send } from "@/lib/email/send";
-import { createSingleUseBookingLink, isBookingLinkStale } from "@/lib/calendly";
+import { ensureQuoteBookingLink } from "@/lib/quotes/booking-link";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
@@ -84,31 +84,6 @@ export async function notifyQuotePendingReview(opts: {
   );
 }
 
-/**
- * The quote's single-use booking link, minting one if there isn't a usable one.
- * Stored on the quote so a re-send reuses it rather than creating a second link
- * and splitting bookings; re-minted once Calendly's 90-day expiry has passed.
- * Never throws — a quote must still send if Calendly is down.
- */
-async function ensureBookingLink(quoteId: string): Promise<string | null> {
-  const service = createServiceClient();
-  const { data: q } = await service
-    .from("quotes")
-    .select("booking_url, booking_link_created_at")
-    .eq("id", quoteId)
-    .maybeSingle();
-  const existing = q?.booking_url ?? null;
-  if (existing && !isBookingLinkStale(q?.booking_link_created_at ?? null)) return existing;
-
-  const url = await createSingleUseBookingLink();
-  if (!url) return existing;
-  await service
-    .from("quotes")
-    .update({ booking_url: url, booking_link_created_at: new Date().toISOString() })
-    .eq("id", quoteId);
-  return url;
-}
-
 /** "Book a call" line for a client-facing quote email. */
 const bookingCta = (url: string | null) =>
   url
@@ -136,7 +111,7 @@ export async function notifyQuoteSent(opts: {
   const heading = opts.isRevision
     ? `Updated quote from Rocking — ${opts.quoteNumber}`
     : `New quote from Rocking — ${opts.quoteNumber}`;
-  const bookingUrl = await ensureBookingLink(opts.quoteId);
+  const bookingUrl = await ensureQuoteBookingLink(createServiceClient(), opts.quoteId);
   const messageId = await sendEmail(
     to,
     `${heading}: ${opts.title}`,
