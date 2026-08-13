@@ -205,11 +205,11 @@ function FragmentGroup({ group }: { group: QuoteDoc["sections"][number]["groups"
               <div className={s.lineDesc}>{it.description}</div>
               {it.detail && <div className={s.lineDetail}>{it.detail}</div>}
             </td>
-            <td className={s.cellNum}>{it.qty == null ? "—" : it.qty}</td>
-            <td className={s.cellNum}>
+            <td className={s.cellNum} data-label="Qty">{it.qty == null ? "—" : it.qty}</td>
+            <td className={s.cellNum} data-label="Unit">
               {it.unitPrice == null ? (it.usageNote ?? "—") : fmtMoney(it.unitPrice)}
             </td>
-            <td className={`${s.cellNum} ${s.strong}`}>
+            <td className={`${s.cellNum} ${s.strong}`} data-label="Total">
               {total == null ? (it.totalNote ?? "—") : fmtMoney(total)}
             </td>
           </tr>
