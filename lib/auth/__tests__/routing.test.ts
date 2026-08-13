@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { POST_LOGIN_PATH, resolveLandingPath, staffRedirectFor, safeNext, type RouteInput } from "../routing";
+import { POST_LOGIN_PATH, resolveLandingPath, staffRedirectFor, safeNext, intendedPath, type RouteInput } from "../routing";
 
 const base: RouteInput = {
   authenticated: true,
@@ -101,5 +101,17 @@ describe("safeNext", () => {
     expect(safeNext("/\n/evil.com")).toBe(POST_LOGIN_PATH);
     expect(safeNext("/\r/evil.com")).toBe(POST_LOGIN_PATH);
     expect(safeNext("/quotes\t/abc")).toBe(POST_LOGIN_PATH);
+  });
+});
+
+describe("intendedPath", () => {
+  it("returns the path when there's no query", () => {
+    expect(intendedPath("/quotes/abc", "")).toBe("/quotes/abc");
+  });
+  it("keeps the query string — Paystack returns a reference on it", () => {
+    expect(intendedPath("/quotes/abc", "?reference=qs-123")).toBe("/quotes/abc?reference=qs-123");
+  });
+  it("never sends the user back to the login page", () => {
+    expect(intendedPath("/login", "")).toBe(POST_LOGIN_PATH);
   });
 });

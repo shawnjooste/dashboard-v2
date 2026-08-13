@@ -3,16 +3,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { notifyPendingSignup, notifyFirstSignIn } from "@/lib/notify";
-import { POST_LOGIN_PATH } from "@/lib/auth/routing";
+import { safeNext } from "@/lib/auth/routing";
 
-export type ActionState = { error?: string; codeSent?: boolean; email?: string };
+export type ActionState = { error?: string; codeSent?: boolean; email?: string; next?: string };
 
 export async function requestCode(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!email) return { error: "Enter your email address." };
+  const next = String(formData.get("next") ?? "");
+  if (!email) return { error: "Enter your email address.", next };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
@@ -23,9 +24,10 @@ export async function requestCode(
     return {
       error: "We couldn't send a code right now. Please try again in a moment.",
       email,
+      next,
     };
   }
-  return { codeSent: true, email };
+  return { codeSent: true, email, next };
 }
 
 export async function verifyCode(
@@ -61,5 +63,5 @@ export async function verifyCode(
     }
   }
 
-  redirect(POST_LOGIN_PATH);
+  redirect(safeNext(String(formData.get("next") ?? "") || null));
 }

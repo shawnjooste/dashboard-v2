@@ -4,6 +4,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 export async function middleware(request: NextRequest) {
   // Server layouts can't see the URL; forward it for visit tracking.
   request.headers.set("x-pathname", request.nextUrl.pathname);
+  request.headers.set("x-search", request.nextUrl.search);
   return await updateSession(request);
 }
 

@@ -41,6 +41,15 @@ export function safeNext(param: string | null | undefined): string {
   return param;
 }
 
+/** Where to send someone back to after they sign in. Keeps the query string,
+ *  because a Paystack return carries its reference there and losing it breaks
+ *  the payment-verify fallback. Bouncing back to /login would loop, so that
+ *  one case resolves to the default. */
+export function intendedPath(pathname: string, search: string): string {
+  if (pathname === "/login") return POST_LOGIN_PATH;
+  return `${pathname}${search}`;
+}
+
 /** Where a staff member lands when they open a client-side route. Almost
  *  nothing in the client portal has a staff equivalent, so they go to the admin
  *  overview — but /status does, and every status email (and the announcement)

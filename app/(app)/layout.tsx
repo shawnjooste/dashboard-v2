@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { resolvePendingAccess } from "@/lib/auth/pending-access";
-import { staffRedirectFor } from "@/lib/auth/routing";
+import { staffRedirectFor, intendedPath } from "@/lib/auth/routing";
 import { trackVisit } from "@/lib/track";
 import { allowedFeatures, toOverrides, FEATURE_HREFS } from "@/lib/feature-access";
 import { hasConnectivity } from "@/lib/views/connectivity";
@@ -21,11 +21,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const me = await getCurrentProfile();
-  if (!me.authenticated) redirect("/login");
-
-  const rawPath = (await headers()).get("x-pathname");
+  const h = await headers();
+  const rawPath = h.get("x-pathname");
   const pathname = rawPath ?? "/";
+
+  const me = await getCurrentProfile();
+  if (!me.authenticated) {
+    const next = intendedPath(pathname, h.get("x-search") ?? "");
+    redirect(`/login?next=${encodeURIComponent(next)}`);
+  }
+
   if (me.profile.role === "rocking_staff") redirect(staffRedirectFor(pathname));
   const marker = decodeMarker((await cookies()).get(MARKER_COOKIE)?.value);
 

@@ -20,14 +20,14 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function LoginCard({ linkError }: { linkError?: boolean }) {
+export function LoginCard({ linkError, next }: { linkError?: boolean; next?: string }) {
   const [reqState, reqAction] = useActionState(requestCode, initial);
   const [verState, verAction] = useActionState(verifyCode, initial);
   const sent = reqState.codeSent;
   const email = reqState.email ?? "";
 
   const fieldCls =
-    "w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm text-ink outline-none transition-colors focus:border-faint";
+    "w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-base md:text-sm text-ink outline-none transition-colors focus:border-faint";
 
   return (
     <div className="w-full max-w-[400px] overflow-hidden rounded-2xl border border-line bg-card shadow-[0_18px_48px_rgba(24,24,27,0.08)]">
@@ -53,6 +53,7 @@ export function LoginCard({ linkError }: { linkError?: boolean }) {
 
         {!sent ? (
           <form action={reqAction} className="mt-6 space-y-4">
+            <input type="hidden" name="next" value={next ?? ""} />
             <div className="space-y-1.5">
               <label htmlFor="email" className="block text-[13px] font-semibold text-ink-2">
                 Email address
@@ -78,6 +79,7 @@ export function LoginCard({ linkError }: { linkError?: boolean }) {
               <strong className="font-semibold text-ink-2">{email}</strong>.
             </p>
             <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="next" value={next ?? ""} />
             <div className="space-y-1.5">
               <label htmlFor="token" className="block text-[13px] font-semibold text-ink-2">
                 6-digit code
