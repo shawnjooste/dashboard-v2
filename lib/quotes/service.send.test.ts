@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeQuoteService } from "./service.ts";
-import type { Actor } from "./policy.ts";
+import { CLAIM_LEASE_MS, type Actor } from "./policy.ts";
 import { computeTotals, type QuoteDoc } from "./doc.ts";
 
 // Mocked so we can assert POSITIVELY on what send() sends, rather than
@@ -165,10 +165,35 @@ function sbForSend(opts: {
             const value = (row.resend_message_id as string | null | undefined) ?? null;
             const isClaimAttempt = typeof value === "string" && value.startsWith("claiming:");
             if (isClaimAttempt) {
-              // The retry CAS: only succeeds while nobody else holds a claim.
-              if (currentMessageId !== null) return chain(null); // lost the race
-              currentMessageId = value;
-              return chain({ id: "e1" });
+              // The claim/reclaim CAS: service.ts guards this update with
+              // EITHER `.is("resend_message_id", null)` (a plain retry) OR
+              // `.eq("resend_message_id", <exact stale value it just read>)`
+              // (reclaiming an abandoned claim) — never both, and never a
+              // bare "any claim is fair game" guard. This stub has to know
+              // WHICH guard was applied to resolve the CAS correctly, so
+              // `.eq()`/`.is()` on this specific chain record the guard
+              // instead of being no-ops, and resolution is deferred to
+              // `.maybeSingle()`.
+              let guard: { is: null } | { eq: string } | null = null;
+              const claimChain: Record<string, unknown> = {};
+              claimChain.eq = (col: string, val: unknown) => {
+                if (col === "resend_message_id") guard = { eq: val as string };
+                return claimChain;
+              };
+              claimChain.is = (col: string, val: unknown) => {
+                if (col === "resend_message_id" && val === null) guard = { is: null };
+                return claimChain;
+              };
+              claimChain.select = () => claimChain;
+              const resolve = async () => {
+                const matched = guard && ("is" in guard ? currentMessageId === null : currentMessageId === guard.eq);
+                if (!matched) return { data: null, error: null }; // lost the race
+                currentMessageId = value;
+                return { data: { id: "e1" }, error: null };
+              };
+              claimChain.maybeSingle = resolve;
+              claimChain.single = resolve;
+              return claimChain;
             }
             // A finalize (real id or null) or a release (null) write.
             nonClaimUpdateCount += 1;
@@ -372,6 +397,30 @@ describe("send retry path", () => {
     expect(res).toEqual({ ok: false, error: 'cannot send a quote in status "sent"' });
     expect(deliverEmailMock).not.toHaveBeenCalled();
   });
+
+  it("refuses a fresh (not yet abandoned) claim outright — a genuinely in-flight send() call", async () => {
+    const freshClaim = `claiming:${Date.now() - 1000}:some-other-caller`;
+    const { sb } = sbForSend({ quote: { status: "sent" }, sentMessageId: freshClaim });
+    const res = await makeQuoteService(sb).send("q1", sender);
+    expect(res).toEqual({ ok: false, error: 'cannot send a quote in status "sent"' });
+    expect(deliverEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("reclaims an abandoned (stale) claim and completes delivery — recovers a crashed send", async () => {
+    const staleClaim = `claiming:${Date.now() - CLAIM_LEASE_MS - 1000}:crashed-caller`;
+    const { sb, quotesUpdates, quoteEventInserts, quoteEventUpdates } = sbForSend({
+      quote: { status: "sent" },
+      sentMessageId: staleClaim,
+    });
+    const res = await makeQuoteService(sb).send("q1", sender);
+
+    expect(res).toEqual({ ok: true, sentTo: ["mgr@acme.co"] });
+    expect(quotesUpdates).toHaveLength(0); // still no re-flip
+    expect(quoteEventInserts).toHaveLength(0); // still no second 'sent' event
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    expect(quoteEventUpdates).toHaveLength(2); // reclaim CAS, then finalize
+    expect(quoteEventUpdates[1]).toMatchObject({ resend_message_id: "<mock-id@send.rocking.one>" });
+  });
 });
 
 describe("send concurrency", () => {
@@ -390,6 +439,25 @@ describe("send concurrency", () => {
     // The winner's claim was confirmed with the real message id — the loser
     // never touched resend_message_id at all.
     expect(quoteEventUpdates.some((u) => u.resend_message_id === "<mock-id@send.rocking.one>")).toBe(true);
+  });
+
+  it("a reclaim guarded on a stale token loses cleanly if the token changed underneath it", async () => {
+    // Two callers both read the SAME abandoned claim as stale and both try
+    // to reclaim it. The reclaim guard is `.eq("resend_message_id", <the
+    // exact stale value just read>)` — so once the winner overwrites it,
+    // the loser's guard no longer matches (the value underneath it changed),
+    // and it must lose cleanly rather than clobber the winner's fresh claim.
+    const staleClaim = `claiming:${Date.now() - CLAIM_LEASE_MS - 1000}:crashed-caller`;
+    const { sb, quoteEventUpdates } = sbForSend({ quote: { status: "sent" }, sentMessageId: staleClaim });
+    const svc = makeQuoteService(sb);
+    const results = await Promise.all([svc.send("q1", sender), svc.send("q1", sender)]);
+
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.find((r) => !r.ok)).toMatchObject({ error: "this quote is already being sent" });
+    // Exactly one successful reclaim CAS + one finalize write — the loser's
+    // reclaim attempt never mutated state at all.
+    expect(quoteEventUpdates.filter((u) => u.resend_message_id === "<mock-id@send.rocking.one>")).toHaveLength(1);
   });
 });
 

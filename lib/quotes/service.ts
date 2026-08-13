@@ -393,11 +393,14 @@ export function makeQuoteService(sb: Sb) {
     // 3. Claim the delivery BEFORE calling deliverEmail, so two concurrent
     // callers (two admin clicks, or a click racing the retry CLI) can never
     // both dispatch mail for the same quote. The claim is a non-null
-    // placeholder written into resend_message_id: canRetryDelivery only ever
-    // treats a NULL id as retryable, so from the moment a claim lands, every
-    // other concurrent caller reads this quote as "cannot send" rather than
-    // "retryable" — there is no window where two callers both see null.
-    const claimToken = `claiming:${crypto.randomUUID()}`;
+    // placeholder written into resend_message_id, carrying its own claim
+    // time so a crash mid-send (a Vercel maxDuration timeout, a killed CLI,
+    // a dropped SSH session — anywhere between claiming and finalizing)
+    // cannot strand the quote forever: canRetryDelivery treats a claim older
+    // than CLAIM_LEASE_MS as abandoned, not confirmed. There is no window
+    // where two FRESH callers both see the quote as retryable — but a stale
+    // one is reclaimable, deliberately.
+    const claimToken = `claiming:${Date.now()}:${crypto.randomUUID()}`;
     if (!isRetry) {
       // First send: flip the status atomically (only if it's still the
       // status we just read), then record the 'sent' event WITH the claim
@@ -422,19 +425,24 @@ export function makeQuoteService(sb: Sb) {
       });
       if (evErr) return { ok: false, error: evErr.message };
     } else {
-      // Retry: claim by conditionally overwriting the null resend_message_id
-      // — the compare-and-swap equivalent of the first-send flip above. A
-      // 0-row result means another caller (another retry, or another send()
-      // racing this one) already claimed it first.
-      const { data: claimed, error: claimErr } = await sb
+      // Retry (including reclaiming an abandoned claim): conditionally
+      // overwrite EXACTLY the value we just read — `messageId`, which
+      // canRetryDelivery already verified is either null (never attempted,
+      // or explicitly released) or a stale claim token past the lease. The
+      // guard matches that exact value, never a bare "any claim", so this
+      // can only ever take over the specific stale claim just verified —
+      // never a fresher one that a concurrent caller might hold by the time
+      // this UPDATE runs. A 0-row result means someone else (another retry,
+      // another reclaim, or another send() racing this one) already moved
+      // it first.
+      let claimQuery = sb
         .from("quote_events")
         .update({ resend_message_id: claimToken })
         .eq("quote_id", quoteId)
         .eq("version", currentVersion)
-        .eq("event", "sent")
-        .is("resend_message_id", null)
-        .select("id")
-        .maybeSingle();
+        .eq("event", "sent");
+      claimQuery = messageId === null ? claimQuery.is("resend_message_id", null) : claimQuery.eq("resend_message_id", messageId);
+      const { data: claimed, error: claimErr } = await claimQuery.select("id").maybeSingle();
       if (claimErr) return { ok: false, error: claimErr.message };
       if (!claimed) return { ok: false, error: "this quote is already being sent" };
     }
