@@ -28,11 +28,14 @@ export const QUOTE_EVENT_TYPE_URI =
 /** Calendly expires unused single-use links after 90 days. */
 export const LINK_TTL_DAYS = 90;
 
-/** True when a stored link is old enough that Calendly may have expired it. */
+/** True when a stored link is old enough that Calendly may have expired it.
+ *  `>=`, not `>`: the pre-extraction script's own freshness check was
+ *  `age < TTL` (strict), so a link exactly TTL days old was already
+ *  re-minted, not reused. */
 export function isBookingLinkStale(createdAt: string | null): boolean {
   if (!createdAt) return true;
   const ageMs = Date.now() - new Date(createdAt).getTime();
-  return ageMs > LINK_TTL_DAYS * 24 * 60 * 60 * 1000;
+  return ageMs >= LINK_TTL_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /**
