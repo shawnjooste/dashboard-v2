@@ -68,5 +68,34 @@ export function CrispChat({
     ]);
   }, [websiteId, email, name, company, tier, incident]);
 
-  return null;
+  if (!websiteId) return null;
+
+  // Crisp's own $crisp config API only offers "position:reverse" (swap left
+  // <-> right) and "hide:on:mobile" (remove the launcher entirely) — neither
+  // moves it out of the way, and hiding it defeats the point on the tier
+  // (and incident-mode) clients this is for. So this is a CSS override, and
+  // it's genuinely fragile: verified against the live widget on
+  // docs.crisp.chat, Crisp assigns the launcher a build-hashed class (e.g.
+  // "cc-13wro") that changes across their releases — the exact thing this
+  // selector avoids depending on. Anchored instead on:
+  //   - #crisp-chatbox: the hardcoded mount id their own loader script
+  //     creates; effectively part of their public integration contract.
+  //   - [data-maximized]: an internal state attribute that, at the time of
+  //     writing, sits uniquely on the launcher toggle (open or closed) and
+  //     nowhere else inside #crisp-chatbox — confirmed by walking the live
+  //     DOM, not from documentation, because Crisp doesn't document it.
+  // Neither is a published API. If Crisp renames/removes data-maximized, or
+  // moves the widget into a shadow root, this selector silently stops
+  // matching and the launcher just reverts to covering the tab bar again —
+  // it won't break the build or throw, but it will need re-verifying against
+  // the live widget after any Crisp script update.
+  return (
+    <style>{`
+      @media (max-width: 767px) {
+        #crisp-chatbox [data-maximized] {
+          bottom: calc(56px + env(safe-area-inset-bottom) + 12px) !important;
+        }
+      }
+    `}</style>
+  );
 }

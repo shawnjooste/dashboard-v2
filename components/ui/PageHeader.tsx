@@ -16,9 +16,14 @@ export function PageHeader({
   return (
     <div>
       {breadcrumb && <div className="text-[13px] text-muted">{breadcrumb}</div>}
-      <div className="mt-1.5 flex items-center gap-3.5">
+      {/* Below md the title and action row compete for space — a two-word
+          action pair alone can crush the title to a couple of characters
+          wide (see task-9 finding B). Stack instead, full width each; from
+          md up this reverts to the original single row with the action
+          pinned right, unchanged. */}
+      <div className="mt-1.5 flex flex-col gap-3 md:flex-row md:items-center md:gap-3.5">
         <h1 className="text-[30px] font-semibold tracking-[-0.5px] text-ink">{title}</h1>
-        {action && <div className="ml-auto">{action}</div>}
+        {action && <div className="md:ml-auto">{action}</div>}
       </div>
       {subtitle && <p className="mt-2 max-w-[640px] text-sm text-muted">{subtitle}</p>}
     </div>
