@@ -19,9 +19,25 @@ the Supabase **service role key**. That has three consequences:
    *"this script can't import the TS helper, so the two write paths must be kept in sync by hand."*
    Adding the accounts@ CC rule on 2026-08-05 required editing four separate places.
 
-That third point is now cheap to fix: the stated constraint is obsolete. Node 22 strips TypeScript
-natively, proven in this repo on 2026-08-13 when a script imported `lib/onboarding-email.ts`
-directly. Most of the duplication can be deleted rather than re-engineered.
+That third point is now fixable: Node 22 strips TypeScript natively, proven in this repo on
+2026-08-13 when a script imported `lib/onboarding-email.ts` directly. The script can finally share
+code with the application — subject to the runtime constraint below.
+
+## Runtime constraint (verified 2026-08-13)
+
+A plain Node script can import a `.ts` module, including a chain of relative `.ts` imports, but
+**not** one that carries either of these:
+
+| Blocker | Why | Verified |
+| --- | --- | --- |
+| `import "server-only"` | The package only resolves inside the Next.js bundler | `lib/email/send.ts` → *Cannot find package 'server-only'* |
+| `@/…` path aliases | Node has no tsconfig path resolution | `lib/supabase/service.ts` |
+
+Both `lib/email/send.ts` and `lib/calendly.ts` carry the marker, so the script cannot simply import
+them. Shared modules must therefore be **marker-free, relative-import-only, and take their
+dependencies as parameters** — chiefly the Supabase client, which is where the `@/` alias enters.
+Dependency injection is what makes a module usable from Next, from a CLI, and from a unit test
+without mocks. The `server-only` guard stays where it belongs: on the Next-facing wrappers.
 
 ## Goals
 
@@ -43,25 +59,37 @@ directly. Most of the duplication can be deleted rather than re-engineered.
 
 ### Stage 1 — delete the duplication (no new concepts)
 
-`create-quote.mjs` imports the existing library functions instead of its private copies:
+Each duplicated concern gets exactly one implementation the script can reach:
 
 | Concern | Today | After |
 | --- | --- | --- |
-| Totals | copy in the script, hand-synced | `lib/quotes/doc.ts` → `computeTotals` |
-| Booking link | copy in the script | `lib/quote-emails.ts` → `ensureBookingLink` |
-| Client email + `sent_emails` | direct `fetch` to Resend, own insert | `lib/email/send.ts` → `sendEmail` |
+| Totals | copy in the script, hand-synced | import `lib/quotes/doc.ts` → `computeTotals`. Already marker-free and import-free; works as-is. |
+| Booking link | copy in the script | extract `lib/quotes/booking-link.ts` — marker-free, takes `(sb, quoteId)`. `lib/calendly.ts` keeps its marker and re-exports. |
+| Client email + `sent_emails` | direct `fetch` to Resend, own insert | extract `lib/email/deliver.ts` — marker-free, takes `(sb, opts)`. `lib/email/send.ts` becomes a thin `server-only` wrapper over it. |
 
-Roughly −120 lines, behaviour unchanged, independently shippable.
+Behaviour unchanged, independently shippable. Note the email extraction is genuine work rather than
+a one-line import swap, because of the runtime constraint above.
+
+**One thing stage 1 does not change:** quote email is not suppressible. `SUPPRESSIBLE_CATEGORIES`
+is an allow-list of `portal_update` and `onboarding_step` only, so routing quotes through the shared
+core neither adds nor removes filtering. It does gain them the `sent_emails` record written by the
+same code as everything else, instead of a hand-maintained copy.
 
 ### Stage 2 — `lib/quotes/service.ts`
 
-Policy only. It composes the modules above; it does not absorb them.
+Policy only. It composes the modules above; it does not absorb them. Marker-free, with the Supabase
+client injected once by a factory so callers don't thread it through every call:
 
 ```ts
-createQuote(input, actor)          → { quoteId, quoteNumber, version, status }
-amendQuote(quoteId, input, actor)  → { version, status }
-sendQuote(quoteId, actor)          → { sentTo: string[] }
+makeQuoteService(sb: SupabaseClient) → {
+  create(input, actor)          → { quoteId, quoteNumber, version, status }
+  amend(quoteId, input, actor)  → { version, status }
+  send(quoteId, actor)          → { sentTo: string[] }
+}
 ```
+
+Next server actions build it with `createServiceClient()`; the CLI builds it with its own client;
+tests build it with a stub. No caller needs `server-only` to reach quoting logic.
 
 ### The actor
 
@@ -198,11 +226,14 @@ a stronger claim than passing tests, because the change is meant to alter nothin
 
 ## Sequencing
 
-1. Stage 1 — de-duplicate the script. Ship alone, verified by diff.
-2. Schema: idempotency key, prefix columns, counter table, seeded.
-3. `service.ts` with the pure decision functions and their tests.
-4. Migrate `approveAndSendQuote` to `sendQuote` — small and low-stakes.
-5. Migrate `create-quote.mjs` to `createQuote` / `sendQuote`.
+1. Extract `lib/email/deliver.ts` and `lib/quotes/booking-link.ts`; rewire `send.ts` and
+   `quote-emails.ts` to them. No script changes yet.
+2. Point `create-quote.mjs` at the shared modules and delete its four private copies. Verified by
+   diff, not by tests.
+3. Schema: idempotency key, prefix columns, counter table, seeded from existing quotes.
+4. `service.ts` with the pure decision functions and their tests.
+5. Migrate `approveAndSendQuote` to `service.send` — small and low-stakes.
+6. Migrate `create-quote.mjs` to `service.create` / `service.send`.
 
 Each step is separately shippable. Work can stop after any of them.
 
