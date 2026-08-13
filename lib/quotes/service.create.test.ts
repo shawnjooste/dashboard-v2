@@ -1,7 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeQuoteService } from "./service.ts";
 import type { Actor } from "./policy.ts";
-import type { QuoteDoc } from "./doc.ts";
+import { computeTotals, type QuoteDoc } from "./doc.ts";
+
+// Mocked so we can assert POSITIVELY on what create() sends, rather than
+// relying on RESEND_API_KEY being unset in the test environment (which makes
+// deliverEmail a silent no-op and would let a wrong `to`/`audience` pass
+// unnoticed). Same relative path service.ts itself imports, since both files
+// live in lib/quotes/.
+vi.mock("../email/deliver.ts", () => ({
+  deliverEmail: vi.fn(async () => ({ id: "mock-id", suppressed: [] })),
+}));
+import { deliverEmail } from "../email/deliver.ts";
+const deliverEmailMock = vi.mocked(deliverEmail);
+
+beforeEach(() => {
+  deliverEmailMock.mockClear();
+});
 
 const gated: Actor = { id: null, label: "Hermes", canSend: false };
 const sender: Actor = { id: "p1", label: "shawn@rocking.one", canSend: true };
@@ -61,16 +76,22 @@ function sbForValidation(client: { id: string; name: string; quote_prefix: strin
 /** A fuller stub that models the full write chain create() exercises on the
  *  happy path: client lookup, next_quote_number RPC, and inserts into
  *  quotes / quote_versions / quote_internal / quote_events. Also tracks
- *  deletes so a rollback test can assert compensation actually ran. */
+ *  deletes (with call ORDER, not just membership) so rollback tests can
+ *  assert compensation actually ran child-before-parent. */
 function sbForCreate(opts: {
   client?: { id: string; name: string; quote_prefix: string | null } | null;
   quoteNumber?: string;
   rpcError?: { message: string } | null;
   failVersionInsert?: boolean;
+  failEventsInsert?: boolean;
+  /** Makes delete().eq()/.in() throw for this one table, to prove compensate()
+   *  survives a delete failure instead of propagating it out of create(). */
+  failDeleteTable?: string;
 }) {
   const client = opts.client ?? { id: "c1", name: "Acme Co", quote_prefix: "ACM" };
   const inserted: Record<string, unknown[]> = { quotes: [], quote_versions: [], quote_internal: [], quote_events: [] };
   const deleted: Record<string, unknown[]> = { quotes: [], quote_versions: [], quote_internal: [], quote_events: [] };
+  const deleteOrder: string[] = [];
   let quoteSeq = 0;
   let versionSeq = 0;
 
@@ -104,6 +125,9 @@ function sbForCreate(opts: {
             select: () => ({ single: async () => ({ data: null, error: { message: "boom" } }) }),
           };
         }
+        if (table === "quote_events" && opts.failEventsInsert) {
+          return { error: { message: "boom" } };
+        }
         inserted[table]?.push(...arr);
         return {
           error: null,
@@ -127,13 +151,17 @@ function sbForCreate(opts: {
         };
       },
       delete: () => ({
-        eq: (_col: string, val: unknown) => {
+        eq: async (_col: string, val: unknown) => {
+          if (opts.failDeleteTable === table) throw new Error(`compensate boom on ${table}`);
           deleted[table]?.push(val);
-          return Promise.resolve({ data: null, error: null });
+          deleteOrder.push(table);
+          return { data: null, error: null };
         },
-        in: (_col: string, vals: unknown[]) => {
+        in: async (_col: string, vals: unknown[]) => {
+          if (opts.failDeleteTable === table) throw new Error(`compensate boom on ${table}`);
           deleted[table]?.push(...vals);
-          return Promise.resolve({ data: null, error: null });
+          deleteOrder.push(table);
+          return { data: null, error: null };
         },
       }),
     }),
@@ -142,7 +170,7 @@ function sbForCreate(opts: {
       return { data: opts.quoteNumber ?? "QU-ACM-001", error: null };
     },
   };
-  return { sb: sb as never, inserted, deleted };
+  return { sb: sb as never, inserted, deleted, deleteOrder };
 }
 
 describe("create is idempotent", () => {
@@ -152,7 +180,25 @@ describe("create is idempotent", () => {
       { clientId: "c1", title: "T", doc: {} as never, idempotencyKey: "key-1" },
       gated,
     );
-    expect(res).toMatchObject({ ok: true, quoteId: "q1", quoteNumber: "QU-ABC-001", replayed: true });
+    expect(res).toMatchObject({ ok: true, replayed: true, quoteId: "q1", quoteNumber: "QU-ABC-001", status: "pending_review" });
+  });
+
+  it("reports the replayed quote's true status even if it has moved past draft/pending_review", async () => {
+    const sb = {
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () =>
+              table === "quotes"
+                ? { data: { id: "q2", quote_number: "QU-ABC-002", current_version: 2, status: "sent" } }
+                : { data: null },
+          }),
+        }),
+      }),
+    } as never;
+    const svc = makeQuoteService(sb);
+    const res = await svc.create({ clientId: "c1", title: "T", doc: {} as never, idempotencyKey: "key-2" }, gated);
+    expect(res).toMatchObject({ ok: true, replayed: true, status: "sent" });
   });
 });
 
@@ -186,41 +232,76 @@ describe("create validation refusals", () => {
 });
 
 describe("create happy path", () => {
-  it("writes quotes, quote_versions, quote_internal and quote_events, and gates status by actor", async () => {
+  it("writes quotes, quote_versions (with correct totals), quote_internal, one quote_events row per state, and notifies staff only", async () => {
     const { sb, inserted } = sbForCreate({ quoteNumber: "QU-ACM-004" });
     const svc = makeQuoteService(sb);
+    const doc = baseDoc();
+    const expectedTotals = computeTotals(doc);
     const res = await svc.create(
       {
         clientId: "c1",
         title: "VoIP System",
-        doc: baseDoc(),
+        doc,
         internal: [{ path: "s0.g0.i0", supplierCost: 120, note: "supplier invoice" }],
       },
       gated, // gated actor -> pending_review, never draft/sent
     );
 
-    expect(res).toMatchObject({ ok: true, quoteNumber: "QU-ACM-004", version: 1, status: "pending_review", replayed: false });
+    expect(res).toMatchObject({ ok: true, replayed: false, quoteNumber: "QU-ACM-004", version: 1, status: "pending_review" });
     expect(inserted.quotes).toHaveLength(1);
     expect(inserted.quotes[0]).toMatchObject({ status: "pending_review", quote_number: "QU-ACM-004" });
+
     expect(inserted.quote_versions).toHaveLength(1);
+    expect(inserted.quote_versions[0]).toMatchObject({
+      subtotal: expectedTotals.subtotal,
+      vat_amount: expectedTotals.vat,
+      grand_total: expectedTotals.grand,
+      monthly_total: expectedTotals.monthly,
+    });
+
     expect(inserted.quote_internal).toHaveLength(1);
+
+    // 'created', then the status event — but 'draft' is never a valid
+    // quote_events.event (CHECK constraint, migration 0059), so only
+    // pending_review/sent/etc. get a second row.
     expect(inserted.quote_events).toHaveLength(2);
     expect(inserted.quote_events[0]).toMatchObject({ event: "created" });
     expect(inserted.quote_events[1]).toMatchObject({ event: "pending_review" });
+
+    // The single most important assertion in this task: staff-only,
+    // never the client.
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    expect(deliverEmailMock).toHaveBeenCalledWith(
+      sb,
+      expect.objectContaining({
+        to: ["shawn@rocking.one", "kelle@rocking.one"],
+        cc: ["accounts@rocking.one"],
+        audience: "internal",
+        category: "quote",
+      }),
+    );
   });
 
-  it("a sending actor lands in draft, never sent, and create() sends no client email", async () => {
+  it("a sending actor lands in draft, never sent, writes only a 'created' event, and create() sends no email at all", async () => {
     const { sb, inserted } = sbForCreate({ quoteNumber: "QU-ACM-005" });
     const svc = makeQuoteService(sb);
     const res = await svc.create({ clientId: "c1", title: "VoIP System", doc: baseDoc() }, sender);
-    expect(res).toMatchObject({ ok: true, status: "draft" });
+
+    expect(res).toMatchObject({ ok: true, replayed: false, status: "draft" });
     expect(inserted.quotes[0]).toMatchObject({ status: "draft" });
+
+    // Only 'created' — a 'draft' event would violate quote_events' CHECK
+    // constraint, so create() must not attempt to write one.
+    expect(inserted.quote_events).toHaveLength(1);
+    expect(inserted.quote_events[0]).toMatchObject({ event: "created" });
+
+    expect(deliverEmailMock).not.toHaveBeenCalled();
   });
 });
 
 describe("create compensates on partial failure", () => {
-  it("rolls back the quote row when the version insert fails", async () => {
-    const { sb, inserted, deleted } = sbForCreate({ quoteNumber: "QU-ACM-006", failVersionInsert: true });
+  it("rolls back the quote row, in order, when the version insert fails", async () => {
+    const { sb, inserted, deleted, deleteOrder } = sbForCreate({ quoteNumber: "QU-ACM-006", failVersionInsert: true });
     const svc = makeQuoteService(sb);
     const res = await svc.create({ clientId: "c1", title: "VoIP System", doc: baseDoc() }, gated);
 
@@ -229,5 +310,45 @@ describe("create compensates on partial failure", () => {
     expect(deleted.quotes).toContain("q-1"); // ...then cleaned up
     expect(deleted.quote_versions).toContain("q-1");
     expect(deleted.quote_events).toContain("q-1");
+    // No version ever existed, so there's nothing in quote_internal to clean.
+    expect(deleted.quote_internal).toHaveLength(0);
+    expect(deleteOrder).toEqual(["quote_events", "quote_versions", "quotes"]);
+    expect(deliverEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("rolls back quote_internal too, in child-before-parent order, when a later step fails", async () => {
+    const { sb, inserted, deleted, deleteOrder } = sbForCreate({ quoteNumber: "QU-ACM-007", failEventsInsert: true });
+    const svc = makeQuoteService(sb);
+    const res = await svc.create(
+      {
+        clientId: "c1",
+        title: "VoIP System",
+        doc: baseDoc(),
+        internal: [{ path: "s0.g0.i0", supplierCost: 120, note: "supplier invoice" }],
+      },
+      gated,
+    );
+
+    expect(res).toMatchObject({ ok: false, error: expect.any(String) });
+    expect(inserted.quote_versions).toHaveLength(1);
+    expect(inserted.quote_internal).toHaveLength(1); // it did exist this time...
+    expect(deleted.quote_internal).toContain("v-1"); // ...and got cleaned up first
+    expect(deleteOrder).toEqual(["quote_internal", "quote_events", "quote_versions", "quotes"]);
+    expect(deliverEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("survives a delete itself failing — cleanup still runs to completion and create() still returns ok:false", async () => {
+    const { sb, deleteOrder } = sbForCreate({
+      quoteNumber: "QU-ACM-008",
+      failVersionInsert: true,
+      failDeleteTable: "quote_events",
+    });
+    const svc = makeQuoteService(sb);
+    const res = await svc.create({ clientId: "c1", title: "VoIP System", doc: baseDoc() }, gated);
+
+    expect(res).toMatchObject({ ok: false, error: expect.any(String) });
+    // quote_events' delete threw, but the remaining deletes still ran —
+    // compensate() must not let one failure abort the rest.
+    expect(deleteOrder).toEqual(["quote_versions", "quotes"]);
   });
 });

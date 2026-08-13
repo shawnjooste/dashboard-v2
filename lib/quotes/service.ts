@@ -5,7 +5,7 @@
 // Node script can import it directly — the Supabase client is passed in,
 // never constructed here.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Actor } from "./policy.ts";
+import type { Actor, QuoteStatus } from "./policy.ts";
 import { decideCreateStatus } from "./policy.ts";
 import { computeTotals, fmtMoney, type QuoteDoc } from "./doc.ts";
 import { deliverEmail } from "../email/deliver.ts";
@@ -23,8 +23,14 @@ export type CreateQuoteInput = {
   idempotencyKey?: string | null;
 };
 
+// A fresh create() only ever produces draft/pending_review (replayed: false).
+// A REPLAYED result reports the row's true current status, which can have
+// moved on since (e.g. sent, accepted) — narrowing that to draft/pending_review
+// would let a caller branching on status act on a quote that's already gone
+// out, which is exactly the double-send this layer exists to prevent.
 export type CreateResult =
-  | { ok: true; quoteId: string; quoteNumber: string; version: number; status: "draft" | "pending_review"; replayed: boolean }
+  | { ok: true; replayed: false; status: "draft" | "pending_review"; quoteId: string; quoteNumber: string; version: number }
+  | { ok: true; replayed: true; status: QuoteStatus; quoteId: string; quoteNumber: string; version: number }
   | { ok: false; error: string };
 
 // Untyped generic: the caller's client is typed against the app's Database
@@ -64,16 +70,41 @@ function reviewEmailHtml(title: string, clientName: string, quoteId: string, tot
 /** Deletes everything create() may have written, child-before-parent, so a
  *  failure partway through never leaves an orphan quote with no version.
  *  Safe to call even when some of these rows were never created — a delete
- *  that matches nothing is a no-op. */
+ *  that matches nothing is a no-op. Every step is individually guarded: a
+ *  transient failure on one delete must not abort the rest, or the orphan
+ *  this function exists to prevent is exactly what a half-run cleanup leaves
+ *  behind. compensate() itself therefore never throws. */
 async function compensate(sb: Sb, quoteId: string): Promise<void> {
-  const { data: versions } = await sb.from("quote_versions").select("id").eq("quote_id", quoteId);
-  const versionIds = ((versions ?? []) as { id: string }[]).map((v) => v.id);
-  if (versionIds.length) {
-    await sb.from("quote_internal").delete().in("version_id", versionIds);
+  let versionIds: string[] = [];
+  try {
+    const { data: versions } = await sb.from("quote_versions").select("id").eq("quote_id", quoteId);
+    versionIds = ((versions ?? []) as { id: string }[]).map((v) => v.id);
+  } catch (e) {
+    console.error("compensate: failed to look up quote_versions:", e);
   }
-  await sb.from("quote_events").delete().eq("quote_id", quoteId);
-  await sb.from("quote_versions").delete().eq("quote_id", quoteId);
-  await sb.from("quotes").delete().eq("id", quoteId);
+
+  if (versionIds.length) {
+    try {
+      await sb.from("quote_internal").delete().in("version_id", versionIds);
+    } catch (e) {
+      console.error("compensate: failed to delete quote_internal:", e);
+    }
+  }
+  try {
+    await sb.from("quote_events").delete().eq("quote_id", quoteId);
+  } catch (e) {
+    console.error("compensate: failed to delete quote_events:", e);
+  }
+  try {
+    await sb.from("quote_versions").delete().eq("quote_id", quoteId);
+  } catch (e) {
+    console.error("compensate: failed to delete quote_versions:", e);
+  }
+  try {
+    await sb.from("quotes").delete().eq("id", quoteId);
+  } catch (e) {
+    console.error("compensate: failed to delete quotes:", e);
+  }
 }
 
 export function makeQuoteService(sb: Sb) {
@@ -89,15 +120,11 @@ export function makeQuoteService(sb: Sb) {
       if (existing) {
         return {
           ok: true,
+          replayed: true,
+          status: existing.status as QuoteStatus,
           quoteId: existing.id,
           quoteNumber: existing.quote_number,
           version: existing.current_version,
-          // The type only names draft/pending_review because that's all
-          // create() itself ever produces; a replay hitting a quote that has
-          // since moved on (e.g. sent) still reports its true stored status
-          // rather than mislabeling it as one of the two.
-          status: existing.status as "draft" | "pending_review",
-          replayed: true,
         };
       }
     }
@@ -185,11 +212,18 @@ export function makeQuoteService(sb: Sb) {
         if (iErr) throw new Error(iErr.message);
       }
 
-      // 8. Insert quote_events: created, then the status event.
-      const { error: eErr } = await sb.from("quote_events").insert([
+      // 8. Insert quote_events: 'created' always; the status event too, but
+      // only for pending_review — quote_events.event's CHECK constraint
+      // (migration 0059) does not include 'draft', and a draft event would
+      // carry no information the 'created' event doesn't already (this
+      // matches how existing draft quotes look in the database today).
+      const events: { quote_id: string; version: number; event: string; actor_profile_id: string | null }[] = [
         { quote_id: quoteId, version: 1, event: "created", actor_profile_id: actor.id },
-        { quote_id: quoteId, version: 1, event: status, actor_profile_id: actor.id },
-      ]);
+      ];
+      if (status === "pending_review") {
+        events.push({ quote_id: quoteId, version: 1, event: "pending_review", actor_profile_id: actor.id });
+      }
+      const { error: eErr } = await sb.from("quote_events").insert(events);
       if (eErr) throw new Error(eErr.message);
 
       // 9. The only email create() ever sends: a staff review notification —
