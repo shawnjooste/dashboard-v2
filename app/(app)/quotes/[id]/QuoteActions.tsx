@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { acceptQuote, checkoutQuote, declineQuote, requestChanges } from "./actions";
 
 /** Accept / Request changes / Decline / Print. First click wins server-side;
- *  errors from a lost race surface in the inline message. */
+ *  errors from a lost race surface in the inline message.
+ *
+ *  Mobile keeps only the two decision actions (Checkout/Accept, Decline) in
+ *  the fixed bar — that's the approved design. Request changes and Print are
+ *  secondary, so they render in normal page flow instead. At md+ all four
+ *  rejoin a single inline row via `contents` (the sub-groups' boxes drop out,
+ *  promoting their buttons into the shared flex row) plus explicit `order`,
+ *  reproducing today's desktop order without touching the DOM order mobile
+ *  needs for its two separate groups. */
 export type CheckoutBreakdown = {
   onceOff: string;
   proRata: string;
@@ -81,16 +89,14 @@ export function QuoteActions({
       {/* Pinned above the mobile tab bar only while there's a decision to make
           (canAct). On a decided/expired quote the row is just the Print
           button — pinning it would waste permanent screen space for a single
-          low-priority action, so it stays in normal flow instead. */}
-      <div
-        className={
-          canAct
-            ? "fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-50 flex flex-wrap items-center gap-2 border-t border-line bg-card px-4 py-3 md:static md:inset-auto md:z-auto md:border-0 md:bg-transparent md:px-0 md:py-0"
-            : "flex flex-wrap items-center gap-2"
-        }
-      >
+          low-priority action, so it stays in normal flow instead.
+
+          This wrapper is the shared flex row at md+ only (`md:flex`); on
+          mobile it's a plain block parent so the fixed primary group (out of
+          flow) and the in-flow secondary group stack independently. */}
+      <div className="md:flex md:items-center md:gap-2">
         {canAct && (
-          <>
+          <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-50 flex items-center gap-2 border-t border-line bg-card px-4 py-3 md:contents">
             <button
               type="button"
               onClick={() => {
@@ -99,7 +105,7 @@ export function QuoteActions({
                 setError(null);
               }}
               disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50 md:min-h-0 md:flex-none"
+              className="min-h-[44px] flex-1 rounded-lg bg-good px-4 py-[9px] text-[13.5px] font-semibold text-white transition-colors hover:bg-[#116c33] disabled:opacity-50 md:order-1 md:min-h-0 md:flex-none"
             >
               {checkout
                 ? checkout.verifyOnly && checkout.cardVerificationOnly
@@ -109,33 +115,43 @@ export function QuoteActions({
             </button>
             <button
               type="button"
-              onClick={() => { setMode(mode === "amend" ? "none" : "amend"); setError(null); }}
-              disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50 md:min-h-0 md:flex-none"
-            >
-              Request changes
-            </button>
-            <button
-              type="button"
               onClick={() => { setMode(mode === "decline" ? "none" : "decline"); setError(null); }}
               disabled={pending}
-              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50 md:min-h-0 md:flex-none"
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-brand transition-colors hover:bg-brand-tint disabled:opacity-50 md:order-3 md:min-h-0 md:flex-none"
             >
               Decline
             </button>
-          </>
+          </div>
         )}
-        <button
-          type="button"
-          onClick={() => window.print()}
+        <div
           className={
             canAct
-              ? "ml-auto min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft md:min-h-0 md:flex-none"
-              : "ml-auto rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
+              ? "flex items-center gap-2 md:contents"
+              : "flex flex-wrap items-center gap-2"
           }
         >
-          Print / Save PDF
-        </button>
+          {canAct && (
+            <button
+              type="button"
+              onClick={() => { setMode(mode === "amend" ? "none" : "amend"); setError(null); }}
+              disabled={pending}
+              className="min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft disabled:opacity-50 md:order-2 md:min-h-0 md:flex-none"
+            >
+              Request changes
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className={
+              canAct
+                ? "ml-auto min-h-[44px] flex-1 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft md:order-4 md:min-h-0 md:flex-none"
+                : "ml-auto rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:bg-line-soft"
+            }
+          >
+            Print / Save PDF
+          </button>
+        </div>
       </div>
 
       {mode === "checkout" && canAct && checkout?.verifyOnly && (

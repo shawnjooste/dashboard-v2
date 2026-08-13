@@ -153,10 +153,15 @@ export default async function QuotePage({
   // Actionable quotes get a fixed mobile action bar (see QuoteActions); the
   // bottom clearance only needs to exist to clear that bar, so it's tied to
   // the same condition — otherwise a decided quote gets dead space for no bar.
+  //
+  // Clearance = the mobile tab bar (56px) + the two-button decision bar sitting
+  // above it (44px min-h button + py-3's 12px top/12px bottom + 1px border-t
+  // = 69px) = 125px. Rounded up a few px for breathing room above the bar
+  // rather than shaving it exact.
   const canAct = quote.status === "sent";
 
   return (
-    <div className={`space-y-5 ${canAct ? "pb-32 md:pb-0 print:pb-0" : ""}`}>
+    <div className={`space-y-5 ${canAct ? "pb-[128px] md:pb-0 print:pb-0" : ""}`}>
       <div className="print:hidden">
         <PageHeader
           breadcrumb={
