@@ -83,6 +83,16 @@ describe("safeNext", () => {
     expect(safeNext("quotes/abc")).toBe(POST_LOGIN_PATH);
     expect(safeNext(" /quotes/abc")).toBe(POST_LOGIN_PATH);
   });
+
+  // Browsers and Node's URL parser strip tab/LF/CR before parsing, so
+  // "/<TAB>/evil.com" only becomes protocol-relative after the checks above
+  // would have run. Verified: it resolved to https://evil.com/ before this.
+  it("refuses control characters that become protocol-relative once parsed", () => {
+    expect(safeNext("/\t/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/\n/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/\r/evil.com")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/quotes\t/abc")).toBe(POST_LOGIN_PATH);
+  });
 });
 ```
 
@@ -110,6 +120,9 @@ export function safeNext(param: string | null | undefined): string {
   // "//host" is protocol-relative; "/\host" is the same thing to browsers
   // that normalise backslashes.
   if (param.startsWith("//") || param.startsWith("/\\")) return POST_LOGIN_PATH;
+  // Tab/LF/CR anywhere in the value get stripped by URL parsing before the
+  // "//" check above would see them — reject rather than sanitise.
+  if (/[\t\n\r]/.test(param)) return POST_LOGIN_PATH;
   return param;
 }
 ```
