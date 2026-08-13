@@ -6,11 +6,19 @@
 // never constructed here.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Actor, QuoteStatus } from "./policy.ts";
-import { decideCreateStatus } from "./policy.ts";
+import { decideCreateStatus, decideAmendStatus, canSendFrom, canRetryDelivery } from "./policy.ts";
 import { computeTotals, fmtMoney, type QuoteDoc } from "./doc.ts";
 import { deliverEmail } from "../email/deliver.ts";
+import { ensureQuoteBookingLink } from "./booking-link.ts";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
+
+// Quote mail's own FROM: quotes@ is the inbound-reply address, so a manager's
+// "reply" to a quote threads back here. Changing it breaks that threading.
+const QUOTE_FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
+const ADMIN_EMAIL = "shawn@rocking.one";
+// Standing rule: accounts@ is CC'd on all quote-related email.
+const ACCOUNTS_EMAIL = "accounts@rocking.one";
 
 export type CreateQuoteInput = {
   clientId: string;
@@ -31,6 +39,14 @@ export type CreateQuoteInput = {
 export type CreateResult =
   | { ok: true; replayed: false; status: "draft" | "pending_review"; quoteId: string; quoteNumber: string; version: number }
   | { ok: true; replayed: true; status: QuoteStatus; quoteId: string; quoteNumber: string; version: number }
+  | { ok: false; error: string };
+
+export type AmendQuoteInput = Pick<CreateQuoteInput, "title" | "doc" | "validUntil" | "internal">;
+
+export type SendResult = { ok: true; sentTo: string[] } | { ok: false; error: string };
+
+export type AmendResult =
+  | { ok: true; version: number; status: "draft" | "pending_review" }
   | { ok: false; error: string };
 
 // Untyped generic: the caller's client is typed against the app's Database
@@ -64,6 +80,51 @@ function reviewEmailHtml(title: string, clientName: string, quoteId: string, tot
           <p style="margin:20px 0 0;">
             <a href="${reviewUrl}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">Review the quote</a>
           </p>
+        </div>`;
+}
+
+function sentEmailSubject(quoteNumber: string, title: string, isRevision: boolean): string {
+  const heading = isRevision
+    ? `Updated quote from Rocking — ${quoteNumber}`
+    : `New quote from Rocking — ${quoteNumber}`;
+  return `${heading}: ${title}`;
+}
+
+/** The client-facing "here is your quote" email — equivalent to
+ *  lib/quote-emails.ts's notifyQuoteSent, reproduced here (not imported)
+ *  because that module uses "@/…" aliases this marker-free file cannot use. */
+function sentEmailHtml(
+  quoteId: string,
+  title: string,
+  quoteNumber: string,
+  grandTotal: number | null,
+  monthlyTotal: number | null,
+  bookingUrl: string | null,
+  isRevision: boolean,
+): string {
+  const heading = isRevision
+    ? `Updated quote from Rocking — ${quoteNumber}`
+    : `New quote from Rocking — ${quoteNumber}`;
+  const viewUrl = `${APP_URL}/quotes/${quoteId}`;
+  const bookingCta = bookingUrl
+    ? `<p style="margin:18px 0 0; color:#444;">
+         Prefer to talk it through? <a href="${bookingUrl}" style="color:#D7141C; font-weight:600;">Book a 30-minute call</a>
+         &mdash; one booking per quote.
+       </p>`
+    : "";
+  return `
+        <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
+          <h2 style="margin:0 0 8px;">${heading}</h2>
+          <p style="color:#444; margin:0 0 16px;">
+            ${isRevision ? "We've revised a quote for you" : "We've prepared a quote for you"}:
+            <strong>${title}</strong> — ${fmtMoney(grandTotal)} incl VAT${monthlyTotal != null ? ` + ${fmtMoney(monthlyTotal)} / month` : ""}.
+            You can review it, print it, and accept or decline online.
+          </p>
+          <p style="margin:20px 0 0;">
+            <a href="${viewUrl}" style="background:#D7141C; color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600;">View the quote</a>
+          </p>
+          ${bookingCta}
+          <p style="margin:24px 0 0; color:#888; font-size:12.5px;">— Rocky</p>
         </div>`;
 }
 
@@ -252,5 +313,202 @@ export function makeQuoteService(sb: Sb) {
     }
   }
 
-  return { create };
+  /** Emails a quote to the client. The one place `quotes.status` may become
+   *  'sent' — everything upstream (create/amend) refuses to. */
+  async function send(quoteId: string, actor: Actor): Promise<SendResult> {
+    // Priority 1, unmistakably first: refuse a caller who may not send,
+    // before any query touches the database.
+    if (!actor.canSend) return { ok: false, error: "this caller may not send quotes" };
+
+    // 1. Load the quote.
+    const { data: quote } = await sb
+      .from("quotes")
+      .select("id, client_id, quote_number, title, current_version, status")
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (!quote) return { ok: false, error: "quote not found" };
+
+    const currentStatus = quote.status as QuoteStatus;
+    const currentVersion = quote.current_version as number;
+
+    // 2. Load the current version's 'sent' event resend_message_id, so a
+    // send that reads 'sent' but never confirmed delivery (Resend never
+    // called back) can be told apart from an already-delivered quote.
+    const { data: sentEvent } = await sb
+      .from("quote_events")
+      .select("resend_message_id")
+      .eq("quote_id", quoteId)
+      .eq("version", currentVersion)
+      .eq("event", "sent")
+      .maybeSingle();
+    const messageId = (sentEvent?.resend_message_id as string | null | undefined) ?? null;
+
+    const isRetry = canRetryDelivery(currentStatus, messageId);
+    if (!canSendFrom(currentStatus) && !isRetry) {
+      return { ok: false, error: `cannot send a quote in status "${currentStatus}"` };
+    }
+
+    if (!isRetry) {
+      // 3. First send: flip the status atomically (only if it's still the
+      // status we just read) and record the event. A retry skips both — the
+      // quote is already 'sent' and the event already exists.
+      const { data: updated } = await sb
+        .from("quotes")
+        .update({ status: "sent" })
+        .eq("id", quoteId)
+        .eq("status", currentStatus)
+        .select("id")
+        .maybeSingle();
+      if (!updated) return { ok: false, error: "this quote was just sent elsewhere" };
+
+      const { error: evErr } = await sb.from("quote_events").insert({
+        quote_id: quoteId,
+        version: currentVersion,
+        event: "sent",
+        actor_profile_id: actor.id,
+      });
+      if (evErr) return { ok: false, error: evErr.message };
+    }
+
+    // 4. Booking link + recipients. Never throws — a quote must still go
+    // out if Calendly is down.
+    const bookingUrl = await ensureQuoteBookingLink(sb, quoteId);
+
+    const { data: managers } = await sb
+      .from("profiles")
+      .select("email")
+      .eq("client_id", quote.client_id)
+      .eq("role", "client_manager")
+      .eq("status", "active");
+    const to = ((managers ?? []) as { email: string }[]).map((m) => m.email);
+    if (to.length === 0) return { ok: false, error: "client has no active managers" };
+
+    const { data: versionRow } = await sb
+      .from("quote_versions")
+      .select("grand_total, monthly_total")
+      .eq("quote_id", quoteId)
+      .eq("version", currentVersion)
+      .maybeSingle();
+    const grandTotal = (versionRow?.grand_total as number | null | undefined) ?? null;
+    const monthlyTotal = (versionRow?.monthly_total as number | null | undefined) ?? null;
+    // A quote only ever reaches version > 1 via amend(), so this is a fair
+    // stand-in for "the client has seen a version of this quote before".
+    const isRevision = currentVersion > 1;
+
+    let delivered: { id: string | null; suppressed: string[] };
+    try {
+      delivered = await deliverEmail(sb, {
+        from: QUOTE_FROM,
+        to,
+        cc: [ADMIN_EMAIL, ACCOUNTS_EMAIL],
+        subject: sentEmailSubject(quote.quote_number, quote.title, isRevision),
+        html: sentEmailHtml(quoteId, quote.title, quote.quote_number, grandTotal, monthlyTotal, bookingUrl, isRevision),
+        category: "quote",
+        audience: "client",
+        clientId: quote.client_id,
+      });
+    } catch (e) {
+      // deliverEmail THROWS on a Resend rejection. The quote is already
+      // 'sent' with no resend_message_id — exactly the state canRetryDelivery
+      // watches for, so a later retry picks this up rather than the mail
+      // being lost silently or the quote being stuck unsendable.
+      return { ok: false, error: e instanceof Error ? e.message : "failed to send quote email" };
+    }
+
+    // 5. This is what makes the retry check work — without recording it, a
+    // successful send looks like a failed one forever.
+    const formattedMessageId = delivered.id ? `<${delivered.id}@send.rocking.one>` : null;
+    try {
+      const { error } = await sb
+        .from("quote_events")
+        .update({ resend_message_id: formattedMessageId })
+        .eq("quote_id", quoteId)
+        .eq("version", currentVersion)
+        .eq("event", "sent");
+      if (error) console.error("send: failed to record resend_message_id:", error.message);
+    } catch (e) {
+      console.error("send: failed to record resend_message_id:", e);
+    }
+
+    const suppressedLower = new Set(delivered.suppressed.map((e) => e.trim().toLowerCase()));
+    const sentTo = to.filter((e) => !suppressedLower.has(e.trim().toLowerCase()));
+    return { ok: true, sentTo };
+  }
+
+  /** Amends a quote: a new version, and a status that is NEVER 'sent' — for
+   *  every actor, including one who can send. A revision must never be
+   *  visible to the client before someone explicitly sends it; that's the
+   *  back door this whole design exists to close. */
+  async function amend(quoteId: string, input: AmendQuoteInput, actor: Actor): Promise<AmendResult> {
+    // 1. Load the quote.
+    const { data: quote } = await sb
+      .from("quotes")
+      .select("id, current_version, status")
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (!quote) return { ok: false, error: "quote not found" };
+
+    const currentStatus = quote.status as QuoteStatus;
+    if (currentStatus === "accepted") return { ok: false, error: "cannot amend an accepted quote" };
+
+    const currentVersion = quote.current_version as number;
+    const newVersion = currentVersion + 1;
+    const totals = computeTotals(input.doc);
+    const newStatus = decideAmendStatus(actor); // draft | pending_review — never 'sent'
+
+    // 2. Insert the new quote_versions row.
+    const { data: versionRow, error: vErr } = await sb
+      .from("quote_versions")
+      .insert({
+        quote_id: quoteId,
+        version: newVersion,
+        doc: input.doc,
+        subtotal: totals.subtotal,
+        vat_amount: totals.vat,
+        grand_total: totals.grand,
+        monthly_total: totals.monthly,
+        valid_until: input.validUntil ?? null,
+      })
+      .select("id")
+      .single();
+    if (vErr || !versionRow) return { ok: false, error: vErr?.message ?? "failed to create quote version" };
+    const versionId = versionRow.id as string;
+
+    // 3. quote_internal (supplier costs), when there are any.
+    if (input.internal?.length) {
+      const rows = input.internal.map((r) => ({
+        version_id: versionId,
+        line_path: r.path,
+        supplier_cost: r.supplierCost ?? null,
+        note: r.note ?? null,
+      }));
+      const { error: iErr } = await sb.from("quote_internal").insert(rows);
+      if (iErr) return { ok: false, error: iErr.message };
+    }
+
+    // 4. Point the quote at the new version and its (never-'sent') status.
+    const { error: qErr } = await sb
+      .from("quotes")
+      .update({ current_version: newVersion, title: input.title, status: newStatus })
+      .eq("id", quoteId);
+    if (qErr) return { ok: false, error: qErr.message };
+
+    // 5. Record the review request — but only for pending_review.
+    // quote_events.event's CHECK constraint (migration 0059) does not include
+    // 'draft'; a 'draft' event would throw. For a draft amend, the new
+    // quote_versions row is itself the record.
+    if (newStatus === "pending_review") {
+      const { error: eErr } = await sb.from("quote_events").insert({
+        quote_id: quoteId,
+        version: newVersion,
+        event: "pending_review",
+        actor_profile_id: actor.id,
+      });
+      if (eErr) return { ok: false, error: eErr.message };
+    }
+
+    return { ok: true, version: newVersion, status: newStatus };
+  }
+
+  return { create, send, amend };
 }
