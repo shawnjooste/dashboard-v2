@@ -983,8 +983,8 @@ Append to `components/QuoteDocument.module.css`:
    fixed 48/110/120px numeric columns. On a 375px viewport the padding alone
    eats ~136px and the numeric columns then exceed what's left, collapsing the
    description to nothing. Below 768px the tables become stacked cards.
-   @media print re-asserts everything, so the PDF is untouched. ---- */
-@media (max-width: 767px) {
+   Scoped to `screen` so print never evaluates them at all. ---- */
+@media screen and (max-width: 767px) {
   .page { padding: 14px; }
 
   .lines, .compTable { table-layout: auto; display: block; }
@@ -1024,20 +1024,21 @@ Append to `components/QuoteDocument.module.css`:
   .projectIntro { font-size: 11px; }
 }
 
-/* The A4 sheet is what clients receive as a PDF — the mobile rules above must
-   never reach it, regardless of the printing device's width. */
-@media print {
-  .page { padding: 18mm 18mm 22mm 18mm; }
-  .lines, .compTable { display: table; table-layout: fixed; }
-  .lines colgroup, .compTable colgroup { display: table-column-group; }
-  .lines thead, .compTable thead { display: table-header-group; }
-  .lines tbody, .compTable tbody { display: table-row-group; }
-  .lines tfoot, .compTable tfoot { display: table-footer-group; }
-  .lines tr, .compTable tr { display: table-row; padding: 0; border-bottom: 0; }
-  .lines td, .compTable td { display: table-cell; }
-  .lines td[data-label]::before { content: none; }
-}
 ```
+
+**Do NOT add a trailing `@media print` block to "restore" the desktop layout.** An
+earlier version of this plan did exactly that, and review found it changed the printed
+PDF in two ways. The reason is a fact worth stating plainly: **when printing, `max-width`
+media features evaluate against the page box (A4 ≈ 794px), not the screen.** This
+stylesheet has no `@page` rule and already contains an unscoped `@media (max-width: 820px)`
+block, which therefore *already matches during print* and already out-cascades the
+original `@media print` block. A restoration block placed last would win against it and
+silently change the margins clients see.
+
+Scoping the phone block to `screen` is what makes this safe, and it makes the safety
+provable rather than argued: the media type `screen` never matches during printing, so
+the resulting diff is **purely additive** — no pre-existing rule is removed or modified,
+therefore no rule the print pipeline evaluates has changed.
 
 - [ ] **Step 4: Verify the phone rendering**
 
@@ -1045,7 +1046,7 @@ Start the dev server via `preview_start` (never `npm run dev` in Bash). Resize t
 
 - [ ] **Step 5: Verify print is unchanged**
 
-Print the same quote to PDF at desktop width and compare against the Step 1 baseline. They must match. If they differ, the `@media print` block is incomplete — fix it before committing, do not accept "close enough". This is the artifact clients receive.
+Confirm the diff for `QuoteDocument.module.css` is **purely additive** — `git diff <base>..HEAD -- components/QuoteDocument.module.css | grep -E '^-' | grep -v '^---'` must return nothing. Zero removed or modified lines, with every added rule inside the `screen`-scoped block, means no rule the print pipeline evaluates has changed, so the PDF is byte-identical by construction. That proof is stronger than a visual PDF comparison and does not depend on a browser.
 
 - [ ] **Step 6: Commit**
 
@@ -1056,8 +1057,8 @@ git commit -m "fix(quotes): reflow the quote document below 768px
 The document is a literal A4 sheet — 210mm wide, 18mm padding, fixed
 48/110/120px numeric columns. On a 375px phone the description column
 collapsed to nothing, which is why a client couldn't read an emailed quote.
-Line items now stack as cards below md:. @media print re-asserts the table
-layout, so the PDF clients receive is unchanged."
+Line items now stack as cards below md:. The block is screen-scoped, so print
+never evaluates it and the PDF clients receive is unchanged."
 ```
 
 ---
