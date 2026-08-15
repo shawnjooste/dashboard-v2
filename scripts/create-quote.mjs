@@ -39,8 +39,10 @@
 // }
 //
 // Quote numbers are always allocated by the service from the client's
-// quote_prefix. An input "number" field (previously used to keep an existing
-// number for an imported historical quote) is no longer honoured.
+// quote_prefix — an input "number" field (previously used to keep an
+// existing number for an imported historical quote) is no longer accepted;
+// the script refuses rather than silently ignoring it. A client with no
+// quote_prefix set is refused too, by the service.
 
 import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
@@ -76,7 +78,12 @@ const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
 if (!doc || !title) { console.error("input needs { title, doc }"); process.exit(1); }
 if (input.number) {
-  console.warn(`note: input "number" (${input.number}) is ignored — quote numbers are always allocated from the client's quote_prefix now`);
+  console.error(
+    `refusing: input "number" (${input.number}) is no longer accepted.\n` +
+      `Quote numbers are always allocated by the service from the client's quote_prefix — remove the "number" field from ${file} and re-run.\n` +
+      `(If the client has no quote_prefix set, the service will refuse the create too — set one before retrying.)`
+  );
+  process.exit(1);
 }
 
 // canSend: false under --pending-review routes the quote into pending_review
@@ -110,7 +117,14 @@ if (amendId) {
   status = res.status;
 
   // amend() doesn't carry checkout/billing columns (they're create-time
-  // concepts on this quote row); set them directly here when asked.
+  // concepts on this quote row, deliberately absent from AmendQuoteInput);
+  // set them directly here when asked. This second write is therefore not
+  // atomic with svc.amend() above — a crash or interrupt between the two
+  // could leave the amend applied without the column update. A reviewer
+  // confirmed there is no clobbering race with concurrent writers (this
+  // update only ever sets these two columns to true, never reads-then-writes
+  // other quote state), so the risk is a missed flag on failure, not
+  // corruption — worth knowing, not worth engineering away here.
   if (checkoutEnabled || billingNextMonth) {
     const { error: colErr } = await sb.from("quotes").update({
       ...(checkoutEnabled ? { checkout_enabled: true } : {}),
