@@ -70,7 +70,12 @@ const fmtMoney = (n) =>
 const [file, ...rest] = process.argv.slice(2);
 if (!file) { console.error("usage: node scripts/create-quote.mjs <quote.json> [--amend <quoteId>]"); process.exit(1); }
 const amendIdx = rest.indexOf("--amend");
-const amendId = amendIdx !== -1 ? rest[amendIdx + 1] : null;
+let amendId = null;
+if (amendIdx !== -1) {
+  const next = rest[amendIdx + 1];
+  if (!next || next.startsWith("--")) { console.error("--amend requires a quote id"); process.exit(1); }
+  amendId = next;
+}
 const noEmail = rest.includes("--no-email");
 const pendingReview = rest.includes("--pending-review");
 const checkoutEnabled = rest.includes("--checkout");
