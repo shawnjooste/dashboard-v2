@@ -154,14 +154,20 @@ export default async function QuotePage({
   // bottom clearance only needs to exist to clear that bar, so it's tied to
   // the same condition — otherwise a decided quote gets dead space for no bar.
   //
-  // Clearance = the mobile tab bar (56px) + the two-button decision bar sitting
-  // above it (44px min-h button + py-3's 12px top/12px bottom + 1px border-t
-  // = 69px) = 125px. Rounded up a few px for breathing room above the bar
-  // rather than shaving it exact.
+  // Obstruction = the mobile tab bar (56px) + the two-button decision bar
+  // sitting above it (44px min-h button + py-3's 12px top/12px bottom + 1px
+  // border-t = 69px) = 125px. AppShell's <main> already contributes pb-28
+  // (112px) on every page, so this page only needs to add the remainder —
+  // 125 - 112 = 13px — plus a few px of breathing room above the bar rather
+  // than shaving it exact, for a total of 16px added here (128px overall,
+  // clearing the 125px obstruction by 3px). The previous pb-[128px] treated
+  // 128px as the page's own contribution instead of the total, stacking on
+  // top of the shell's 112px for 240px combined — ~115px of dead space below
+  // every actionable quote on a phone.
   const canAct = quote.status === "sent";
 
   return (
-    <div className={`space-y-5 ${canAct ? "pb-[128px] md:pb-0 print:pb-0" : ""}`}>
+    <div className={`space-y-5 ${canAct ? "pb-[16px] md:pb-0 print:pb-0" : ""}`}>
       <div className="print:hidden">
         <PageHeader
           breadcrumb={
