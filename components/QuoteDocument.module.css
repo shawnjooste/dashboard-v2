@@ -209,7 +209,7 @@
     font-weight: 650;
     margin-bottom: 3px;
   }
-  .lines td[data-label]::before {
+  .lines td[data-label]::before, .compTable td[data-label]::before {
     content: attr(data-label);
     color: var(--q-ink2);
     font-weight: 400;

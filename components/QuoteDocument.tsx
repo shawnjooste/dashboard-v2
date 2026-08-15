@@ -179,8 +179,18 @@ function ComparisonBlock({ table }: { table: ComparisonTable }) {
           {table.rows.map((row, i) => (
             <tr key={i} className={row.isTotal ? s.compTotRow : undefined}>
               <td className={row.isTotal ? s.compTotLabel : s.compLabel}>{row.label}</td>
-              <td className={`${s.compCell} ${row.isTotal ? s.compTotCell : ""}`}>{row.before}</td>
-              <td className={`${s.compCell} ${s.compAfter} ${row.isTotal ? s.compTotCell : ""}`}>{row.after}</td>
+              <td
+                className={`${s.compCell} ${row.isTotal ? s.compTotCell : ""}`}
+                data-label={table.beforeLabel}
+              >
+                {row.before}
+              </td>
+              <td
+                className={`${s.compCell} ${s.compAfter} ${row.isTotal ? s.compTotCell : ""}`}
+                data-label={table.afterLabel}
+              >
+                {row.after}
+              </td>
             </tr>
           ))}
         </tbody>
