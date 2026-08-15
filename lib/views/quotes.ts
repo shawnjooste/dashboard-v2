@@ -227,6 +227,11 @@ export type QuoteAdminDetail = QuoteDetail & {
   /** Current version's margin: grand total ex VAT minus supplier costs. */
   supplierCost: number | null;
   margin: number | null;
+  /** The current version's 'sent' event resend_message_id (null if there is
+   *  no such event, or delivery was never confirmed) — feeds
+   *  canRetryDelivery so the admin page can tell a confirmed send from a
+   *  failed one that's safe to retry. */
+  currentSentMessageId: string | null;
 };
 
 /** Staff view: detail + history + events + margin (staff RLS sees everything). */
@@ -242,7 +247,7 @@ export async function getQuoteAdminDetail(quoteId: string): Promise<QuoteAdminDe
       .order("version", { ascending: false }),
     supabase
       .from("quote_events")
-      .select("event, comment, created_at, version, profiles:actor_profile_id (email)")
+      .select("event, comment, created_at, version, resend_message_id, profiles:actor_profile_id (email)")
       .eq("quote_id", quoteId)
       .order("created_at", { ascending: false }),
   ]);
@@ -272,6 +277,14 @@ export async function getQuoteAdminDetail(quoteId: string): Promise<QuoteAdminDe
   });
   const current = versions.find((v) => v.version === base.version);
 
+  // eventsRes.data is ordered newest-first, so the first 'sent' event found
+  // for the current version is the authoritative one (relevant for a
+  // handful of legacy quotes with more than one 'sent' row from before this
+  // branch's claim protocol existed).
+  const currentSentEvent = (eventsRes.data ?? []).find(
+    (e) => e.event === "sent" && e.version === base.version,
+  ) as { resend_message_id?: string | null } | undefined;
+
   return {
     ...base,
     versions,
@@ -284,5 +297,6 @@ export async function getQuoteAdminDetail(quoteId: string): Promise<QuoteAdminDe
     })),
     supplierCost: current?.supplierCost ?? null,
     margin: current?.margin ?? null,
+    currentSentMessageId: currentSentEvent?.resend_message_id ?? null,
   };
 }
