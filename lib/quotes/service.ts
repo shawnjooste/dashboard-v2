@@ -4,6 +4,12 @@
 // later send()/amend() may do that. Marker-free and alias-free so a plain
 // Node script can import it directly — the Supabase client is passed in,
 // never constructed here.
+//
+// Runtime constraint, easy to trip on: this file (and anything it imports)
+// must never add `import "server-only"` or a `@/...` path alias. `server-only`
+// only resolves inside the Next.js bundler, and Node has no tsconfig path
+// resolution — either one breaks `scripts/create-quote.mjs`'s plain `node`
+// import of this module.
 import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Actor, QuoteStatus } from "./policy.ts";
