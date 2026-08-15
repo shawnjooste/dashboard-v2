@@ -42,6 +42,22 @@ describe("buildNeedsYou", () => {
     ).toEqual([]);
   });
 
+  it("ignores a voided agreement even though signedAt is null", () => {
+    // A void agreement never gets signed, so signedAt stays null forever —
+    // status is the only signal that distinguishes it from one still
+    // awaiting a decision. Without this, a voided agreement would show
+    // "signature needed" with no way for the client to clear it.
+    expect(
+      buildNeedsYou({ ...empty, agreements: [{ ...agreement, status: "void" }] }),
+    ).toEqual([]);
+  });
+
+  it("ignores a draft agreement — nothing has been sent yet", () => {
+    expect(
+      buildNeedsYou({ ...empty, agreements: [{ ...agreement, status: "draft" }] }),
+    ).toEqual([]);
+  });
+
   it("surfaces open tickets but not closed ones", () => {
     expect(buildNeedsYou({ ...empty, tickets: [ticket] })).toHaveLength(1);
     expect(buildNeedsYou({ ...empty, tickets: [{ ...ticket, status: "closed" }] })).toEqual([]);

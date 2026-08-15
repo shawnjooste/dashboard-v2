@@ -48,7 +48,13 @@ export function buildNeedsYou(input: NeedsYouInput): NeedsYouItem[] {
   }
 
   for (const a of input.agreements) {
-    if (a.signedAt) continue;
+    // signedAt alone doesn't cover it: a voided agreement also has
+    // signed_at = null (per 0083_agreements.sql the status set is
+    // draft | sent | signed | void), so without the status check a voided
+    // agreement would show "signature needed" forever with nowhere for the
+    // client to clear it. Mirrors the filter agreements/page.tsx already
+    // uses for its own "awaiting signature" banner.
+    if (a.signedAt || a.status !== "sent") continue;
     items.push({
       kind: "agreement",
       href: `/agreements/${a.id}`,
