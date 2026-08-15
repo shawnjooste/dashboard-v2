@@ -577,7 +577,7 @@ export function makeQuoteService(sb: Sb) {
     // 1. Load the quote.
     const { data: quote } = await sb
       .from("quotes")
-      .select("id, current_version, status")
+      .select("id, quote_number, current_version, status")
       .eq("id", quoteId)
       .maybeSingle();
     if (!quote) return { ok: false, error: "quote not found" };
@@ -645,6 +645,25 @@ export function makeQuoteService(sb: Sb) {
         // unnoticed as a plain return value alone.
         console.error("amend: failed to record pending_review event — audit trail gap:", eErr.message);
         return { ok: false, error: eErr.message };
+      }
+
+      // 6. Same staff review notification create() sends for a fresh
+      // pending_review quote — an amend that lands back in pending_review is
+      // just as gated, and without this the gate rots silently: nobody is
+      // pulled in to look at it. Caught, not thrown: a failed notification
+      // must not undo an already-safe pending-review amend.
+      try {
+        await deliverEmail(sb, {
+          from: '"Rocky @ Rocking" <quotes@send.rocking.one>',
+          to: ["shawn@rocking.one", "kelle@rocking.one"],
+          cc: ["accounts@rocking.one"],
+          subject: `Quote ${quote.quote_number} ready for review — ${input.doc.client.name}`,
+          html: reviewEmailHtml(input.title, input.doc.client.name, quoteId, totals),
+          category: "quote",
+          audience: "internal",
+        });
+      } catch (e) {
+        console.error("quote review notification failed:", e);
       }
     }
 

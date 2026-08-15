@@ -463,7 +463,7 @@ describe("send concurrency", () => {
 
 // ---------- amend() stub ----------
 
-type AmendQuoteRow = { id: string; current_version: number; status: string };
+type AmendQuoteRow = { id: string; quote_number: string; current_version: number; status: string };
 
 function sbForAmend(opts: {
   quote?: Partial<AmendQuoteRow>;
@@ -472,7 +472,7 @@ function sbForAmend(opts: {
   quotesUpdateError?: { message: string } | null;
   eventsInsertError?: { message: string } | null;
 }) {
-  const quote: AmendQuoteRow = { id: "q1", current_version: 1, status: "draft", ...opts.quote };
+  const quote: AmendQuoteRow = { id: "q1", quote_number: "QU-ACM-001", current_version: 1, status: "draft", ...opts.quote };
   const versionInserts: Record<string, unknown>[] = [];
   const internalInserts: Record<string, unknown>[] = [];
   const quotesUpdates: Record<string, unknown>[] = [];
@@ -584,5 +584,41 @@ describe("amend validation and totals", () => {
 
     expect(eventInserts).toHaveLength(1);
     expect(eventInserts[0]).toMatchObject({ event: "pending_review", version: 2, actor_profile_id: null });
+  });
+});
+
+describe("amend pending_review review notification", () => {
+  it("notifies shawn@/kelle@ when an amend lands in pending_review — the same gate create() enforces", async () => {
+    const { sb } = sbForAmend({ quote: { status: "sent", current_version: 1, quote_number: "QU-ACM-007" } });
+    const res = await makeQuoteService(sb).amend("q1", { title: "T", doc: baseDoc() }, gated);
+
+    expect(res).toMatchObject({ ok: true, status: "pending_review" });
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    expect(deliverEmailMock).toHaveBeenCalledWith(
+      sb,
+      expect.objectContaining({
+        to: ["shawn@rocking.one", "kelle@rocking.one"],
+        cc: ["accounts@rocking.one"],
+        subject: expect.stringContaining("QU-ACM-007"),
+        category: "quote",
+        audience: "internal",
+      }),
+    );
+  });
+
+  it("sends no notification when the amend lands in draft (a caller who can send)", async () => {
+    const { sb } = sbForAmend({ quote: { status: "sent", current_version: 1 } });
+    const res = await makeQuoteService(sb).amend("q1", { title: "T", doc: baseDoc() }, sender);
+
+    expect(res).toMatchObject({ ok: true, status: "draft" });
+    expect(deliverEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("still returns ok:true when the review notification itself fails to send", async () => {
+    deliverEmailMock.mockRejectedValueOnce(new Error("resend down"));
+    const { sb } = sbForAmend({ quote: { status: "sent", current_version: 1 } });
+    const res = await makeQuoteService(sb).amend("q1", { title: "T", doc: baseDoc() }, gated);
+
+    expect(res).toMatchObject({ ok: true, status: "pending_review" });
   });
 });
