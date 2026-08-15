@@ -39,10 +39,13 @@
 // }
 //
 // Quote numbers are always allocated by the service from the client's
-// quote_prefix — an input "number" field (previously used to keep an
-// existing number for an imported historical quote) is no longer accepted;
-// the script refuses rather than silently ignoring it. A client with no
-// quote_prefix set is refused too, by the service.
+// quote_prefix — on CREATE, an input "number" field (previously used to
+// keep an existing number for an imported historical quote) is no longer
+// accepted; the script refuses rather than silently ignoring it. A client
+// with no quote_prefix set is refused too, by the service. On --amend,
+// "number" is harmless and ignored — the amend path reads the existing
+// quote_number from the database itself, so the refusal only applies to
+// create.
 
 import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
@@ -77,14 +80,20 @@ const billingNextMonth = rest.includes("--billing-next-month");
 const input = JSON.parse(readFileSync(file, "utf8"));
 const { doc, internal = [], title, validUntil } = input;
 if (!doc || !title) { console.error("input needs { title, doc }"); process.exit(1); }
-if (input.number) {
+if (input.number && !amendId) {
   console.error(
-    `refusing: input "number" (${input.number}) is no longer accepted.\n` +
+    `refusing: input "number" (${input.number}) is no longer accepted on create.\n` +
       `Quote numbers are always allocated by the service from the client's quote_prefix — remove the "number" field from ${file} and re-run.\n` +
       `(If the client has no quote_prefix set, the service will refuse the create too — set one before retrying.)`
   );
   process.exit(1);
 }
+// On --amend, "number" is harmless and ignored: the amend path looks up the
+// existing quote_number from the database itself and stamps it onto
+// doc.meta.quoteNumber below — it never allocates. Fixtures kept as durable
+// source records (e.g. every scripts/qu-*.json) carry "number" from their
+// original creation and are routinely re-run with --amend to revise them;
+// gating the refusal on create-only keeps that workflow working.
 
 // canSend: false under --pending-review routes the quote into pending_review
 // and skips sending entirely, whether or not --no-email is also passed.
