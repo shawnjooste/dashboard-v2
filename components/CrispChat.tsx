@@ -95,6 +95,21 @@ export function CrispChat({
         #crisp-chatbox [data-maximized] {
           bottom: calc(56px + env(safe-area-inset-bottom) + 12px) !important;
         }
+        /* QuoteActions sets data-decision-bar on <body> for as long as its
+           fixed Accept/Checkout + Decline bar is mounted — i.e. only on an
+           actionable quote (canAct), never on any other page and never on a
+           decided/expired one. That bar sits directly above the tab bar
+           (56px + safe-area to 56px + safe-area + 69px) and is exactly what
+           the base rule above doesn't clear: 54px of Decline's width was
+           hidden under the launcher. Keying off the body attribute — rather
+           than duplicating canAct's quote-status logic here, or reading the
+           pathname and guessing — means this file never needs to know a
+           decision bar exists at all; QuoteActions is the single source of
+           truth for when it's on screen. 69px = the bar's own height, see
+           the arithmetic comment on QuoteActions.tsx / page.tsx's pb-* fix. */
+        body[data-decision-bar="true"] #crisp-chatbox [data-maximized] {
+          bottom: calc(56px + env(safe-area-inset-bottom) + 69px + 12px) !important;
+        }
       }
     `}</style>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { acceptQuote, checkoutQuote, declineQuote, requestChanges } from "./actions";
 
 /** Accept / Request changes / Decline / Print. First click wins server-side;
@@ -50,6 +50,22 @@ export function QuoteActions({
   const [poNumber, setPoNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Declare the fixed decision bar's presence on <body> rather than in a
+  // shared "is a decision bar showing" flag: CrispChat lives once in the app
+  // layout and stays mounted across client-side navigations, so it has no
+  // way to know per-page whether *this* page's canAct is true without either
+  // re-deriving it (duplicating this logic) or reading the DOM. A body
+  // attribute lets the mobile launcher's CSS react to the bar without any
+  // JS coordination between the two components — QuoteActions stays the only
+  // place that decides when the bar exists.
+  useEffect(() => {
+    if (!canAct) return;
+    document.body.dataset.decisionBar = "true";
+    return () => {
+      delete document.body.dataset.decisionBar;
+    };
+  }, [canAct]);
 
   const run = (fn: () => Promise<void>) => {
     setError(null);
