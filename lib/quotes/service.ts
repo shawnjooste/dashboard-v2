@@ -97,9 +97,11 @@ function sentEmailSubject(quoteNumber: string, title: string, isRevision: boolea
   return `${heading}: ${title}`;
 }
 
-/** The client-facing "here is your quote" email — equivalent to
- *  lib/quote-emails.ts's notifyQuoteSent, reproduced here (not imported)
- *  because that module uses "@/…" aliases this marker-free file cannot use. */
+/** The client-facing "here is your quote" email — this is the only place
+ *  that sends it (lib/quote-emails.ts has no equivalent any more; sending a
+ *  quote to a client happens only through send() here). Not built from
+ *  lib/quote-emails.ts because that module uses "@/…" aliases this
+ *  marker-free file cannot use. */
 function sentEmailHtml(
   quoteId: string,
   title: string,
