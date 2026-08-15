@@ -36,8 +36,17 @@ export function safeNext(param: string | null | undefined): string {
   // that normalise backslashes.
   if (param.startsWith("//") || param.startsWith("/\\")) return POST_LOGIN_PATH;
   // Tab/LF/CR anywhere in the value get stripped by URL parsing before the
-  // "//" check above would see them — reject rather than sanitise.
-  if (/[\t\n\r]/.test(param)) return POST_LOGIN_PATH;
+  // "//" check above would see them — reject rather than sanitise. This is
+  // also the full set of C0/C1 control characters (\x00-\x1f, \x7f-\x9f) plus
+  // the Unicode line/paragraph separators U+2028/U+2029: beyond the "//"
+  // rewrite, several of these (\0, \b, \v, \f, U+2028, U+2029) throw
+  // ERR_INVALID_CHAR from Node's HTTP header validation when they reach
+  // redirect() — and unlike the confirm route, which re-parses through
+  // new URL() and percent-encodes, the login server action passes this
+  // straight to redirect(), so a value that gets this far can 500 *after*
+  // the OTP has already been verified, leaving the user signed in but
+  // staring at an error page.
+  if (/[\x00-\x1f\x7f-\x9f\u2028\u2029]/.test(param)) return POST_LOGIN_PATH;
   return param;
 }
 

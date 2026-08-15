@@ -102,6 +102,16 @@ describe("safeNext", () => {
     expect(safeNext("/\r/evil.com")).toBe(POST_LOGIN_PATH);
     expect(safeNext("/quotes\t/abc")).toBe(POST_LOGIN_PATH);
   });
+
+  // \t/\n/\r aren't the only characters Node's header validation rejects —
+  // a form-feed or a Unicode line separator reaching redirect() throws
+  // ERR_INVALID_CHAR too, and unlike the confirm route (which re-parses
+  // through new URL() first) the login server action hands this straight to
+  // redirect(), after the OTP has already been verified.
+  it("refuses other control characters that would throw ERR_INVALID_CHAR from redirect()", () => {
+    expect(safeNext("/quotes\f/abc")).toBe(POST_LOGIN_PATH);
+    expect(safeNext("/quotes\u2028/abc")).toBe(POST_LOGIN_PATH);
+  });
 });
 
 describe("intendedPath", () => {
