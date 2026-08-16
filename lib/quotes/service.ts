@@ -391,6 +391,11 @@ export function makeQuoteService(sb: Sb) {
       .eq("version", currentVersion)
       .eq("event", "sent")
       .maybeSingle();
+    // Distinct from messageId === null: a row CAN exist with a null
+    // resend_message_id (an explicitly released claim). eventExists tracks
+    // whether the row itself is there at all, which the recovery path below
+    // needs — see step 3's retry branch.
+    const eventExists = sentEvent != null;
     const messageId = (sentEvent?.resend_message_id as string | null | undefined) ?? null;
 
     const isRetry = canRetryDelivery(currentStatus, messageId);
@@ -452,7 +457,37 @@ export function makeQuoteService(sb: Sb) {
       claimQuery = messageId === null ? claimQuery.is("resend_message_id", null) : claimQuery.eq("resend_message_id", messageId);
       const { data: claimed, error: claimErr } = await claimQuery.select("id").maybeSingle();
       if (claimErr) return { ok: false, error: claimErr.message };
-      if (!claimed) return { ok: false, error: "this quote is already being sent" };
+      if (!claimed) {
+        // The CAS matched zero rows. Ordinarily that means a concurrent
+        // caller already moved the claim from under us — "already being
+        // sent" is the right answer. But if the 'sent' event row never
+        // existed at all, there was nothing for an UPDATE to ever match: a
+        // first-send that flipped quotes.status to 'sent' and then died (or
+        // failed) before inserting its 'sent' event leaves exactly this
+        // state, and every retry since would have hit this same dead end
+        // forever. Recover by INSERTing the missing row ourselves, carrying
+        // our own claim token — functionally the same claim a first send
+        // would have made. quote_events_one_sent_per_version (migration
+        // 0091) makes this race-safe against a second caller recovering the
+        // same quote/version at the same time: the loser gets a unique
+        // violation, reported the same as any other lost race rather than
+        // thrown.
+        if (!eventExists) {
+          const { error: insErr } = await sb.from("quote_events").insert({
+            quote_id: quoteId,
+            version: currentVersion,
+            event: "sent",
+            actor_profile_id: actor.id,
+            resend_message_id: claimToken,
+          });
+          if (insErr) {
+            if (insErr.code === "23505") return { ok: false, error: "this quote is already being sent" };
+            return { ok: false, error: insErr.message };
+          }
+        } else {
+          return { ok: false, error: "this quote is already being sent" };
+        }
+      }
     }
 
     // 4. Booking link + recipients. Never throws — a quote must still go

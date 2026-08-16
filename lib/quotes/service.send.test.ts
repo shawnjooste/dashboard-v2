@@ -156,6 +156,17 @@ function sbForSend(opts: {
           insert: (row: Record<string, unknown>) => {
             quoteEventInserts.push(row);
             if (opts.eventInsertError) return chain(null, opts.eventInsertError);
+            // Models quote_events_one_sent_per_version (migration 0091): a
+            // second insert of a 'sent' event for the same quote/version,
+            // racing a concurrent recovery insert, loses with a unique
+            // violation rather than silently duplicating the row. Runs
+            // synchronously against shared `sentEventExists` state, so
+            // whichever concurrent caller's insert() body executes first
+            // (JS is single-threaded — see the CAS resolve() below for the
+            // same pattern) wins.
+            if (row.event === "sent" && sentEventExists) {
+              return chain(null, { message: 'duplicate key value violates unique constraint "quote_events_one_sent_per_version"', code: "23505" });
+            }
             sentEventExists = true;
             currentMessageId = (row.resend_message_id as string | null | undefined) ?? null;
             return chain(null);
@@ -186,8 +197,15 @@ function sbForSend(opts: {
               };
               claimChain.select = () => claimChain;
               const resolve = async () => {
-                const matched = guard && ("is" in guard ? currentMessageId === null : currentMessageId === guard.eq);
-                if (!matched) return { data: null, error: null }; // lost the race
+                // An UPDATE only ever matches an EXISTING row — a WHERE
+                // clause (however permissive) can never conjure a row that
+                // isn't there. Without this, a claim CAS guarded on
+                // `.is("resend_message_id", null)` would wrongly "match"
+                // when no 'sent' event row exists at all, masking exactly
+                // the crashed-first-send case the INSERT recovery path
+                // exists to handle.
+                const matched = sentEventExists && guard && ("is" in guard ? currentMessageId === null : currentMessageId === guard.eq);
+                if (!matched) return { data: null, error: null }; // lost the race, or no row to match
                 currentMessageId = value;
                 return { data: { id: "e1" }, error: null };
               };
@@ -420,6 +438,51 @@ describe("send retry path", () => {
     expect(deliverEmailMock).toHaveBeenCalledTimes(1);
     expect(quoteEventUpdates).toHaveLength(2); // reclaim CAS, then finalize
     expect(quoteEventUpdates[1]).toMatchObject({ resend_message_id: "<mock-id@send.rocking.one>" });
+  });
+
+  it("recovers a first-send that flipped status but crashed before the 'sent' event was ever inserted", async () => {
+    // Models the exact end-state a crashed first-send leaves behind: the
+    // status CAS committed, but the process died (or the insert itself
+    // failed) before the 'sent' event row was written. sentMessageId:
+    // undefined means no such row exists at all — not even one with a null
+    // resend_message_id — which is what the CAS-based retry alone could
+    // never recover from (a zero-row UPDATE match forever).
+    const { sb, quotesUpdates, quoteEventInserts, quoteEventUpdates } = sbForSend({
+      quote: { status: "sent" },
+      sentMessageId: undefined,
+    });
+    const res = await makeQuoteService(sb).send("q1", sender);
+
+    expect(res).toEqual({ ok: true, sentTo: ["mgr@acme.co"] });
+    expect(quotesUpdates).toHaveLength(0); // status was already 'sent' — never re-flipped
+    // The missing event row is recovered via INSERT (carrying our claim
+    // token), not the UPDATE CAS — there was nothing for that UPDATE to
+    // ever match.
+    expect(quoteEventInserts).toHaveLength(1);
+    expect(quoteEventInserts[0]).toMatchObject({ event: "sent", actor_profile_id: "p1" });
+    expect(quoteEventInserts[0].resend_message_id).toMatch(/^claiming:/);
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    // Two updates: the claim CAS attempt (which matches zero rows — there's
+    // no event row for it to match — and is what triggers the INSERT
+    // recovery), then the finalize write with the real id.
+    expect(quoteEventUpdates).toHaveLength(2);
+    expect(quoteEventUpdates[0].resend_message_id).toMatch(/^claiming:/);
+    expect(quoteEventUpdates[1]).toMatchObject({ resend_message_id: "<mock-id@send.rocking.one>" });
+  });
+
+  it("a concurrent recovery insert that loses the unique-index race reports 'already being sent' instead of throwing", async () => {
+    const { sb, quoteEventInserts } = sbForSend({
+      quote: { status: "sent" },
+      sentMessageId: undefined, // no 'sent' event row — both callers must recover via INSERT
+    });
+    const svc = makeQuoteService(sb);
+    const results = await Promise.all([svc.send("q1", sender), svc.send("q1", sender)]);
+
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.find((r) => !r.ok)).toMatchObject({ error: "this quote is already being sent" });
+    // Both callers attempted the recovery insert; only one could have won.
+    expect(quoteEventInserts).toHaveLength(2);
   });
 });
 
