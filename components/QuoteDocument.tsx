@@ -5,7 +5,19 @@ import s from "./QuoteDocument.module.css";
 
 /** Read-only A4 render of a quote document — the portal twin of the print
  *  template. Browser print produces the same output as the original. */
-export function QuoteDocument({ doc }: { doc: QuoteDoc }) {
+/** `checkoutEnabled` suppresses the banking block. A checkout quote is paid by
+ *  card so the card can be kept on file for the recurring charge — printing
+ *  bank details invites an EFT that settles the once-off and silently leaves
+ *  no card for the monthly. That is not hypothetical: Data Smart paid
+ *  QU-DST-001 by EFT off the banking block, which is exactly how their
+ *  subscription ended up with no payment method. */
+export function QuoteDocument({
+  doc,
+  checkoutEnabled = false,
+}: {
+  doc: QuoteDoc;
+  checkoutEnabled?: boolean;
+}) {
   const totals = computeTotals(doc);
   const rate = doc.vatPercent;
 
@@ -136,16 +148,28 @@ export function QuoteDocument({ doc }: { doc: QuoteDoc }) {
         </section>
       )}
 
-      <section className={s.banking}>
-        <h3 className={s.blockTitle}>Banking Details</h3>
-        <div className={s.bankGrid}>
-          <div><span className={s.bankLabel}>Bank</span>{doc.banking.bank}</div>
-          <div><span className={s.bankLabel}>Account</span>{doc.banking.account}</div>
-          <div><span className={s.bankLabel}>Branch</span>{doc.banking.branch}</div>
-          <div><span className={s.bankLabel}>Branch Code</span>{doc.banking.branchCode}</div>
-        </div>
-        <p className={s.bankRef}>{doc.banking.reference}</p>
-      </section>
+      {checkoutEnabled ? (
+        <section className={s.banking}>
+          <h3 className={s.blockTitle}>How to Pay</h3>
+          <p className={s.bankRef}>
+            This quote is paid online by card. Open it in your Rocking portal and use the payment
+            button on the quote — your card is charged securely and a receipt is emailed to you
+            straight away. Please don&apos;t pay this one by EFT: the card is what sets up the
+            monthly payment.
+          </p>
+        </section>
+      ) : (
+        <section className={s.banking}>
+          <h3 className={s.blockTitle}>Banking Details</h3>
+          <div className={s.bankGrid}>
+            <div><span className={s.bankLabel}>Bank</span>{doc.banking.bank}</div>
+            <div><span className={s.bankLabel}>Account</span>{doc.banking.account}</div>
+            <div><span className={s.bankLabel}>Branch</span>{doc.banking.branch}</div>
+            <div><span className={s.bankLabel}>Branch Code</span>{doc.banking.branchCode}</div>
+          </div>
+          <p className={s.bankRef}>{doc.banking.reference}</p>
+        </section>
+      )}
 
       <footer className={s.docFooter}>
         Company Registration No: {doc.company.regNumber}

@@ -258,7 +258,7 @@ export default async function QuotePage({
         checkout={checkout}
       />
 
-      <QuoteDocument doc={quote.doc} />
+      <QuoteDocument doc={quote.doc} checkoutEnabled={quote.checkoutEnabled} />
     </div>
   );
 }

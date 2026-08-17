@@ -79,7 +79,7 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         {/* Quote document — fills the left, scales down to fit */}
         <div className="min-w-0 flex-1">
-          <QuoteDocument doc={quote.doc} />
+          <QuoteDocument doc={quote.doc} checkoutEnabled={quote.checkoutEnabled} />
         </div>
 
         {/* Detail cards — right sidebar (hidden on print) */}
