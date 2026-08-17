@@ -697,7 +697,7 @@ Expected: FAIL — `send is not a function`.
 2. Refuse from `accepted` (`{ ok: false, error: "cannot amend an accepted quote" }`).
 3. Insert a new `quote_versions` row at `current_version + 1` with recomputed totals, plus its `quote_internal` rows.
 4. Update `quotes`: `current_version`, `title`, and `status = decideAmendStatus(actor)` — never left at `sent`.
-5. Insert a `quote_events` row for the new status with `actor_profile_id: actor.id`.
+5. Insert a `quote_events` row **only when the new status is `pending_review`**, with `actor_profile_id: actor.id`. Do NOT insert an event named `draft`: `quote_events.event` is constrained by migration `0059_quote_pending_review.sql` to `created, pending_review, sent, viewed, accepted, rejected, changes_requested`, so a `draft` event throws. (Task 6 hit exactly this; the plan text was wrong.) For a `draft` amend the new `quote_versions` row is itself the record.
 6. Return `{ ok: true, version, status }`.
 
 - [ ] **Step 5: Test that amend pulls a live quote out of `sent`**

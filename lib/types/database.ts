@@ -328,6 +328,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          quote_prefix: string | null
           status: Database["public"]["Enums"]["client_status"]
           support_package_id: string | null
           support_plan_label: string | null
@@ -339,6 +340,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          quote_prefix?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           support_package_id?: string | null
           support_plan_label?: string | null
@@ -350,6 +352,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          quote_prefix?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           support_package_id?: string | null
           support_plan_label?: string | null
@@ -2415,6 +2418,21 @@ export type Database = {
           },
         ]
       }
+      quote_prefix_counters: {
+        Row: {
+          last_n: number
+          prefix: string
+        }
+        Insert: {
+          last_n?: number
+          prefix: string
+        }
+        Update: {
+          last_n?: number
+          prefix?: string
+        }
+        Relationships: []
+      }
       quote_subscription_charges: {
         Row: {
           amount_cents: number
@@ -2599,6 +2617,7 @@ export type Database = {
           created_by: string | null
           current_version: number
           id: string
+          idempotency_key: string | null
           invoiced_at: string | null
           po_number: string | null
           quote_number: string
@@ -2616,6 +2635,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          idempotency_key?: string | null
           invoiced_at?: string | null
           po_number?: string | null
           quote_number: string
@@ -2633,6 +2653,7 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           id?: string
+          idempotency_key?: string | null
           invoiced_at?: string | null
           po_number?: string | null
           quote_number?: string
@@ -3579,7 +3600,9 @@ export type Database = {
         }[]
       }
       next_agreement_reference: { Args: never; Returns: string }
-      next_quote_number: { Args: never; Returns: string }
+      next_quote_number:
+        | { Args: never; Returns: string }
+        | { Args: { p_prefix: string }; Returns: string }
       record_portal_visit: {
         Args: {
           p_client_id: string

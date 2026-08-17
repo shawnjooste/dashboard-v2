@@ -19,14 +19,20 @@ Claude Code session can work entirely from this doc — start it in this repo
 Write a JSON file, then run:
 
 ```sh
-node scripts/create-quote.mjs scripts/quote.json             # create + email the client's active managers
-node scripts/create-quote.mjs scripts/quote.json --no-email  # create without emailing
-node scripts/create-quote.mjs scripts/quote.json --amend <quoteId>   # new version of an existing quote
+node scripts/create-quote.mjs scripts/quote.json                    # create, then send: emails the client's active managers
+node scripts/create-quote.mjs scripts/quote.json --no-email         # create only — status lands in 'draft'; send separately later
+node scripts/create-quote.mjs scripts/quote.json --pending-review   # create only — status 'pending_review'; the service emails shawn@ + kelle@rocking.one to approve and send
+node scripts/create-quote.mjs scripts/quote.json --amend <quoteId>  # new version of an existing quote, then send (add --no-email or --pending-review to hold it back)
 ```
 
+Creating and sending are separate operations underneath
+(`lib/quotes/service.ts`'s `create`/`amend` vs `send`) — this script just
+does both in one call by default. `create`/`amend` never email a client and
+never produce status `sent`; only `send` does.
+
 The script emails **every active `client_manager`** of the client. To reach only
-specific people, use `--no-email` and email them separately, or make sure exactly
-the right people are managers first.
+specific people, use `--no-email` or `--pending-review` and email them
+separately, or make sure exactly the right people are managers first.
 
 ## Input JSON shape
 
@@ -35,12 +41,11 @@ the right people are managers first.
   "clientId": "<uuid>",          // or "clientName": "GSR Law"
   "title": "Short title",
   "validUntil": "2026-07-22",    // ISO date
-  "number": "QU-GSR-006",        // optional; keep a client-prefixed series, else it auto-numbers
   "doc": {
     "vatPercent": 15,
     "company": { /* Rocking boilerplate below, verbatim */ },
     "client":  { "name": "...", "attention": "...", "addressLines": ["...", "..."] },
-    "meta":    { "quoteNumber": "QU-GSR-006", "date": "22 June 2026", "validUntil": "22 July 2026", "preparedBy": "Shawn Jooste" },
+    "meta":    { "date": "22 June 2026", "validUntil": "22 July 2026", "preparedBy": "Shawn Jooste" },
     "projectTitle": "...",
     "projectIntro": "... All prices exclude VAT (15%).",
     "sections": [
@@ -58,6 +63,14 @@ the right people are managers first.
 
 - Multiple `sections` = priced options. A section with `"monthly": true` (or `id: "recurring"`) totals "/ month".
 - `internal.path` is `s{section}.g{group}.i{item}`, all 0-indexed.
+- Quote numbers are always allocated by the service from the client's
+  `quote_prefix` — do not put a top-level `"number"` field in the input on
+  create; the script refuses it (exits 1). `doc.meta.quoteNumber` is filled
+  in automatically too, so anything you put there is overwritten. A client
+  with no `quote_prefix` set is refused — set one before quoting a
+  brand-new client. `--amend` is different: it reads the existing quote's
+  number from the database and stamps it in, so a `"number"` field there is
+  harmless and ignored.
 
 ## THE MARKUP RULE (get this right every time)
 

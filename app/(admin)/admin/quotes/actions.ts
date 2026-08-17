@@ -2,8 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { notifyQuoteSent } from "@/lib/quote-emails";
-import { fmtMoney } from "@/lib/quotes/doc";
+import { makeQuoteService } from "@/lib/quotes/service";
 import { runSubscriptionCharge } from "@/lib/subscriptions/run-charge";
 import { revalidatePath } from "next/cache";
 
@@ -36,9 +35,11 @@ export type AdminDecisionResult = { ok: true } | { ok: false; error: string };
 /**
  * Staff-only: approve a pending-review quote (built by the automated
  * inbound-email pipeline, not yet seen by a human) and send it to the
- * client. Atomic flip guards against double-approval; the actual send
- * reuses notifyQuoteSent so behaviour matches an interactively-created
- * quote (CC, Rocky sign-off, resend_message_id capture for reply-matching).
+ * client. Delegates entirely to the quote service's send() — the single
+ * place quotes.status may become 'sent' — so a Resend failure never leaves
+ * the quote stranded outside pending_review: send() tracks delivery via the
+ * 'sent' event's resend_message_id, and pressing this button again retries
+ * rather than reporting "not pending review".
  */
 export async function approveAndSendQuote(quoteId: string): Promise<AdminDecisionResult> {
   if (!quoteId) return { ok: false, error: "missing quote" };
@@ -48,54 +49,13 @@ export async function approveAndSendQuote(quoteId: string): Promise<AdminDecisio
     return { ok: false, error: "only rocking staff may approve quotes" };
   }
 
-  const service = createServiceClient();
-  const { data: quote } = await service
-    .from("quotes")
-    .select("id, client_id, quote_number, title, current_version, status")
-    .eq("id", quoteId)
-    .maybeSingle();
-  if (!quote) return { ok: false, error: "quote not found" };
-  if (quote.status !== "pending_review") return { ok: false, error: "this quote isn't pending review" };
-
-  const { data: version } = await service
-    .from("quote_versions")
-    .select("grand_total, monthly_total")
-    .eq("quote_id", quoteId)
-    .eq("version", quote.current_version)
-    .maybeSingle();
-
-  // Atomic: only flips from pending_review; a losing concurrent click no-ops.
-  const { data: updated } = await service
-    .from("quotes")
-    .update({ status: "sent" })
-    .eq("id", quoteId)
-    .eq("status", "pending_review")
-    .select("id")
-    .maybeSingle();
-  if (!updated) return { ok: false, error: "this quote was just approved elsewhere" };
-
-  await service.from("quote_events").insert({
-    quote_id: quoteId,
-    version: quote.current_version,
-    event: "sent",
-    actor_profile_id: me.profile.id,
-    comment: `Approved and sent by ${me.profile.email}`,
+  const svc = makeQuoteService(createServiceClient());
+  const res = await svc.send(quoteId, {
+    id: me.profile.id,
+    label: me.profile.email,
+    canSend: true, // a staff member clicking in the portal, having seen the quote
   });
-
-  try {
-    await notifyQuoteSent({
-      clientId: quote.client_id,
-      quoteId,
-      quoteNumber: quote.quote_number,
-      version: quote.current_version,
-      title: quote.title,
-      grandTotal: fmtMoney(version?.grand_total ?? null),
-      isRevision: false,
-    });
-  } catch (e) {
-    console.error("approve-and-send quote email failed:", e);
-    return { ok: false, error: "quote approved but the client email failed to send — check Resend" };
-  }
+  if (!res.ok) return { ok: false, error: res.error };
 
   revalidatePath(`/admin/quotes/${quoteId}`);
   revalidatePath("/admin/quotes");

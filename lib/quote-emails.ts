@@ -4,13 +4,11 @@
 // quote mail keeps its own FROM because quotes@ is the inbound-reply address.
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail as send } from "@/lib/email/send";
-import { createSingleUseBookingLink, isBookingLinkStale } from "@/lib/calendly";
 
 const FROM = '"Rocky @ Rocking" <quotes@send.rocking.one>';
 const ADMIN_EMAIL = "shawn@rocking.one";
 // Standing rule (2026-08-05): accounts@ is copied on ALL quote-related email.
 const ACCOUNTS_EMAIL = "accounts@rocking.one";
-const REVIEWERS = ["shawn@rocking.one", "kelle@rocking.one"];
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.rocking.one";
 
 /** Sends as quotes@ and returns the threading header Resend replies carry
@@ -58,111 +56,6 @@ const button = (href: string, label: string) => `
       ${label}
     </a>
   </p>`;
-
-/** Auto-generated quote awaiting approval → Shawn + Kelle, not the client. */
-export async function notifyQuotePendingReview(opts: {
-  quoteId: string;
-  quoteNumber: string;
-  title: string;
-  clientName: string;
-  grandTotal: string;
-}): Promise<void> {
-  await sendEmail(
-    REVIEWERS,
-    `Quote ${opts.quoteNumber} ready for review — ${opts.clientName}`,
-    wrap(`
-      <h2 style="margin:0 0 8px;">Quote ready for review</h2>
-      <p style="color:#444; margin:0 0 16px;">
-        I've built a quote from a supplier reply and it's ready to go out, but it hasn't been sent yet:
-        <strong>${opts.title}</strong> for <strong>${opts.clientName}</strong> — ${opts.grandTotal} incl VAT.
-        Take a look and approve it to send.
-      </p>
-      ${button(`${APP_URL}/admin/quotes/${opts.quoteId}`, "Review the quote")}
-    `),
-    [ACCOUNTS_EMAIL],
-    { audience: "internal" },
-  );
-}
-
-/**
- * The quote's single-use booking link, minting one if there isn't a usable one.
- * Stored on the quote so a re-send reuses it rather than creating a second link
- * and splitting bookings; re-minted once Calendly's 90-day expiry has passed.
- * Never throws — a quote must still send if Calendly is down.
- */
-async function ensureBookingLink(quoteId: string): Promise<string | null> {
-  const service = createServiceClient();
-  const { data: q } = await service
-    .from("quotes")
-    .select("booking_url, booking_link_created_at")
-    .eq("id", quoteId)
-    .maybeSingle();
-  const existing = q?.booking_url ?? null;
-  if (existing && !isBookingLinkStale(q?.booking_link_created_at ?? null)) return existing;
-
-  const url = await createSingleUseBookingLink();
-  if (!url) return existing;
-  await service
-    .from("quotes")
-    .update({ booking_url: url, booking_link_created_at: new Date().toISOString() })
-    .eq("id", quoteId);
-  return url;
-}
-
-/** "Book a call" line for a client-facing quote email. */
-const bookingCta = (url: string | null) =>
-  url
-    ? `<p style="margin:18px 0 0; color:#444;">
-         Prefer to talk it through? <a href="${url}" style="color:#D7141C; font-weight:600;">Book a 30-minute call</a>
-         &mdash; one booking per quote.
-       </p>`
-    : "";
-
-/** New quote (or new version) → every active manager at the client. */
-export async function notifyQuoteSent(opts: {
-  clientId: string;
-  quoteId: string;
-  quoteNumber: string;
-  version: number;
-  title: string;
-  grandTotal: string;
-  isRevision: boolean;
-}): Promise<void> {
-  const to = await managerEmails(opts.clientId);
-  if (to.length === 0) {
-    console.warn("notifyQuoteSent: no active managers for client", opts.clientId);
-    return;
-  }
-  const heading = opts.isRevision
-    ? `Updated quote from Rocking — ${opts.quoteNumber}`
-    : `New quote from Rocking — ${opts.quoteNumber}`;
-  const bookingUrl = await ensureBookingLink(opts.quoteId);
-  const messageId = await sendEmail(
-    to,
-    `${heading}: ${opts.title}`,
-    wrap(`
-      <h2 style="margin:0 0 8px;">${heading}</h2>
-      <p style="color:#444; margin:0 0 16px;">
-        ${opts.isRevision ? "We've revised a quote for you" : "We've prepared a quote for you"}:
-        <strong>${opts.title}</strong> — ${opts.grandTotal} incl VAT.
-        You can review it, print it, and accept or decline online.
-      </p>
-      ${button(`${APP_URL}/quotes/${opts.quoteId}`, "View the quote")}
-      ${bookingCta(bookingUrl)}
-    `),
-    [ADMIN_EMAIL, ACCOUNTS_EMAIL],
-    { clientId: opts.clientId, audience: "client" },
-  );
-  if (messageId) {
-    const service = createServiceClient();
-    await service
-      .from("quote_events")
-      .update({ resend_message_id: messageId })
-      .eq("quote_id", opts.quoteId)
-      .eq("version", opts.version)
-      .eq("event", "sent");
-  }
-}
 
 /** First time a manager opens a quote → Shawn. */
 export async function notifyQuoteViewed(opts: {

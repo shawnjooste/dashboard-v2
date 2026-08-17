@@ -3,12 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getQuoteAdminDetail } from "@/lib/views/quotes";
 import { getSubscriptionAdminDetail } from "@/lib/views/subscriptions";
 import { computeTotals, fmtMoney } from "@/lib/quotes/doc";
+import { canRetryDelivery } from "@/lib/quotes/policy";
 import { QuoteDocument } from "@/components/QuoteDocument";
 import { QuoteStatusPill } from "@/components/QuoteStatusPill";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { AdminQuoteDecision } from "./AdminQuoteDecision";
 import { SubscriptionCard } from "./SubscriptionCard";
-import { ApproveAndSendQuote } from "./ApproveAndSendQuote";
+import { ApproveAndSendQuote, type SendQuoteMode } from "./ApproveAndSendQuote";
 import { PrintQuoteButton } from "./PrintQuoteButton";
 import { CreateJobFromQuote } from "./CreateJobFromQuote";
 import { fmtDateTime } from "@/lib/time";
@@ -40,6 +41,17 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
 
   const totals = computeTotals(quote.doc);
   const decidable = quote.rawStatus === "sent" || quote.rawStatus === "changes_requested";
+  // Three different reasons the client hasn't received this quote yet, all
+  // resolved by the same send() call underneath — see ApproveAndSendQuote's
+  // per-mode copy for why they need different button labels.
+  const sendMode: SendQuoteMode | null =
+    quote.rawStatus === "pending_review"
+      ? "approve"
+      : quote.rawStatus === "draft"
+        ? "send"
+        : quote.rawStatus === "sent" && canRetryDelivery(quote.rawStatus, quote.currentSentMessageId)
+          ? "retry"
+          : null;
   const marginPct =
     quote.margin !== null && quote.supplierCost !== null && quote.supplierCost > 0
       ? Math.round((100 * quote.margin) / quote.supplierCost)
@@ -77,8 +89,9 @@ export default async function AdminQuotePage({ params }: { params: Promise<{ id:
           {/* Accepted → spin up a job to fulfil it */}
           {quote.rawStatus === "accepted" && <CreateJobFromQuote quoteId={quote.id} />}
 
-          {/* Built by the automated pipeline, not sent yet — approve to send */}
-          {quote.rawStatus === "pending_review" && <ApproveAndSendQuote quoteId={quote.id} />}
+          {/* Draft never sent, pending-review awaiting approval, or a sent
+              quote whose delivery never confirmed — see sendMode above */}
+          {sendMode && <ApproveAndSendQuote quoteId={quote.id} mode={sendMode} />}
 
           {/* Recurring billing, for checkout quotes */}
           {subscription && (
