@@ -1899,6 +1899,63 @@ export type Database = {
           },
         ]
       }
+      ned_storm_watch: {
+        Row: {
+          arp_frames: number
+          arp_from_gwf: number
+          arp_per_sec: number
+          arp_replies: number
+          bgp1_status: string
+          broadcast_pct: number
+          captured_at: string
+          created_at: string
+          distinct_targets: number
+          duration_secs: number
+          id: number
+          note: string | null
+          status: string
+          steenberg_status: string
+          tcp_retrans: number
+          total_frames: number
+        }
+        Insert: {
+          arp_frames: number
+          arp_from_gwf: number
+          arp_per_sec: number
+          arp_replies?: number
+          bgp1_status?: string
+          broadcast_pct: number
+          captured_at: string
+          created_at?: string
+          distinct_targets: number
+          duration_secs: number
+          id?: never
+          note?: string | null
+          status: string
+          steenberg_status?: string
+          tcp_retrans?: number
+          total_frames: number
+        }
+        Update: {
+          arp_frames?: number
+          arp_from_gwf?: number
+          arp_per_sec?: number
+          arp_replies?: number
+          bgp1_status?: string
+          broadcast_pct?: number
+          captured_at?: string
+          created_at?: string
+          distinct_targets?: number
+          duration_secs?: number
+          id?: never
+          note?: string | null
+          status?: string
+          steenberg_status?: string
+          tcp_retrans?: number
+          total_frames?: number
+        }
+        Relationships: []
+      }
       network_devices: {
         Row: {
           client_count: number | null
