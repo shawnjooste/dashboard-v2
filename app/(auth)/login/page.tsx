@@ -16,7 +16,11 @@ export default async function LoginPage({
     // Form first in the DOM so a phone shows the thing people came for; the
     // status panel is ordered above it from md up.
     <main className="flex min-h-dvh flex-col md:grid md:grid-cols-[1.35fr_1fr]">
-      <div className="flex items-center justify-center bg-card px-6 py-12 md:order-2 md:py-6">
+      {/* Sticky and viewport-tall from md up: the status panel can run far
+          past one screen, and vertically centring the form in a 2000px column
+          would put the sign-in field below the fold. self-start stops the grid
+          stretching it, which is what makes sticky work. */}
+      <div className="flex items-center justify-center bg-card px-6 py-12 md:order-2 md:sticky md:top-0 md:h-dvh md:self-start md:py-6">
         <LoginCard linkError={error === "link"} next={next} />
       </div>
 

@@ -2,20 +2,28 @@ import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { typeRank, worstType } from "@/lib/status-helpers";
 
+export type PublicUpdate = {
+  id: string;
+  body: string;
+  createdAt: string;
+  isResolution: boolean;
+};
+
 export type PublicIncident = {
   id: string;
   title: string;
   type: string;
   startedAt: string;
-  /** Newest update only — the login panel is a summary, not a timeline. */
-  latest: { body: string; createdAt: string } | null;
+  resolvedAt: string | null;
+  /** Full timeline, newest first. */
+  updates: PublicUpdate[];
 };
 
 export type PublicStatus = {
   /** Worst active type; null = all clear. */
   worst: string | null;
   active: PublicIncident[];
-  recent: { id: string; title: string; resolvedAt: string | null }[];
+  past: PublicIncident[];
 };
 
 type RawIncident = {
@@ -28,10 +36,17 @@ type RawIncident = {
   resolved_at: string | null;
 };
 
-type RawUpdate = { incident_id: string; body: string; created_at: string };
+type RawUpdate = {
+  id: string;
+  incident_id: string;
+  body: string;
+  created_at: string;
+  is_resolution: boolean;
+};
 
-const EMPTY: PublicStatus = { worst: null, active: [], recent: [] };
-const RECENT_CAP = 5;
+const EMPTY: PublicStatus = { worst: null, active: [], past: [] };
+const PAST_CAP = 10;
+const INCIDENT_CAP = 60;
 
 /** Pure shaping, so the rules are testable without a database. */
 export function shapePublicStatus(incidents: RawIncident[], updates: RawUpdate[]): PublicStatus {
@@ -39,34 +54,45 @@ export function shapePublicStatus(incidents: RawIncident[], updates: RawUpdate[]
   // if that query is ever widened, this is what keeps client-scoped incidents
   // off a page anyone on the internet can read.
   const global = incidents.filter((i) => i.scope === "global");
+  const visible = new Set(global.map((i) => i.id));
 
-  const newest = new Map<string, RawUpdate>();
+  const byIncident = new Map<string, PublicUpdate[]>();
   for (const u of updates) {
-    const held = newest.get(u.incident_id);
-    if (!held || u.created_at > held.created_at) newest.set(u.incident_id, u);
+    if (!visible.has(u.incident_id)) continue;
+    const list = byIncident.get(u.incident_id) ?? [];
+    list.push({
+      id: u.id,
+      body: u.body,
+      createdAt: u.created_at,
+      isResolution: u.is_resolution,
+    });
+    byIncident.set(u.incident_id, list);
   }
+  for (const list of byIncident.values()) {
+    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const shape = (i: RawIncident): PublicIncident => ({
+    id: i.id,
+    title: i.title,
+    type: i.type,
+    startedAt: i.started_at,
+    resolvedAt: i.resolved_at,
+    updates: byIncident.get(i.id) ?? [],
+  });
 
   const active = global
     .filter((i) => i.status === "active")
     .sort((a, b) => typeRank(a.type) - typeRank(b.type) || b.started_at.localeCompare(a.started_at))
-    .map((i) => {
-      const u = newest.get(i.id);
-      return {
-        id: i.id,
-        title: i.title,
-        type: i.type,
-        startedAt: i.started_at,
-        latest: u ? { body: u.body, createdAt: u.created_at } : null,
-      };
-    });
+    .map(shape);
 
-  const recent = global
+  const past = global
     .filter((i) => i.status === "resolved")
     .sort((a, b) => (b.resolved_at ?? "").localeCompare(a.resolved_at ?? ""))
-    .slice(0, RECENT_CAP)
-    .map((i) => ({ id: i.id, title: i.title, resolvedAt: i.resolved_at }));
+    .slice(0, PAST_CAP)
+    .map(shape);
 
-  return { worst: worstType(active.map((i) => i.type)), active, recent };
+  return { worst: worstType(active.map((i) => i.type)), active, past };
 }
 
 /** Status for people who are NOT signed in.
@@ -88,16 +114,15 @@ async function readPublicStatus(): Promise<PublicStatus> {
       .select("id, title, type, scope, status, started_at, resolved_at")
       .eq("scope", "global")
       .order("started_at", { ascending: false })
-      .limit(40);
+      .limit(INCIDENT_CAP);
     if (error || !incidents?.length) return EMPTY;
 
+    // Updates for every incident we might render — past incidents show their
+    // timeline too, behind a disclosure.
     const { data: updates } = await service
       .from("status_updates")
-      .select("incident_id, body, created_at")
-      .in(
-        "incident_id",
-        incidents.filter((i) => i.status === "active").map((i) => i.id),
-      );
+      .select("id, incident_id, body, created_at, is_resolution")
+      .in("incident_id", incidents.map((i) => i.id));
 
     return shapePublicStatus(incidents, updates ?? []);
   } catch (e) {
