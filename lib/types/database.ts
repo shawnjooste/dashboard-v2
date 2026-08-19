@@ -1909,6 +1909,7 @@ export type Database = {
           broadcast_pct: number
           captured_at: string
           created_at: string
+          details: Json | null
           distinct_targets: number
           duration_secs: number
           id: number
@@ -1927,6 +1928,7 @@ export type Database = {
           broadcast_pct: number
           captured_at: string
           created_at?: string
+          details?: Json | null
           distinct_targets: number
           duration_secs: number
           id?: never
@@ -1945,6 +1947,7 @@ export type Database = {
           broadcast_pct?: number
           captured_at?: string
           created_at?: string
+          details?: Json | null
           distinct_targets?: number
           duration_secs?: number
           id?: never
