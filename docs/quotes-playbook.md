@@ -111,6 +111,14 @@ To look up a client id, match a name, or list a client's **active managers**
 with `@supabase/supabase-js` (service-role client). Confirm the client and
 recipients before sending.
 
+## Quoting over the API
+
+For callers that can't run this script directly — the team's browsers,
+Hermes — there's a scoped REST API (`/api/v1/clients`, `/api/v1/quotes`,
+`/api/v1/quotes/{id}`, `/api/v1/quotes/{id}/amend`) authenticated with a
+per-caller key from `scripts/api-key.mjs`. Same rule applies: it can create
+and amend, never send. Full reference: `docs/quote-api.md`.
+
 ## Always before sending a real quote
 
 1. Show the line items, computed totals (subtotal, VAT, incl-VAT total), and the margin.

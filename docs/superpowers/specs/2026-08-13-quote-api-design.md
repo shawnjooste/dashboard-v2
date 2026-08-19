@@ -60,7 +60,7 @@ create table public.api_keys (
 -- RLS enabled, no policies: service-role only, like quote_prefix_counters.
 ```
 
-- Key format: `rk_live_` + 32 random url-safe chars. Shown once at mint, never stored.
+- Key format: `rq_live_` + 32 random url-safe chars. Shown once at mint, never stored.
 - Lookup: sha256(presented key) → indexed equality on `key_hash`. Revoked or missing key
   → the same 401; the API never reveals that a key exists but is revoked.
 - Every request stamps `last_used_at` (best-effort; a failed stamp never fails the request).
@@ -72,7 +72,7 @@ create table public.api_keys (
 
 ## Endpoints
 
-All under `/api/v1/`, all requiring `Authorization: Bearer rk_live_…`.
+All under `/api/v1/`, all requiring `Authorization: Bearer rq_live_…`.
 
 | Route | Purpose |
 | --- | --- |

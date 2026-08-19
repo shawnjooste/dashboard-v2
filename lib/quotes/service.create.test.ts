@@ -232,6 +232,19 @@ describe("create validation refusals", () => {
 });
 
 describe("create happy path", () => {
+  it("HTML-escapes a caller-supplied title before it reaches the staff review email", async () => {
+    const { sb } = sbForCreate({ quoteNumber: "QU-ACM-009" });
+    const svc = makeQuoteService(sb);
+    const doc = baseDoc({ client: { name: "Acme Co", addressLines: [], attention: "" } });
+    const res = await svc.create({ clientId: "c1", title: `<a href="x">Click me</a>`, doc }, gated);
+
+    expect(res.ok).toBe(true);
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    const [, sentOpts] = deliverEmailMock.mock.calls[0];
+    expect(sentOpts.html).not.toContain('<a href="x">Click me</a>');
+    expect(sentOpts.html).toContain("&lt;a href=&quot;x&quot;&gt;Click me&lt;/a&gt;");
+  });
+
   it("writes quotes, quote_versions (with correct totals), quote_internal, one quote_events row per state, and notifies staff only", async () => {
     const { sb, inserted } = sbForCreate({ quoteNumber: "QU-ACM-004" });
     const svc = makeQuoteService(sb);

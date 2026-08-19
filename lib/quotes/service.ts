@@ -74,6 +74,22 @@ function hasPricedLine(doc: QuoteDoc): boolean {
   );
 }
 
+/** Escapes the five HTML metacharacters (`& < > " '`) so caller-supplied text
+ *  (title, client name — never validated against markup, only against
+ *  control characters and length) can never break out of the surrounding
+ *  markup in an email we send. Applied at every interpolation point in this
+ *  file's email templates — review and sent alike. Does NOT touch what goes
+ *  into the database or into JSON API responses; only these email HTML
+ *  strings. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function reviewEmailHtml(title: string, clientName: string, quoteId: string, totals: ReturnType<typeof computeTotals>): string {
   const reviewUrl = `${APP_URL}/admin/quotes/${quoteId}`;
   return `
@@ -81,7 +97,7 @@ function reviewEmailHtml(title: string, clientName: string, quoteId: string, tot
           <h2 style="margin:0 0 8px;">Quote ready for review</h2>
           <p style="color:#444; margin:0 0 16px;">
             A quote has been drafted and is ready to go out, but it hasn't been sent yet:
-            <strong>${title}</strong> for <strong>${clientName}</strong> — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)} / month` : ""}.
+            <strong>${escapeHtml(title)}</strong> for <strong>${escapeHtml(clientName)}</strong> — ${fmtMoney(totals.grand)} incl VAT${totals.monthly != null ? ` + ${fmtMoney(totals.monthly)} / month` : ""}.
             Take a look and approve it to send.
           </p>
           <p style="margin:20px 0 0;">
@@ -90,6 +106,10 @@ function reviewEmailHtml(title: string, clientName: string, quoteId: string, tot
         </div>`;
 }
 
+// Subject is a raw email HEADER, never HTML-rendered by a mail client — an
+// escaped "&amp;" would show up literally in the inbox subject line instead
+// of "&". validateBody's control-character rejection and 200-char cap (see
+// api-input.ts) are what keep a raw title safe here, not HTML-escaping.
 function sentEmailSubject(quoteNumber: string, title: string, isRevision: boolean): string {
   const heading = isRevision
     ? `Updated quote from Rocking — ${quoteNumber}`
@@ -123,10 +143,10 @@ function sentEmailHtml(
     : "";
   return `
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
-          <h2 style="margin:0 0 8px;">${heading}</h2>
+          <h2 style="margin:0 0 8px;">${escapeHtml(heading)}</h2>
           <p style="color:#444; margin:0 0 16px;">
             ${isRevision ? "We've revised a quote for you" : "We've prepared a quote for you"}:
-            <strong>${title}</strong> — ${fmtMoney(grandTotal)} incl VAT${monthlyTotal != null ? ` + ${fmtMoney(monthlyTotal)} / month` : ""}.
+            <strong>${escapeHtml(title)}</strong> — ${fmtMoney(grandTotal)} incl VAT${monthlyTotal != null ? ` + ${fmtMoney(monthlyTotal)} / month` : ""}.
             You can review it, print it, and accept or decline online.
           </p>
           <p style="margin:20px 0 0;">
@@ -147,7 +167,7 @@ function doubleSendAlertHtml(quoteNumber: string, title: string, quoteId: string
         <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px;">
           <h2 style="margin:0 0 8px;">Quote ${quoteNumber} sent but not recorded</h2>
           <p style="color:#444; margin:0 0 16px;">
-            <strong>${title}</strong> was delivered to the client, but recording that in
+            <strong>${escapeHtml(title)}</strong> was delivered to the client, but recording that in
             quote_events failed. The quote now reads as unconfirmed, so the next retry
             (automatic or manual) would email the client a second copy. Please check
             before it's retried.

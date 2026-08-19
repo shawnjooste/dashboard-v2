@@ -284,6 +284,26 @@ describe("send happy path", () => {
     expect(quoteEventUpdates[0]).toMatchObject({ resend_message_id: "<mock-id@send.rocking.one>" });
   });
 
+  it("HTML-escapes a caller-supplied title in the email BODY, but leaves the raw title in the subject header (subjects are never HTML-rendered)", async () => {
+    const { sb } = sbForSend({
+      quote: { status: "draft", title: `<a href="x">Click me</a>` },
+      sentMessageId: undefined,
+    });
+    const res = await makeQuoteService(sb).send("q1", sender);
+    expect(res.ok).toBe(true);
+
+    expect(deliverEmailMock).toHaveBeenCalledTimes(1);
+    const [, sentOpts] = deliverEmailMock.mock.calls[0];
+    expect(sentOpts.html).not.toContain('<a href="x">Click me</a>');
+    expect(sentOpts.html).toContain("&lt;a href=&quot;x&quot;&gt;Click me&lt;/a&gt;");
+    // The subject is a raw header, not HTML — escaping it would show the
+    // literal entities ("&amp;") in the customer's inbox. validateBody's
+    // control-character rejection and 200-char cap are what keep a raw
+    // title safe here, not HTML-escaping.
+    expect(sentOpts.subject).toContain('<a href="x">Click me</a>');
+    expect(sentOpts.subject).not.toContain("&lt;a href=&quot;x&quot;&gt;Click me&lt;/a&gt;");
+  });
+
   it("refuses to send from a status the client has already acted on", async () => {
     const { sb } = sbForSend({ quote: { status: "accepted" }, sentMessageId: null });
     const res = await makeQuoteService(sb).send("q1", sender);
