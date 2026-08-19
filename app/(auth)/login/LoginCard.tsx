@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import logo from "@/public/rocking-logo.png";
 import { requestCode, verifyCode, type ActionState } from "./actions";
 
 const initial: ActionState = {};
@@ -30,16 +28,11 @@ export function LoginCard({ linkError, next }: { linkError?: boolean; next?: str
     "w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-base md:text-sm text-ink outline-none transition-colors focus:border-faint";
 
   return (
-    <div className="w-full max-w-[400px] overflow-hidden rounded-2xl border border-line bg-card shadow-[0_18px_48px_rgba(24,24,27,0.08)]">
-      <div className="h-1 bg-brand" />
-      <div className="px-8 pb-7 pt-8">
-        <div className="mb-7 flex flex-col items-center">
-          <Image src={logo} alt="Rocking" width={150} height={29} priority className="h-[29px] w-auto" />
-          <span className="mt-2 text-[11px] font-semibold uppercase tracking-[2px] text-faint">The Portal</span>
-        </div>
-
-        <h1 className="text-center text-xl font-bold text-ink">Sign in</h1>
-        <p className="mx-auto mt-1.5 max-w-[19rem] text-center text-[13.5px] leading-relaxed text-muted">
+    // The login page owns the logo and page chrome; this is just the form.
+    <div className="w-full max-w-[360px]">
+      <div>
+        <h1 className="text-xl font-bold text-ink">Sign in</h1>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">
           {!sent
             ? "Enter your email and we'll send you a 6-digit sign-in code."
             : "Enter the 6-digit code we just emailed you."}
@@ -106,9 +99,9 @@ export function LoginCard({ linkError, next }: { linkError?: boolean; next?: str
         )}
       </div>
 
-      <div className="border-t border-line-soft px-8 py-3.5 text-center text-[12px] text-faint">
+      <p className="mt-7 border-t border-line-soft pt-3.5 text-[12px] text-faint">
         Passwordless · no password to remember
-      </div>
+      </p>
     </div>
   );
 }
